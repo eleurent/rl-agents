@@ -1,3 +1,6 @@
 *.pyc
 *.h5
 *tmp*
+
+.idea*
+.cache*
