@@ -42,7 +42,7 @@ class DQN:
                 # Fit the model on this batch.
                 if minibatch:
                     X_train, y_train = self.process_minibatch(minibatch)
-                    self.model.fit(X_train, y_train, batch_size=self.config['batchSize'], nb_epoch=1, verbose=0)
+                    self.model.fit(X_train, y_train, batch_size=self.config['batchSize'], epochs=1, verbose=0)
 
             # End of episode
             if score > max_score:
@@ -117,17 +117,17 @@ class DQN:
         layers = self.config["neuralNet"]
 
         # First layer
-        self.model.add(Dense(layers[1], init='lecun_uniform', input_shape=(layers[0],)))
+        self.model.add(Dense(layers[1], kernel_initializer='lecun_uniform', input_shape=(layers[0],)))
         self.model.add(Activation('tanh'))
         self.model.add(Dropout(0.2))
 
         for layer in layers[2:-1]:
-            self.model.add(Dense(layer, init='lecun_uniform'))
+            self.model.add(Dense(layer, kernel_initializer='lecun_uniform'))
             self.model.add(Activation('tanh'))
             self.model.add(Dropout(0.2))
 
         # Output layer
-        self.model.add(Dense(layers[-1], init='lecun_uniform'))
+        self.model.add(Dense(layers[-1], kernel_initializer='lecun_uniform'))
         self.model.add(Activation('linear'))
 
         optim = Adam(lr=5e-4)

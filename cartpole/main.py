@@ -1,17 +1,18 @@
 import gym
 from gym import wrappers
 
-# from cartpole.dqn import DQN
+from cartpole.dqn import DQN
 from cartpole.linear import LinearAgent
 
+
 def make_env():
-    # envname = 'MountainCar-v0'
     envname = 'CartPole-v0'
     env = gym.make(envname)
     env = wrappers.Monitor(env, 'tmp/' + envname, force=True)
     return env
 
-def test_dqn():
+
+def run_dqn():
     config = {
         "neuralNet": [100, 100],
         "memory": 50000,
@@ -21,11 +22,11 @@ def test_dqn():
         "epsilon": [1.0, 0.01],
         "tau": 6000,
     }
-    # agent = DQN(make_env(), config)
-    # agent.train()
+    agent = DQN(make_env(), config)
+    agent.train()
 
 
-def test_linear():
+def run_linear():
     env = make_env()
     config = {}
     agent = LinearAgent(env, config)
@@ -34,4 +35,4 @@ def test_linear():
 
 
 if __name__ == "__main__":
-    test_linear()
+    run_dqn()
