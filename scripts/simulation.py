@@ -38,7 +38,7 @@ class Simulation:
             print("Episode {} score: {} (max {})".format(episode, total_reward, max_total_reward))
 
             self.display()
-            # self.agent.display()
+            self.agent.display()
 
     def display(self):
         self.plot_rewards()
