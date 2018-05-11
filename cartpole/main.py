@@ -1,5 +1,6 @@
 import gym
 from gym import wrappers
+import numpy as np
 
 from cartpole.dqn import DQN
 from cartpole.linear import LinearAgent
@@ -28,7 +29,9 @@ def run_dqn():
 
 def run_linear():
     env = make_env()
-    config = {}
+    config = {
+        'K': np.array([[1, 20, 20, 30]])
+    }
     agent = LinearAgent(env, config)
     agent.test()
     env.close()
