@@ -36,8 +36,7 @@ class ExplorationPolicy(object):
     def epsilon_greedy(self, optimal_action, action_space):
         sample = np.random.random()
         epsilon = self.config['epsilon'][1] + (self.config['epsilon'][0] - self.config['epsilon'][1]) * \
-            np.exp(-1. * self.steps_done / self.config['epsilon_tau'])
-        # self.epsilon -= (self.config['epsilon'][0] - self.config['epsilon'][1]) / self.config['tau']
+            np.exp(-2. * self.steps_done / self.config['epsilon_tau'])
         self.steps_done += 1
         if sample > epsilon:
             return optimal_action

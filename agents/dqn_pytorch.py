@@ -19,18 +19,20 @@ Tensor = FloatTensor
 
 
 class Network(nn.Module):
-    def __init__(self):
+    def __init__(self, config):
         super(Network, self).__init__()
-        self.lin1 = nn.Linear(4, 16)
-        # self.bn1 = nn.BatchNorm1d(16)
-        self.lin2 = nn.Linear(16, 16)
-        # self.bn2 = nn.BatchNorm1d(16)
-        self.head = nn.Linear(16, 2)
+        self.lin1 = nn.Linear(config['layers'][0], config['layers'][1])
+        self.d1 = nn.Dropout(p=0.2)
+        self.lin2 = nn.Linear(config['layers'][1], config['layers'][2])
+        self.d2 = nn.Dropout(p=0.2)
+        self.lin3 = nn.Linear(config['layers'][2], config['layers'][3])
 
     def forward(self, x):
-        x = functional.relu(self.lin1(x))
-        x = functional.relu(self.lin2(x))
-        return self.head(x)
+        x = functional.tanh(self.lin1(x))
+        # x = self.d1(x)
+        x = functional.tanh(self.lin2(x))
+        # x = self.d2(x)
+        return self.lin3(x)
 
 
 class DqnPytorchAgent(object):
@@ -44,8 +46,11 @@ class DqnPytorchAgent(object):
     def __init__(self, env, config):
         self.env = env
         self.config = config
-        self.policy_net = Network()
-        self.target_net = Network()
+        self.config["num_states"] = env.observation_space.shape[0]
+        self.config["num_actions"] = env.action_space.n
+        self.config["layers"] = [self.config["num_states"]] + self.config["layers"] + [self.config["num_actions"]]
+        self.policy_net = Network(config)
+        self.target_net = Network(config)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
         if use_cuda:
@@ -53,7 +58,7 @@ class DqnPytorchAgent(object):
             self.target_net.cuda()
 
         # self.optimizer = optim.RMSprop(self.policy_net.parameters())
-        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=5e-4)
         self.memory = ReplayMemory(config)
         self.exploration_policy = ExplorationPolicy(config)
         self.steps = 0

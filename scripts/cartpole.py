@@ -31,12 +31,12 @@ def dqn_keras(env):
 def dqn_pytorch(env):
     config = {
         "layers": [100, 100],
-        "memory_capacity": 10000,
-        "batch_size": 32,
-        "gamma": 0.95,
-        "epsilon": [0.9, 0.05],
+        "memory_capacity": 50000,
+        "batch_size": 100,
+        "gamma": 0.99,
+        "epsilon": [1.0, 0.01],
         "epsilon_tau": 6000,
-        "target_update": 10
+        "target_update": 1
     }
     return DqnPytorchAgent(env, config)
 
@@ -50,7 +50,7 @@ def linear(env):
 
 if __name__ == "__main__":
     env = make_env()
-    agent = dqn_keras(env)
+    agent = dqn_pytorch(env)
     sim = Simulation(env, agent, episodes=2000)
     sim.train()
 
