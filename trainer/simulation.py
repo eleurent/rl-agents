@@ -7,7 +7,7 @@ class Simulation:
         self.env = env
         self.agent = agent
         self.episodes = episodes
-        self.rewards = []
+        self.reward_viewer = RewardViewer()
 
     def train(self):
         """
@@ -32,18 +32,21 @@ class Simulation:
                 self.agent.record(prev_state, action, reward, state, done)
 
             # End of episode
-            self.rewards.append(total_reward)
-            if total_reward > max_total_reward:
-                max_total_reward = total_reward
-            print("Episode {} score: {} (max {})".format(episode, total_reward, max_total_reward))
-
-            self.display()
+            self.reward_viewer.update(total_reward)
             self.agent.display()
+            print("Episode {} score: {}".format(episode, total_reward))
+
+
+class RewardViewer(object):
+    def __init__(self):
+        self.rewards = []
+        plt.ion()
+
+    def update(self, reward):
+        self.rewards.append(reward)
+        self.display()
 
     def display(self):
-        self.plot_rewards()
-
-    def plot_rewards(self):
         plt.figure(num='Rewards')
         plt.clf()
         plt.title('Total reward')
@@ -56,6 +59,7 @@ class Simulation:
             means = np.hstack((np.zeros((100,)), np.convolve(self.rewards, np.ones((100,)) / 100, mode='valid')))
             plt.plot(means)
         else:
-            plt.plot(0 * self.rewards)
+            plt.plot(np.zeros(np.shape(self.rewards)))
 
         plt.pause(0.001)
+        plt.draw()

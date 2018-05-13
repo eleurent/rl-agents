@@ -55,6 +55,7 @@ class ValueFunctionViewer(object):
 
     def display(self):
         if not self.figure:
+            plt.ion()
             self.figure = plt.figure('Value function')
             gs = gridspec.GridSpec(2, 2)
             self.axes.append(plt.subplot(gs[0, :]))

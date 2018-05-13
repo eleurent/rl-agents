@@ -5,7 +5,7 @@ import numpy as np
 from agents.dqn_keras import DqnKerasAgent
 from agents.dqn_pytorch import DqnPytorchAgent
 from agents.linear import LinearAgent
-from scripts.simulation import Simulation
+from trainer.simulation import Simulation
 
 
 def make_env():
@@ -51,6 +51,6 @@ def linear(env):
 if __name__ == "__main__":
     env = make_env()
     agent = dqn_pytorch(env)
-    sim = Simulation(env, agent, episodes=2000)
+    sim = Simulation(env, agent, episodes=200)
     sim.train()
 
