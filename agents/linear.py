@@ -1,18 +1,14 @@
 import numpy as np
+from agents.abstract import AbstractAgent
 
-class LinearAgent(object):
+
+class LinearAgent(AbstractAgent):
     def __init__(self, env, config):
         self.env = env
         self.config = config
 
-    def test(self, num_episodes=3):
-        for _ in range(num_episodes):
-            done = False
-            observation = self.env.reset()
-            while not done:
-                action = self.act(observation)
-                observation, reward, done, _ = self.env.step(action)
-                self.env.render()
+    def record(self, state, action, reward, next_state, done):
+        pass
 
     def act(self, observation):
         u = np.dot(self.config['K'], -observation)

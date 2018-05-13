@@ -47,8 +47,9 @@ class ExplorationPolicy(object):
 
 
 class ValueFunctionViewer(object):
-    def __init__(self, agent):
+    def __init__(self, agent, state_sampler):
         self.agent = agent
+        self.state_sampler = state_sampler
         self.values_history = np.array([])
         self.figure = None
         self.axes = []
@@ -62,7 +63,7 @@ class ValueFunctionViewer(object):
             self.axes.append(plt.subplot(gs[1, 0]))
             self.axes.append(plt.subplot(gs[1, 1]))
 
-            xx, _, _ = self.states_mesh()
+            xx, _, _ = self.state_sampler.states_mesh()
             cax1 = self.axes[1].imshow(xx)
             cax2 = self.axes[2].imshow(xx)
             self.figure.colorbar(cax1, ax=self.axes[1])
@@ -72,7 +73,7 @@ class ValueFunctionViewer(object):
         self.plot_value_map()
 
     def plot_value_map(self):
-        xx, yy, states = self.states_mesh()
+        xx, yy, states = self.state_sampler.states_mesh()
         values, actions = self.agent.states_to_values(states)
         values, actions = np.reshape(values, np.shape(xx)), np.reshape(actions, np.shape(xx))
 
@@ -84,7 +85,7 @@ class ValueFunctionViewer(object):
         plt.draw()
 
     def plot_values(self):
-        states = self.states_list()
+        states = self.state_sampler.states_list()
         values, _ = self.agent.states_to_values(states)
         self.values_history = np.vstack((self.values_history, values)) if self.values_history.size else values
 
@@ -94,16 +95,3 @@ class ValueFunctionViewer(object):
         self.axes[0].plot(self.values_history)
         plt.pause(0.001)
         plt.draw()
-
-    def states_mesh(self):
-        # TODO env-specific instead of cartpole
-        xx, yy = np.meshgrid(np.linspace(-1, 1, 15), np.linspace(-1, 1, 15))
-        xf = np.reshape(xx, (np.size(xx), 1))
-        yf = np.reshape(yy, (np.size(yy), 1))
-        states = np.hstack((2 * xf, 2 * xf, yf * 12 * np.pi / 180, yf))
-        return xx, yy, states
-
-    def states_list(self):
-        return np.array([[0, 0, 0, 0],
-                         [-0.08936051, -0.37169457, 0.20398587, 1.03234316],
-                         [0.10718797, 0.97770614, -0.20473761, -1.6631015]])

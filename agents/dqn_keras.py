@@ -4,10 +4,11 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout
 from keras.optimizers import RMSprop, Adam
 
+from agents.abstract import AbstractAgent
 from agents.utils import ReplayMemory, ExplorationPolicy
 
 
-class DqnKerasAgent(object):
+class DqnKerasAgent(AbstractAgent):
     def __init__(self, env, config):
         self.env = env
         self.config = config
@@ -30,7 +31,7 @@ class DqnKerasAgent(object):
             X_train, y_train = self.process_minibatch(minibatch)
             self.model.fit(X_train, y_train, batch_size=self.config['batch_size'], epochs=1, verbose=0)
 
-    def pick_action(self, state):
+    def act(self, state):
         """
             Pick an action with an epsilon-greedy policy
         """

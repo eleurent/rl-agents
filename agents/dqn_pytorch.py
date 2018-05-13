@@ -8,6 +8,7 @@ import torch.optim as optim
 import torch.nn.functional as functional
 from torch.autograd import Variable
 
+from agents.abstract import AbstractAgent
 from agents.utils import Transition, ReplayMemory, ExplorationPolicy, ValueFunctionViewer
 
 # if gpu is to be used
@@ -35,7 +36,7 @@ class Network(nn.Module):
         return self.lin3(x)
 
 
-class DqnPytorchAgent(object):
+class DqnPytorchAgent(AbstractAgent):
     BATCH_SIZE = 32
     GAMMA = 0.95
     EPS_START = 0.9
@@ -63,9 +64,7 @@ class DqnPytorchAgent(object):
         self.exploration_policy = ExplorationPolicy(config)
         self.steps = 0
 
-        self.viewer = ValueFunctionViewer(self)
-
-    def pick_action(self, state):
+    def act(self, state):
         _, optimal_action = self.state_to_value(state)
         return self.exploration_policy.epsilon_greedy(optimal_action, self.env.action_space)
 
@@ -73,9 +72,6 @@ class DqnPytorchAgent(object):
         # Store the transition in memory
         self.memory.push(Tensor([state]), action, reward, Tensor([next_state]), done)
         self.optimize_model()
-
-    def display(self):
-        self.viewer.display()
 
     def optimize_model(self):
         if len(self.memory) < self.config['batch_size']:

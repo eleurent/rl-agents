@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 
 
 class Simulation:
-    def __init__(self, env, agent, episodes):
+    def __init__(self, env, agent, num_episodes=1000, agent_viewer=None):
         self.env = env
         self.agent = agent
-        self.episodes = episodes
+        self.num_episodes = num_episodes
+        self.agent_viewer = agent_viewer
         self.reward_viewer = RewardViewer()
 
     def train(self):
@@ -14,26 +15,31 @@ class Simulation:
             Train the model to take actions in an environment
             and maximize its rewards
         """
-        max_total_reward = -float('inf')
-
-        for episode in range(self.episodes):
+        state = self.env.reset()
+        mins = np.copy(state)
+        maxs = np.copy(state)
+        for episode in range(self.num_episodes):
             state = self.env.reset()
             total_reward = 0
             done = False
             while not done:
                 self.env.render()
                 # Take action.
-                action = self.agent.pick_action(state)
+                action = self.agent.act(state)
                 # Step environment.
                 prev_state = state
                 state, reward, done, info = self.env.step(action)
                 total_reward += reward
                 # Record the experience.
                 self.agent.record(prev_state, action, reward, state, done)
+                mins = np.minimum(mins, state)
+                maxs = np.maximum(maxs, state)
+                print(state, mins, maxs)
+
 
             # End of episode
             self.reward_viewer.update(total_reward)
-            self.agent.display()
+            self.agent_viewer.display()
             print("Episode {} score: {}".format(episode, total_reward))
 
 
