@@ -64,6 +64,8 @@ class DqnPytorchAgent(AbstractAgent):
         self.exploration_policy = ExplorationPolicy(config)
         self.steps = 0
 
+        self.load()
+
     def act(self, state):
         _, optimal_action = self.state_to_value(state)
         return self.exploration_policy.epsilon_greedy(optimal_action, self.env.action_space)
@@ -119,6 +121,21 @@ class DqnPytorchAgent(AbstractAgent):
         self.steps += 1
         if self.steps % self.config['target_update'] == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
+
+    def load(self):
+        checkpoint = torch.load('tmp/latest.tar')
+        self.policy_net.load_state_dict(checkpoint['state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer'])
+
+    def save(self, episode):
+        filename = 'tmp/checkpoint-' + str(episode) + '.tar'
+        state = {
+                    'episode': episode + 1,
+                    'state_dict': self.policy_net.state_dict(),
+                    'optimizer': self.optimizer.state_dict(),
+                }
+        torch.save(state, filename)
+        torch.save(state, 'tmp/latest.tar')
 
     def state_to_value(self, state):
         value, action = self.policy_net(Variable(Tensor([state]))).max(1)
