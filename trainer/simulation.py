@@ -35,7 +35,6 @@ class Simulation:
             # End of episode
             self.reward_viewer.update(total_reward)
             if episode % RENDER_EPISODE == 0:
-                print("render", episode, RENDER_EPISODE)
                 if self.agent_viewer:
                     self.agent_viewer.display()
             print("Episode {} score: {}".format(episode, total_reward))
