@@ -55,6 +55,8 @@ class ValueFunctionViewer(object):
         self.axes = []
 
     def display(self):
+        if not self.state_sampler:
+            return
         if not self.figure:
             plt.ion()
             self.figure = plt.figure('Value function')

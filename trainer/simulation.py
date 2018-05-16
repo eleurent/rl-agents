@@ -15,15 +15,14 @@ class Simulation:
             Train the model to take actions in an environment
             and maximize its rewards
         """
-        state = self.env.reset()
-        mins = np.copy(state)
-        maxs = np.copy(state)
+        RENDER_EPISODE = 50
         for episode in range(self.num_episodes):
             state = self.env.reset()
             total_reward = 0
             done = False
             while not done:
-                self.env.render()
+                if episode % RENDER_EPISODE == 0:
+                    self.env.render()
                 # Take action.
                 action = self.agent.act(state)
                 # Step environment.
@@ -32,14 +31,13 @@ class Simulation:
                 total_reward += reward
                 # Record the experience.
                 self.agent.record(prev_state, action, reward, state, done)
-                mins = np.minimum(mins, state)
-                maxs = np.maximum(maxs, state)
-                print(state, mins, maxs)
-
 
             # End of episode
             self.reward_viewer.update(total_reward)
-            self.agent_viewer.display()
+            if episode % RENDER_EPISODE == 0:
+                print("render", episode, RENDER_EPISODE)
+                if self.agent_viewer:
+                    self.agent_viewer.display()
             print("Episode {} score: {}".format(episode, total_reward))
 
 
