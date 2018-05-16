@@ -55,3 +55,22 @@ class MountainCarStateSampler(AbstractStateSampler):
                          [-1.2, 0],  # Left side
                          [-0.5, 0.06],  # Bottom with forward velocity
                          [0.5, 0.04]])  # Goal
+
+
+class ObstacleStateSampler(AbstractStateSampler):
+    def __init__(self, resolution=15):
+        self.resolution = resolution
+
+    def states_mesh(self):
+        xx, yy = np.meshgrid(np.linspace(-1, 1, self.resolution), np.linspace(-1, 1, self.resolution))
+        xf = np.reshape(xx, (np.size(xx), 1))
+        yf = np.reshape(yy, (np.size(yy), 1))
+        o = np.ones(np.shape(xf))
+        states = np.hstack((1/2+xf/2, 1/2+yf/2, 0*o, 1*o, 0.1+1/2-xf/2, o, 0.1+1/2-xf/2, o, o, o, o, o))
+        return xx, yy, states
+
+    def states_list(self):
+        return np.array([[1., 0., 1., 0., 1., 1., 1., 1., 1., 1., 1., 1.],  # Far
+                         [1., 0., 1., 0., 0.6, 1., 1., 1., 1., 1., 1., 1.],  #
+                         [1., 0., 1., 0., 0.3, 1., 1., 1., 1., 1., 1., 1.],  #
+                         [1., 0., 1., 0., 0.1, 1., 1., 1., 1., 1., 1., 1.]])  # Close
