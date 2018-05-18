@@ -1,17 +1,17 @@
 import gym
-from gym import wrappers
 
-from rl_agents.agents import DqnKerasAgent
-from rl_agents.agents.dqn_pytorch import DqnPytorchAgent
-from rl_agents.agents import ValueFunctionViewer
+from rl_agents.agents.dqn.dqn_keras import DqnKerasAgent
+from rl_agents.agents.dqn.dqn_pytorch import DqnPytorchAgent
+from rl_agents.agents.dqn.graphics import ValueFunctionViewer
 from rl_agents.trainer.simulation import Simulation
 from rl_agents.trainer.state_sampler import MountainCarStateSampler
+from rl_agents.wrappers.monitor import MonitorV2
 
 
 def make_env():
     env_name = 'MountainCar-v0'
     env = gym.make(env_name)
-    env = wrappers.Monitor(env, 'tmp/' + env_name, force=True)
+    env = MonitorV2(env, 'out/' + env_name)
     sampler = MountainCarStateSampler()
     return env, sampler
 

@@ -3,8 +3,9 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout
 from keras.optimizers import Adam
 
-from rl_agents.agents import AbstractAgent
-from rl_agents.agents import ReplayMemory, ExplorationPolicy
+from rl_agents.agents.abstract import AbstractAgent
+from rl_agents.agents.utils import ReplayMemory
+from rl_agents.agents.exploration.exploration import ExplorationPolicy
 
 
 class DqnKerasAgent(AbstractAgent):

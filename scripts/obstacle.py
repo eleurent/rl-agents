@@ -1,18 +1,18 @@
 import gym
-from gym import wrappers
-from rl_agents.wrappers import MonitorV2
+import obstacle_env
 
-from rl_agents.agents import DqnKerasAgent
-from rl_agents.agents.dqn_pytorch import DqnPytorchAgent
-from rl_agents.agents import ValueFunctionViewer
+from rl_agents.agents.dqn.dqn_keras import DqnKerasAgent
+from rl_agents.agents.dqn.dqn_pytorch import DqnPytorchAgent
+from rl_agents.agents.dqn.graphics import ValueFunctionViewer
 from rl_agents.trainer.simulation import Simulation
 from rl_agents.trainer.state_sampler import ObstacleStateSampler
+from rl_agents.wrappers.monitor import MonitorV2
 
 
 def make_env():
     env_name = 'obstacle-v0'
     env = gym.make(env_name)
-    env = MonitorV2(env, 'tmp/' + env_name, video_callable=wrappers.monitor.capped_cubic_video_schedule)
+    env = MonitorV2(env, 'out/' + env_name)
     sampler = ObstacleStateSampler()
     return env, sampler
 
@@ -31,15 +31,6 @@ def dqn_keras(env):
 
 
 def dqn_pytorch(env):
-    config = {
-        "layers": [256, 256],
-        "memory_capacity": 50000*5,
-        "batch_size": 200,
-        "gamma": 0.9,
-        "epsilon": [1.0, 0.01],
-        "epsilon_tau": 50000*5,
-        "target_update": 100
-    }
     config = {
         "layers": [100, 100],
         "memory_capacity": 50000,

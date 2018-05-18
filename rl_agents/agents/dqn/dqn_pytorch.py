@@ -4,8 +4,9 @@ import torch.optim as optim
 import torch.nn.functional as functional
 from torch.autograd import Variable
 
-from rl_agents.agents import AbstractAgent
-from rl_agents.agents import Transition, ReplayMemory, ExplorationPolicy
+from rl_agents.agents.abstract import AbstractAgent
+from rl_agents.agents.utils import Transition, ReplayMemory
+from rl_agents.agents.exploration.exploration import ExplorationPolicy
 
 # if gpu is to be used
 use_cuda = torch.cuda.is_available()
