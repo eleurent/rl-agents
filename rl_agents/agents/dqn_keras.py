@@ -1,11 +1,10 @@
 import numpy as np
-import random
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout
-from keras.optimizers import RMSprop, Adam
+from keras.optimizers import Adam
 
-from agents.abstract import AbstractAgent
-from agents.utils import ReplayMemory, ExplorationPolicy
+from rl_agents.agents import AbstractAgent
+from rl_agents.agents import ReplayMemory, ExplorationPolicy
 
 
 class DqnKerasAgent(AbstractAgent):

@@ -1,15 +1,11 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from itertools import count
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as functional
 from torch.autograd import Variable
 
-from agents.abstract import AbstractAgent
-from agents.utils import Transition, ReplayMemory, ExplorationPolicy, ValueFunctionViewer
+from rl_agents.agents import AbstractAgent
+from rl_agents.agents import Transition, ReplayMemory, ExplorationPolicy
 
 # if gpu is to be used
 use_cuda = torch.cuda.is_available()

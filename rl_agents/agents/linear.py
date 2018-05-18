@@ -1,5 +1,5 @@
 import numpy as np
-from agents.abstract import AbstractAgent
+from rl_agents.agents import AbstractAgent
 
 
 class LinearAgent(AbstractAgent):

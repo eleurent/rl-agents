@@ -1,13 +1,11 @@
 import gym
 from gym import wrappers
-import numpy as np
 
-from agents.dqn_keras import DqnKerasAgent
-from agents.dqn_pytorch import DqnPytorchAgent
-from agents.linear import LinearAgent
-from agents.utils import ValueFunctionViewer
-from trainer.simulation import Simulation
-from trainer.state_sampler import MountainCarStateSampler
+from rl_agents.agents import DqnKerasAgent
+from rl_agents.agents.dqn_pytorch import DqnPytorchAgent
+from rl_agents.agents import ValueFunctionViewer
+from rl_agents.trainer.simulation import Simulation
+from rl_agents.trainer.state_sampler import MountainCarStateSampler
 
 
 def make_env():
