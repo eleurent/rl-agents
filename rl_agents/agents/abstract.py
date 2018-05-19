@@ -25,8 +25,8 @@ class AbstractAgent(object):
         """
             Pick an action
 
-        :param state: the current state
-        :return: the action
+        :param state: s, the current state of the agent
+        :return: a, the action to perform
         """
         raise NotImplementedError()
 
@@ -35,8 +35,8 @@ class AbstractAgent(object):
         """
             Plan an optimal trajectory from an initial state.
 
-        :param state: the initial state
-        :return: the optimal sequence of actions [a0, a1, a2...]
+        :param state: s, the initial state of the agent
+        :return: [a0, a1, a2...], a sequence of actions to perform
         """
         raise NotImplementedError()
 
@@ -51,7 +51,23 @@ class AbstractAgent(object):
     def seed(self, seed=None):
         """
             Seed the agent's random number generator
-        :param seed: the seed to be used
+        :param seed: the seed to be used to generate random numbers
         :return: the used seed
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def save(self, filename):
+        """
+            Save the model parameters to a file
+        :param str filename: the path of the file to save the model parameters in
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def load(self, filename):
+        """
+            Load the model parameters from a file
+        :param str filename: the path of the file to load the model parameters from
         """
         raise NotImplementedError()

@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
 
-from rl_agents.wrappers.monitor import MonitorV2
+from rl_agents.trainer.monitor import MonitorV2
 
 
 class RunAnalyzer(object):

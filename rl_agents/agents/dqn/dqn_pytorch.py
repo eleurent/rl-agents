@@ -34,13 +34,6 @@ class Network(nn.Module):
 
 
 class DqnPytorchAgent(AbstractAgent):
-    BATCH_SIZE = 32
-    GAMMA = 0.95
-    EPS_START = 0.9
-    EPS_END = 0.05
-    EPS_DECAY = 20*200
-    TARGET_UPDATE = 10
-
     def __init__(self, env, config):
         self.env = env
         self.config = config
@@ -60,8 +53,6 @@ class DqnPytorchAgent(AbstractAgent):
         self.memory = ReplayMemory(config)
         self.exploration_policy = ExplorationPolicy(config)
         self.steps = 0
-
-        self.load()
 
     def act(self, state):
         _, optimal_action = self.state_to_value(state)
@@ -119,20 +110,25 @@ class DqnPytorchAgent(AbstractAgent):
         if self.steps % self.config['target_update'] == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
-    def load(self):
-        checkpoint = torch.load('tmp/latest.tar')
+    def save(self, episode, filename):
+        state = {'episode': episode + 1,
+                 'state_dict': self.policy_net.state_dict(),
+                 'optimizer': self.optimizer.state_dict()}
+        torch.save(state, filename)
+
+    def load(self, filename):
+        checkpoint = torch.load(filename)
         self.policy_net.load_state_dict(checkpoint['state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
 
-    def save(self, episode):
-        filename = 'tmp/checkpoint-' + str(episode) + '.tar'
-        state = {
-                    'episode': episode + 1,
-                    'state_dict': self.policy_net.state_dict(),
-                    'optimizer': self.optimizer.state_dict(),
-                }
-        torch.save(state, filename)
-        torch.save(state, 'tmp/latest.tar')
+    def seed(self, seed=None):
+        return self.exploration_policy.seed(seed)
+
+    def reset(self):
+        pass
+
+    def plan(self, state):
+        return [self.act(state)]
 
     def state_to_value(self, state):
         value, action = self.policy_net(Variable(Tensor([state]))).max(1)

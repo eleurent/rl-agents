@@ -71,6 +71,12 @@ class MonitorV2(Monitor):
         super(MonitorV2, self)._close_video_recorder()
         self.env.automatic_rendering_callback = None
 
+    def is_episode_selected(self):
+        """
+        :return: whether this episode was selected for rendering and model saving
+        """
+        return self._video_enabled()
+
     @staticmethod
     def always_call_video(i):
         return True

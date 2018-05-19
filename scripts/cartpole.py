@@ -7,18 +7,16 @@ from rl_agents.agents.dqn.dqn_pytorch import DqnPytorchAgent
 from rl_agents.agents.dqn.graphics import ValueFunctionViewer
 from rl_agents.trainer.simulation import Simulation
 from rl_agents.trainer.state_sampler import CartPoleStateSampler
-from rl_agents.wrappers.monitor import MonitorV2
 
 
 def make_env():
     env_name = 'CartPole-v0'
-    env = gym.make(env_name)
-    env = MonitorV2(env, 'out/' + env_name)
-    sampler = CartPoleStateSampler()
-    return env, sampler
+    environment = gym.make(env_name)
+    env_sampler = CartPoleStateSampler()
+    return environment, env_sampler
 
 
-def dqn_keras(env):
+def dqn_keras(environment):
     config = {
         "layers": [100, 100],
         "memory_capacity": 50000,
@@ -28,10 +26,10 @@ def dqn_keras(env):
         "epsilon_tau": 6000,
         "target_update": 1
     }
-    return DqnKerasAgent(env, config)
+    return DqnKerasAgent(environment, config)
 
 
-def dqn_pytorch(env):
+def dqn_pytorch(environment):
     config = {
         "layers": [100, 100],
         "memory_capacity": 50000,
@@ -41,17 +39,18 @@ def dqn_pytorch(env):
         "epsilon_tau": 6000,
         "target_update": 1
     }
-    return DqnPytorchAgent(env, config)
+    return DqnPytorchAgent(environment, config)
 
 
-def linear(env):
+def linear(environment):
     config = {
         'K': np.array([[1, 20, 20, 30]])
     }
-    return LinearAgent(env, config)
+    return LinearAgent(environment, config)
 
 
 if __name__ == "__main__":
+    gym.logger.set_level(gym.logger.INFO)
     env, sampler = make_env()
     agent = dqn_pytorch(env)
     agent_viewer = ValueFunctionViewer(agent, sampler)

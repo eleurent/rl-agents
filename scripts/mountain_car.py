@@ -5,13 +5,11 @@ from rl_agents.agents.dqn.dqn_pytorch import DqnPytorchAgent
 from rl_agents.agents.dqn.graphics import ValueFunctionViewer
 from rl_agents.trainer.simulation import Simulation
 from rl_agents.trainer.state_sampler import MountainCarStateSampler
-from rl_agents.wrappers.monitor import MonitorV2
 
 
 def make_env():
     env_name = 'MountainCar-v0'
     env = gym.make(env_name)
-    env = MonitorV2(env, 'out/' + env_name)
     sampler = MountainCarStateSampler()
     return env, sampler
 
@@ -43,9 +41,10 @@ def dqn_pytorch(env):
 
 
 if __name__ == "__main__":
+    gym.logger.set_level(gym.logger.INFO)
     env, sampler = make_env()
     agent = dqn_pytorch(env)
     agent_viewer = ValueFunctionViewer(agent, sampler)
     sim = Simulation(env, agent, num_episodes=300, agent_viewer=agent_viewer)
-    sim.train()
+    sim.training()
 
