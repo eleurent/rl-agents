@@ -115,7 +115,7 @@ class MCTS(object):
     """
        An implementation of Monte-Carlo Tree Search, with Upper Confidence Tree exploration.
     """
-    def __init__(self, prior_policy, rollout_policy, iterations, temperature, max_depth=7):
+    def __init__(self, prior_policy, rollout_policy, iterations, temperature, max_depth):
         """
             New MCTS instance.
 
@@ -258,22 +258,26 @@ class MCTSAgent(AbstractAgent):
         An agent that uses Monte Carlo Tree Search to plan a sequence of action in an MDP.
     """
     def __init__(self,
+                 env,
                  prior_policy=None,
                  rollout_policy=None,
                  iterations=75,
                  temperature=10,
+                 max_depth=7,
                  assume_vehicle_type=None):
         """
             A new MCTS agent.
         :param prior_policy: The prior distribution over actions given a state
         :param rollout_policy: The distribution over actions used when evaluating leaves
         :param iterations: the number of MCTS iterations
+        :param max_depth: the maximum planning horizon
         :param temperature: the temperature of exploration
         :param assume_vehicle_type: the model used to predict the vehicles behavior. If None, the true model is used.
         """
+        self.env = env
         prior_policy = prior_policy or MCTSAgent.fast_policy
         rollout_policy = rollout_policy or MCTSAgent.random_available_policy
-        self.mcts = MCTS(prior_policy, rollout_policy, iterations=iterations, temperature=temperature)
+        self.mcts = MCTS(prior_policy, rollout_policy, iterations, temperature, max_depth)
         self.assume_vehicle_type = assume_vehicle_type
         self.previous_action = None
 
@@ -290,7 +294,7 @@ class MCTSAgent(AbstractAgent):
 
         if self.assume_vehicle_type:
             state = MCTSAgent.change_agent_model(state, self.assume_vehicle_type)
-        actions = self.mcts.plan(state)
+        actions = self.mcts.plan(self.env)
         self.previous_action = actions[0]
         return actions
 
@@ -308,9 +312,9 @@ class MCTSAgent(AbstractAgent):
         :param state: the current MDP state
         :return: a list of action indexes and a list of their respective probabilities
         """
-        actions = state.get_actions()
+        actions = np.arange(state.action_space.n)
         probabilities = np.ones((len(actions))) / len(actions)
-        return list(actions.keys()), probabilities
+        return actions, probabilities
 
     @staticmethod
     def random_available_policy(state):
@@ -320,28 +324,34 @@ class MCTSAgent(AbstractAgent):
         :param state: the current MDP state
         :return: a list of action indexes and a list of their respective probabilities
         """
-        available_actions = state.get_available_actions()
+        if hasattr(state, 'get_available_actions'):
+            available_actions = state.get_available_actions()
+        else:
+            available_actions = np.arange(state.action_space.n)
         probabilities = np.ones((len(available_actions))) / len(available_actions)
         return available_actions, probabilities
 
     @staticmethod
-    def preference_policy(state, action_label, ratio=2):
+    def preference_policy(state, action_index, ratio=2):
         """
             Choose actions with a distribution over currently available actions that favors a preferred action.
 
             The preferred action probability is higher than others with a given ratio, and the distribution is uniform
             over the non-preferred available actions.
         :param state: the current state
-        :param action_label: the label of the preferred action
+        :param action_index: the label of the preferred action
         :param ratio: the ratio between the preferred action probability and the other available actions probabilities
         :return: a list of action indexes and a list of their respective probabilities
         """
-        allowed_actions = state.get_available_actions()
-        for i in range(len(allowed_actions)):
-            if state.ACTIONS[allowed_actions[i]] == action_label:
-                probabilities = np.ones((len(allowed_actions))) / (len(allowed_actions) - 1 + ratio)
+        if hasattr(state, 'get_available_actions'):
+            available_actions = state.get_available_actions()
+        else:
+            available_actions = np.arange(state.action_space.n)
+        for i in range(len(available_actions)):
+            if available_actions[i] == action_index:
+                probabilities = np.ones((len(available_actions))) / (len(available_actions) - 1 + ratio)
                 probabilities[i] *= ratio
-                return allowed_actions, probabilities
+                return available_actions, probabilities
         return MCTSAgent.random_available_policy(state)
 
     @staticmethod
@@ -352,7 +362,7 @@ class MCTSAgent(AbstractAgent):
         :param state: the current state
         :return: a list of action indexes and a list of their respective probabilities
         """
-        return MCTSAgent.preference_policy(state, 'FASTER')
+        return MCTSAgent.preference_policy(state, 3)
 
     @staticmethod
     def idle_policy(state):
@@ -362,7 +372,7 @@ class MCTSAgent(AbstractAgent):
         :param state: the current state
         :return: a list of action indexes and a list of their respective probabilities
         """
-        return MCTSAgent.preference_policy(state, 'IDLE')
+        return MCTSAgent.preference_policy(state, 0)
 
     @staticmethod
     def change_agent_model(state, agent_type):
@@ -426,3 +436,15 @@ class RobustMCTSAgent(AbstractAgent):
             seeds = agent.seed(seed)
             seed = seeds[0]
         return seed
+
+    def record(self, state, action, reward, next_state, done):
+        raise NotImplementedError()
+
+    def act(self, state):
+        return self.plan(state)[0]
+
+    def save(self, filename):
+        raise NotImplementedError()
+
+    def load(self, filename):
+        raise NotImplementedError()

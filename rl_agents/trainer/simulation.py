@@ -105,7 +105,10 @@ class Simulation:
 
         # Record the experience.
         if self.training:
-            self.agent.record(previous_observation, action, reward, self.observation, terminal)
+            try:
+                self.agent.record(previous_observation, action, reward, self.observation, terminal)
+            except NotImplementedError:
+                pass
 
         return reward, terminal
 
@@ -130,8 +133,8 @@ class Simulation:
         if do_save:
             episode_path = os.path.join(folder, "checkpoint-{}.tar".format(episode))
             try:
-                self.agent.save(episode, filename=episode_path)
-                self.agent.save(episode, filename=os.path.join(folder, "latest.tar"))
+                self.agent.save(filename=episode_path)
+                self.agent.save(filename=os.path.join(folder, "latest.tar"))
             except NotImplementedError:
                 pass
             else:

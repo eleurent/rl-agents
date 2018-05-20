@@ -110,9 +110,8 @@ class DqnPytorchAgent(AbstractAgent):
         if self.steps % self.config['target_update'] == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
-    def save(self, episode, filename):
-        state = {'episode': episode + 1,
-                 'state_dict': self.policy_net.state_dict(),
+    def save(self, filename):
+        state = {'state_dict': self.policy_net.state_dict(),
                  'optimizer': self.optimizer.state_dict()}
         torch.save(state, filename)
 
