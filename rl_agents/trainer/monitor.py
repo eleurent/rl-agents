@@ -64,12 +64,13 @@ class MonitorV2(Monitor):
         )
 
         # Instead of capturing just one frame, allow the environment to send all render frames when a step is ongoing
-        if self._video_enabled():
-            self.env.automatic_rendering_callback = self.video_recorder.capture_frame
+        if self._video_enabled() and hasattr(self.env.unwrapped, 'automatic_rendering_callback'):
+            self.env.unwrapped.automatic_rendering_callback = self.video_recorder.capture_frame
 
     def _close_video_recorder(self):
         super(MonitorV2, self)._close_video_recorder()
-        self.env.automatic_rendering_callback = None
+        if hasattr(self.env.unwrapped, 'automatic_rendering_callback'):
+            self.env.unwrapped.automatic_rendering_callback = None
 
     def is_episode_selected(self):
         """
