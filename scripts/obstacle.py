@@ -1,7 +1,7 @@
 import gym
 
 from rl_agents.agents.dqn.dqn_pytorch import DqnPytorchAgent
-from rl_agents.agents.dqn.graphics import ValueFunctionViewer
+from rl_agents.agents.tree_search.mcts import MCTSAgent
 from rl_agents.trainer.simulation import Simulation
 from rl_agents.trainer.state_sampler import ObstacleStateSampler
 
@@ -28,11 +28,20 @@ def dqn_pytorch(environment):
     return DqnPytorchAgent(environment, config)
 
 
+def mcts(environment):
+    return MCTSAgent(environment,
+                     rollout_policy=MCTSAgent.random_policy,
+                     prior_policy=MCTSAgent.random_policy,
+                     iterations=100,
+                     temperature=50,
+                     max_depth=5)
+
+
 if __name__ == "__main__":
     gym.logger.set_level(gym.logger.INFO)
     env, sampler = make_env()
     agent = dqn_pytorch(env)
-    agent_viewer = ValueFunctionViewer(agent, sampler)
-    sim = Simulation(env, agent, num_episodes=5000, agent_viewer=agent_viewer)
-    sim.train()
+    agent = mcts(env)
+    sim = Simulation(env, agent, num_episodes=50)
+    sim.test()
 

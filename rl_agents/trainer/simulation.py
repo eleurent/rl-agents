@@ -1,7 +1,8 @@
 import os, six
 from gym import logger
 
-from rl_agents.trainer.graphics import RewardViewer, SimulationViewer
+from rl_agents.trainer.graphics import RewardViewer
+from rl_agents.agents.graphics import AgentGraphics
 from rl_agents.trainer.monitor import MonitorV2
 
 
@@ -21,7 +22,7 @@ class Simulation:
                  training=True,
                  sim_seed=None,
                  recover=None,
-                 agent_viewer=None):
+                 display_agent=True):
         """
 
         :param env: The environment to be solved, possibly wrapping an AbstractEnv environment
@@ -33,7 +34,7 @@ class Simulation:
         :param recover: Recover the agent parameters from a file.
                         - If True, it the default latest save will be used.
                         - If a string, it will be used as a path.
-        :param agent_viewer: The viewer used to render the agent internal reasoning
+        :param display_agent: Add the agent graphics to the environment viewer, if supported
 
         """
         self.env = env
@@ -41,7 +42,6 @@ class Simulation:
         self.num_episodes = num_episodes
         self.training = training
         self.sim_seed = sim_seed
-        self.agent_viewer = agent_viewer
 
         self.directory = directory or os.path.join(self.OUTPUT_FOLDER, env.unwrapped.__class__.__name__)
         self.monitor = MonitorV2(env, self.directory, add_subdirectory=(directory is None))
@@ -49,12 +49,14 @@ class Simulation:
         if recover:
             self.load_model(recover)
 
-        self.reward_viewer = RewardViewer()
-        if agent_viewer:
-            # If agent rendering is requested, create or replace the environment viewer by a simulation viewer
-            # self.env.unwrapped.viewer = SimulationViewer(self)
-            pass
+        if display_agent:
+            try:
+                self.env.render()
+                self.env.unwrapped.viewer.set_agent_display(lambda surface: AgentGraphics.display(self.agent, surface))
+            except AttributeError:
+                pass  # AgentGraphics should be forwarded to a new viewer
 
+        self.reward_viewer = RewardViewer()
         self.observation = None
 
     def run(self):
@@ -95,7 +97,7 @@ class Simulation:
 
         # Forward the actions to the environment viewer
         try:
-            self.self.env.unwrapped.viewer.predict_trajectory(actions)
+            self.env.unwrapped.viewer.predict_trajectory(actions)
         except AttributeError:
             pass
 
@@ -118,9 +120,6 @@ class Simulation:
 
     def after_some_episodes(self, episode):
         if self.monitor.is_episode_selected():
-            if self.agent_viewer:
-                self.agent_viewer.display()
-
             # Save the model
             if self.training:
                 self.save_model(episode)
@@ -171,13 +170,6 @@ class Simulation:
     def reset(self):
         self.observation = self.monitor.reset()
         self.agent.reset()
-
-    def render(self, mode='human'):
-        """
-            Render the environment.
-        :param mode: the rendering mode
-        """
-        self.monitor.render(mode)
 
     def close(self):
         """

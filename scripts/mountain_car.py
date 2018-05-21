@@ -3,6 +3,7 @@ import gym
 from rl_agents.agents.dqn.dqn_keras import DqnKerasAgent
 from rl_agents.agents.dqn.dqn_pytorch import DqnPytorchAgent
 from rl_agents.agents.dqn.graphics import ValueFunctionViewer
+from rl_agents.agents.tree_search.mcts import MCTSAgent
 from rl_agents.trainer.simulation import Simulation
 from rl_agents.trainer.state_sampler import MountainCarStateSampler
 
@@ -40,11 +41,19 @@ def dqn_pytorch(env):
     return DqnPytorchAgent(env, config)
 
 
+def mcts(environment):
+    return MCTSAgent(environment,
+                     rollout_policy=MCTSAgent.random_policy,
+                     prior_policy=MCTSAgent.random_policy,
+                     iterations=50,
+                     temperature=200,
+                     max_depth=10)
+
+
 if __name__ == "__main__":
     gym.logger.set_level(gym.logger.INFO)
     env, sampler = make_env()
-    agent = dqn_pytorch(env)
-    agent_viewer = ValueFunctionViewer(agent, sampler)
-    sim = Simulation(env, agent, num_episodes=300, agent_viewer=agent_viewer)
-    sim.training()
+    agent = mcts(env)
+    sim = Simulation(env, agent, num_episodes=300)
+    sim.test()
 
