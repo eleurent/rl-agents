@@ -196,9 +196,28 @@ class MCTS(object):
         for i in range(self.iterations):
             if (i+1) % 10 == 0:
                 print(i+1, '/', self.iterations)
-            state_copy = copy.deepcopy(state)
+            try:
+                state_copy = self.custom_deepcopy(state.unwrapped)
+            except ValueError:
+                state_copy = copy.deepcopy(state.unwrapped)
             self.run(state_copy)
         return self.get_plan()
+
+    @staticmethod
+    def custom_deepcopy(obj):
+        """
+            Perform a deep copy but without copying the environment viewer.
+        """
+        cls = obj.__class__
+        result = cls.__new__(cls)
+        memo = {}
+        memo[id(obj)] = result
+        for k, v in obj.__dict__.items():
+            if k not in ['viewer', 'automatic_rendering_callback']:
+                setattr(result, k, copy.deepcopy(v, memo))
+            else:
+                setattr(result, k, None)
+        return result
 
     def get_plan(self):
         """
@@ -257,6 +276,7 @@ class MCTSAgent(AbstractAgent):
     """
         An agent that uses Monte Carlo Tree Search to plan a sequence of action in an MDP.
     """
+
     def __init__(self,
                  env,
                  prior_policy=None,
@@ -391,6 +411,18 @@ class MCTSAgent(AbstractAgent):
             if v is not state_copy.vehicle and not isinstance(v, Obstacle):
                 vehicles[i] = agent_type.create_from(v)
         return state_copy
+
+    def record(self, state, action, reward, next_state, done):
+        raise NotImplementedError()
+
+    def act(self, state):
+        return self.plan(state)[0]
+
+    def save(self, filename):
+        raise NotImplementedError()
+
+    def load(self, filename):
+        raise NotImplementedError()
 
 
 class RobustMCTSAgent(AbstractAgent):

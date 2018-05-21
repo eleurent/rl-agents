@@ -1,12 +1,10 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 
-class AbstractAgent(object):
+class AbstractAgent(ABC):
     """
         An abstract class specifying the interface of a generic agent.
     """
-    metaclass__ = ABCMeta
-
     @abstractmethod
     def record(self, state, action, reward, next_state, done):
         """

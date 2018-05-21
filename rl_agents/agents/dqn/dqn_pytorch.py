@@ -4,7 +4,7 @@ import torch.optim as optim
 import torch.nn.functional as functional
 from torch.autograd import Variable
 
-from rl_agents.agents.abstract import AbstractAgent
+from rl_agents.agents.dqn.abstract import DqnAgent
 from rl_agents.agents.utils import Transition, ReplayMemory
 from rl_agents.agents.exploration.exploration import ExplorationPolicy
 
@@ -33,7 +33,7 @@ class Network(nn.Module):
         return self.lin3(x)
 
 
-class DqnPytorchAgent(AbstractAgent):
+class DqnPytorchAgent(DqnAgent):
     def __init__(self, env, config):
         self.env = env
         self.config = config
@@ -48,15 +48,10 @@ class DqnPytorchAgent(AbstractAgent):
             self.policy_net.cuda()
             self.target_net.cuda()
 
-        # self.optimizer = optim.RMSprop(self.policy_net.parameters())
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=5e-4)
         self.memory = ReplayMemory(config)
         self.exploration_policy = ExplorationPolicy(config)
         self.steps = 0
-
-    def act(self, state):
-        _, optimal_action = self.state_to_value(state)
-        return self.exploration_policy.epsilon_greedy(optimal_action, self.env.action_space)
 
     def record(self, state, action, reward, next_state, done):
         # Store the transition in memory
@@ -67,8 +62,6 @@ class DqnPytorchAgent(AbstractAgent):
         if len(self.memory) < self.config['batch_size']:
             return
         transitions = self.memory.sample(self.config['batch_size'])
-        # Transpose the batch (see http://stackoverflow.com/a/19343/3343043 for
-        # detailed explanation).
         batch = Transition(*zip(*transitions))
 
         # Compute a mask of non-final states and concatenate the batch elements
@@ -85,7 +78,9 @@ class DqnPytorchAgent(AbstractAgent):
 
         # Compute V(s_{t+1}) for all next states.
         next_state_values = Variable(torch.zeros(self.config['batch_size']).type(Tensor))
+        # Double Q-learning: pick best actions from policy network
         _, best_actions = self.policy_net(next_states_batch).max(1)
+        # Double Q-learning: estimate action values from target network
         best_values = self.target_net(next_states_batch).gather(1, best_actions.unsqueeze(1)).squeeze(1)
         next_state_values[non_final_mask] = best_values[non_final_mask]
 
@@ -110,6 +105,13 @@ class DqnPytorchAgent(AbstractAgent):
         if self.steps % self.config['target_update'] == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
+    def get_batch_state_values(self, states):
+        values, actions = self.policy_net(Variable(Tensor(states))).max(1)
+        return values.data.cpu().numpy(), actions.data.cpu().numpy()
+
+    def get_batch_state_action_values(self, states):
+        return self.policy_net(Variable(Tensor(states))).data.cpu().numpy()
+
     def save(self, filename):
         state = {'state_dict': self.policy_net.state_dict(),
                  'optimizer': self.optimizer.state_dict()}
@@ -128,11 +130,3 @@ class DqnPytorchAgent(AbstractAgent):
 
     def plan(self, state):
         return [self.act(state)]
-
-    def state_to_value(self, state):
-        value, action = self.policy_net(Variable(Tensor([state]))).max(1)
-        return value.data.cpu().numpy()[0], action.data.cpu().numpy()[0]
-
-    def states_to_values(self, states):
-        values, actions = self.policy_net(Variable(Tensor(states))).max(1)
-        return values.data.cpu().numpy(), actions.data.cpu().numpy()

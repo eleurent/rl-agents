@@ -3,12 +3,12 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout
 from keras.optimizers import Adam
 
-from rl_agents.agents.abstract import AbstractAgent
+from rl_agents.agents.dqn.abstract import DqnAgent
 from rl_agents.agents.utils import ReplayMemory
 from rl_agents.agents.exploration.exploration import ExplorationPolicy
 
 
-class DqnKerasAgent(AbstractAgent):
+class DqnKerasAgent(DqnAgent):
     def __init__(self, env, config):
         self.env = env
         self.config = config
@@ -22,27 +22,14 @@ class DqnKerasAgent(AbstractAgent):
 
     def record(self, state, action, reward, next_state, done):
         self.memory.push(state, action, reward, next_state, done)
+        self.optimize_model()
+
+    def optimize_model(self):
         try:
             minibatch = self.memory.sample(self.config['batch_size'])
         except ValueError:
-            minibatch = None
-        # Fit the model on this batch.
-        if minibatch:
-            X_train, y_train = self.process_minibatch(minibatch)
-            self.model.fit(X_train, y_train, batch_size=self.config['batch_size'], epochs=1, verbose=0)
+            return
 
-    def act(self, state):
-        """
-            Pick an action with an epsilon-greedy policy
-        """
-        optimal_action = np.argmax(self.model.predict(np.array([state]), batch_size=1))
-        return self.exploration_policy.epsilon_greedy(optimal_action, self.env.action_space)
-
-    def process_minibatch(self, minibatch):
-        """
-            Use Bellman optimal equation to update the Q values
-            of transitions stored in the minibatch
-        """
         X_train = []
         y_train = []
         for memory in minibatch:
@@ -65,7 +52,14 @@ class DqnKerasAgent(AbstractAgent):
             X_train.append(state.reshape(self.config['num_states'],))
             y_train.append(y.reshape(self.config['num_actions'],))
 
-        return np.array(X_train), np.array(y_train)
+        self.model.fit(np.array(X_train), np.array(y_train), batch_size=self.config['batch_size'], epochs=1, verbose=0)
+
+    def get_batch_state_value(self, states):
+        action_values = self.get_batch_state_action_values(states)
+        return np.max(action_values), np.argmax(action_values)
+
+    def get_batch_state_action_values(self, states):
+        return self.model.predict(np.array(states), batch_size=1)
 
     def build_neural_net(self):
         """
