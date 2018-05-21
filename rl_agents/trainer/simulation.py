@@ -1,7 +1,7 @@
 import os, six
 from gym import logger
 
-from rl_agents.trainer.graphics import RewardViewer
+from rl_agents.trainer.graphics import RewardViewer, AgentViewer
 from rl_agents.agents.graphics import AgentGraphics
 from rl_agents.trainer.monitor import MonitorV2
 
@@ -49,12 +49,15 @@ class Simulation:
         if recover:
             self.load_model(recover)
 
+        self.agent_viewer = None
         if display_agent:
             try:
+                # Render the agent within the environment viewer, if supported
                 self.env.render()
                 self.env.unwrapped.viewer.set_agent_display(lambda surface: AgentGraphics.display(self.agent, surface))
             except AttributeError:
-                pass  # AgentGraphics should be forwarded to a new viewer
+                # The environment viewer doesn't support agent rendering, create a separate agent viewer
+                self.agent_viewer = AgentViewer(self.agent)
 
         self.reward_viewer = RewardViewer()
         self.observation = None
@@ -100,6 +103,9 @@ class Simulation:
             self.env.unwrapped.viewer.predict_trajectory(actions)
         except AttributeError:
             pass
+
+        if self.agent_viewer and self.monitor.is_episode_selected():
+            self.agent_viewer.render()
 
         # Step the environment
         previous_observation, action = self.observation, actions[0]
