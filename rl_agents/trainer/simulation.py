@@ -57,8 +57,8 @@ class Simulation:
                 self.env.unwrapped.viewer.set_agent_display(lambda surface: AgentGraphics.display(self.agent, surface))
             except AttributeError:
                 # The environment viewer doesn't support agent rendering, create a separate agent viewer
-                self.agent_viewer = AgentViewer(self.agent)
-
+                # self.agent_viewer = AgentViewer(self.agent)
+                pass
         self.reward_viewer = RewardViewer()
         self.observation = None
 
