@@ -196,10 +196,17 @@ class MCTS(object):
         for i in range(self.iterations):
             if (i+1) % 10 == 0:
                 print(i+1, '/', self.iterations)
+
+            # Simplify the environment state if supported
             try:
-                state_copy = self.custom_deepcopy(state.unwrapped)
+                state_copy = state.unwrapped.simplified()
+            except AttributeError:
+                state_copy = state.unwrapped
+            # Copy the environment state
+            try:
+                state_copy = self.custom_deepcopy(state_copy)
             except ValueError:
-                state_copy = copy.deepcopy(state.unwrapped)
+                state_copy = copy.deepcopy(state_copy)
             self.run(state_copy)
         return self.get_plan()
 

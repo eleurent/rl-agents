@@ -1,11 +1,14 @@
 from abc import ABC, abstractmethod
+
+import numpy as np
+
 from rl_agents.agents.abstract import AbstractAgent
 
 
 class DqnAgent(AbstractAgent, ABC):
     def act(self, state):
         _, optimal_action = self.get_state_value(state)
-        return self.exploration_policy.epsilon_greedy(optimal_action, self.env.action_space)
+        return self.exploration_policy.epsilon_greedy(np.asscalar(optimal_action), self.env.action_space)
 
     @abstractmethod
     def get_batch_state_values(self, states):
