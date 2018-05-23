@@ -1,6 +1,21 @@
+# Compiled sources
 *.pyc
-*.h5
-**/out/*
 
-.idea*
-.cache*
+# Setup
+**.egg*
+
+# Jupyter notebooks
+**.ipynb_checkpoints*
+
+# Sphinx documentation
+_build
+
+# Editor files
+.idea
+
+# Test files
+.pytest_cache
+.cache
+
+# Outputs
+**/out/*
