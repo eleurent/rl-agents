@@ -3,13 +3,14 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout
 from keras.optimizers import Adam
 
-from rl_agents.agents.dqn.abstract import DqnAgent
+from rl_agents.agents.dqn.abstract import DQNAgent
 from rl_agents.agents.utils import ReplayMemory
 from rl_agents.agents.exploration.exploration import ExplorationPolicy
 
 
-class DqnKerasAgent(DqnAgent):
+class DQNKerasAgent(DQNAgent):
     def __init__(self, env, config):
+        super(DQNKerasAgent, self).__init__()
         self.env = env
         self.config = config
         self.config["num_states"] = env.observation_space.shape[0]

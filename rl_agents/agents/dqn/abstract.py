@@ -5,8 +5,12 @@ import numpy as np
 from rl_agents.agents.abstract import AbstractAgent
 
 
-class DqnAgent(AbstractAgent, ABC):
+class DQNAgent(AbstractAgent, ABC):
+    def __init__(self):
+        self.previous_state = None
+
     def act(self, state):
+        self.previous_state = state
         _, optimal_action = self.get_state_value(state)
         return self.exploration_policy.epsilon_greedy(np.asscalar(optimal_action), self.env.action_space)
 

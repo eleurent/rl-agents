@@ -1,7 +1,7 @@
 import gym
 
-from rl_agents.agents.dqn.dqn_keras import DqnKerasAgent
-from rl_agents.agents.dqn.dqn_pytorch import DqnPytorchAgent
+from rl_agents.agents.dqn.dqn_keras import DQNKerasAgent
+from rl_agents.agents.dqn.dqn_pytorch import DQNPytorchAgent
 from rl_agents.agents.dqn.graphics import ValueFunctionViewer
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 from rl_agents.trainer.simulation import Simulation
@@ -25,7 +25,7 @@ def dqn_keras(env):
         "epsilon_tau": 10000,
         "target_update": 1
     }
-    return DqnKerasAgent(env, config)
+    return DQNKerasAgent(env, config)
 
 
 def dqn_pytorch(env):
@@ -38,7 +38,7 @@ def dqn_pytorch(env):
         "epsilon_tau": 10000,
         "target_update": 1
     }
-    return DqnPytorchAgent(env, config)
+    return DQNPytorchAgent(env, config)
 
 
 def mcts(environment):

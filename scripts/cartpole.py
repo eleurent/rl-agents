@@ -2,8 +2,8 @@ import gym
 import numpy as np
 
 from rl_agents.agents.linear.linear import LinearAgent
-from rl_agents.agents.dqn.dqn_keras import DqnKerasAgent
-from rl_agents.agents.dqn.dqn_pytorch import DqnPytorchAgent
+from rl_agents.agents.dqn.dqn_keras import DQNKerasAgent
+from rl_agents.agents.dqn.dqn_pytorch import DQNPytorchAgent
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 from rl_agents.trainer.simulation import Simulation
 from rl_agents.trainer.state_sampler import CartPoleStateSampler
@@ -26,7 +26,7 @@ def dqn_keras(environment):
         "epsilon_tau": 6000,
         "target_update": 1
     }
-    return DqnKerasAgent(environment, config)
+    return DQNKerasAgent(environment, config)
 
 
 def dqn_pytorch(environment):
@@ -39,7 +39,7 @@ def dqn_pytorch(environment):
         "epsilon_tau": 6000,
         "target_update": 1
     }
-    return DqnPytorchAgent(environment, config)
+    return DQNPytorchAgent(environment, config)
 
 
 def linear(environment):
