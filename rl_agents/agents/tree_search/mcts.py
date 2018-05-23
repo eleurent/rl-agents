@@ -63,6 +63,14 @@ class Node(object):
         self.count += 1
         self.value += self.K / self.count * (total_reward - self.value)
 
+    def max_update(self, total_reward):
+        """
+            Update the estimated value as a maximum over trajectories with no averaging
+        :param total_reward: the total reward obtained through a trajectory passing by this node
+        """
+        self.count += 1
+        self.value = max(total_reward, self.value)
+
     def update_branch(self, total_reward):
         """
             Update the whole branch from this node to the root with the total reward of the corresponding trajectory.
