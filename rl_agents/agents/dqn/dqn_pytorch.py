@@ -34,15 +34,15 @@ class Network(nn.Module):
 
 
 class DQNPytorchAgent(DQNAgent):
-    def __init__(self, env, config):
+    def __init__(self, env, config=None):
         super(DQNPytorchAgent, self).__init__()
         self.env = env
-        self.config = config
+        self.config = config or DQNPytorchAgent.default_config()
         self.config["num_states"] = env.observation_space.shape[0]
         self.config["num_actions"] = env.action_space.n
         self.config["layers"] = [self.config["num_states"]] + self.config["layers"] + [self.config["num_actions"]]
-        self.policy_net = Network(config)
-        self.target_net = Network(config)
+        self.policy_net = Network(self.config)
+        self.target_net = Network(self.config)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
         if use_cuda:
@@ -50,9 +50,21 @@ class DQNPytorchAgent(DQNAgent):
             self.target_net.cuda()
 
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=5e-4)
-        self.memory = ReplayMemory(config)
-        self.exploration_policy = ExplorationPolicy(config)
+        self.memory = ReplayMemory(self.config)
+        self.exploration_policy = ExplorationPolicy(self.config)
         self.steps = 0
+
+    @staticmethod
+    def default_config():
+        return {
+            "layers": [100, 100],
+            "memory_capacity": 5000,
+            "batch_size": 32,
+            "gamma": 0.99,
+            "epsilon": [1.0, 0.01],
+            "epsilon_tau": 5000,
+            "target_update": 1
+        }
 
     def record(self, state, action, reward, next_state, done):
         # Store the transition in memory

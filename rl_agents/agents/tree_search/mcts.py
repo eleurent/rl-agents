@@ -1,6 +1,8 @@
 from __future__ import division, print_function
 import numpy as np
 import copy
+
+from gym import logger
 from gym.utils import seeding
 
 from rl_agents.agents.abstract import AbstractAgent
@@ -203,7 +205,7 @@ class MCTS(object):
         """
         for i in range(self.iterations):
             if (i+1) % 10 == 0:
-                print(i+1, '/', self.iterations)
+                logger.info('{} / {}'.format(i+1, self.iterations))
 
             # Simplify the environment state if supported
             try:
@@ -310,8 +312,8 @@ class MCTSAgent(AbstractAgent):
         :param assume_vehicle_type: the model used to predict the vehicles behavior. If None, the true model is used.
         """
         self.env = env
-        prior_policy = prior_policy or MCTSAgent.fast_policy
-        rollout_policy = rollout_policy or MCTSAgent.random_available_policy
+        prior_policy = prior_policy or MCTSAgent.random_policy
+        rollout_policy = rollout_policy or MCTSAgent.random_policy
         self.mcts = MCTS(prior_policy, rollout_policy, iterations, temperature, max_depth)
         self.assume_vehicle_type = assume_vehicle_type
         self.previous_action = None
