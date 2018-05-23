@@ -2,7 +2,6 @@ language: python
 
 matrix:
   include:
-    - python: "2.7"
     - python: "3.5"
 
 install:
@@ -19,7 +18,8 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pytorch scipy -c pytorch
   - source activate test-environment
   - sudo apt-get install libsdl1.2-dev
-  - pip install -e . --yes
+  - yes | pip install pygame
+  - pip install -e .
   - pip install --upgrade pytest
 script:
   - pytest test/
