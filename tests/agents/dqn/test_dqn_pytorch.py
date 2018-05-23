@@ -1,5 +1,8 @@
 import gym
+import pytest
 from rl_agents.agents.dqn.dqn_pytorch import DQNPytorchAgent
+
+torch = pytest.importorskip("torch")
 
 
 def test_cartpole():

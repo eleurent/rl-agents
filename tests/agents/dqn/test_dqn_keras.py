@@ -1,7 +1,11 @@
 import gym
+import pytest
 from rl_agents.agents.dqn.dqn_keras import DQNKerasAgent
 
+keras = pytest.importorskip("keras")
 
+
+@pytest.mark.skip(reason="only the pytorch DQNAgent is tested to free memory")
 def test_cartpole():
     env = gym.make('CartPole-v0')
     agent = DQNKerasAgent(env, config=None)
