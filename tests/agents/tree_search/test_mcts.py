@@ -1,5 +1,4 @@
 import gym
-import numpy as np
 import pytest
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 
@@ -13,7 +12,7 @@ def test_cartpole():
     steps = 0
     while not done:
         action = agent.act(state)
-        assert isinstance(action, int) or isinstance(action, np.int32)
+        assert action is not None
 
         next_state, reward, done, info = env.step(action)
         with pytest.raises(NotImplementedError):
