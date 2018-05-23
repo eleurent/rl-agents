@@ -22,4 +22,4 @@ install:
   - pip install -e .
   - pip install --upgrade pytest
 script:
-  - pytest test/
+  - pytest
