@@ -2,15 +2,7 @@ language: python
 
 matrix:
   include:
-    - env: LINT_CHECK
-      python: "2.7"
-      install: pip install flake8
-      script: flake8
     - python: "2.7"
-      env: IMAGE_BACKEND=Pillow-SIMD
-    - python: "2.7"
-    - python: "3.5"
-      env: IMAGE_BACKEND=Pillow-SIMD
     - python: "3.5"
 
 install:
@@ -28,8 +20,5 @@ install:
   - source activate test-environment
   - python setup.py install
   - pip install --upgrade pytest
-  - if [[ "$IMAGE_BACKEND" == "Pillow-SIMD" ]]; then
-      pip uninstall -y pillow && CC="cc -march=native" pip install --force-reinstall pillow-simd;
-    fi
 script:
   - pytest test/
