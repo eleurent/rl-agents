@@ -19,7 +19,7 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pytorch scipy -c pytorch
   - source activate test-environment
   - sudo apt-get install libsdl1.2-dev
-  - python setup.py install
+  - pip install -e . --yes
   - pip install --upgrade pytest
 script:
   - pytest test/
