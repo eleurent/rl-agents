@@ -227,8 +227,7 @@ class MCTS(object):
         """
         cls = obj.__class__
         result = cls.__new__(cls)
-        memo = {}
-        memo[id(obj)] = result
+        memo = {id(obj): result}
         for k, v in obj.__dict__.items():
             if k not in ['viewer', 'automatic_rendering_callback']:
                 setattr(result, k, copy.deepcopy(v, memo))
@@ -301,21 +300,22 @@ class MCTSAgent(AbstractAgent):
                  iterations=75,
                  temperature=10,
                  max_depth=7,
-                 assume_vehicle_type=None):
+                 env_preprocessor=None):
         """
             A new MCTS agent.
+        :param env: The environment
         :param prior_policy: The prior distribution over actions given a state
         :param rollout_policy: The distribution over actions used when evaluating leaves
         :param iterations: the number of MCTS iterations
         :param max_depth: the maximum planning horizon
         :param temperature: the temperature of exploration
-        :param assume_vehicle_type: the model used to predict the vehicles behavior. If None, the true model is used.
+        :param env_preprocessor: a preprocessor function to apply to the environment before planning
         """
         self.env = env
         prior_policy = prior_policy or MCTSAgent.random_policy
         rollout_policy = rollout_policy or MCTSAgent.random_policy
         self.mcts = MCTS(prior_policy, rollout_policy, iterations, temperature, max_depth)
-        self.assume_vehicle_type = assume_vehicle_type
+        self.env_preprocessor = env_preprocessor
         self.previous_action = None
 
     def plan(self, state):
@@ -328,10 +328,12 @@ class MCTSAgent(AbstractAgent):
         :return: the list of actions
         """
         self.mcts.step(self.previous_action)
+        try:
+            env = self.env_preprocessor(self.env)
+        except (AttributeError, TypeError):
+            env = self.env
+        actions = self.mcts.plan(env)
 
-        if self.assume_vehicle_type:
-            state = MCTSAgent.change_agent_model(state, self.assume_vehicle_type)
-        actions = self.mcts.plan(self.env)
         self.previous_action = actions[0]
         return actions
 
@@ -391,44 +393,6 @@ class MCTSAgent(AbstractAgent):
                 return available_actions, probabilities
         return MCTSAgent.random_available_policy(state)
 
-    @staticmethod
-    def fast_policy(state):
-        """
-            A policy that favors the FASTER action.
-
-        :param state: the current state
-        :return: a list of action indexes and a list of their respective probabilities
-        """
-        return MCTSAgent.preference_policy(state, 3)
-
-    @staticmethod
-    def idle_policy(state):
-        """
-            A policy that favors the IDLE action.
-
-        :param state: the current state
-        :return: a list of action indexes and a list of their respective probabilities
-        """
-        return MCTSAgent.preference_policy(state, 0)
-
-    @staticmethod
-    def change_agent_model(state, agent_type):
-        """
-            Change the type of all agents on the road
-        :param state: The state describing the road and vehicles
-        :param agent_type: The new type of behavior for other vehicles
-        :return: a new state with modified behavior model for other agents
-        """
-        # TODO: get rid of this import
-        from highway_env.vehicle.dynamics import Obstacle
-
-        state_copy = copy.deepcopy(state)
-        vehicles = state_copy.road.vehicles
-        for i, v in enumerate(vehicles):
-            if v is not state_copy.vehicle and not isinstance(v, Obstacle):
-                vehicles[i] = agent_type.create_from(v)
-        return state_copy
-
     def record(self, state, action, reward, next_state, done):
         raise NotImplementedError()
 
@@ -444,28 +408,40 @@ class MCTSAgent(AbstractAgent):
 
 class RobustMCTSAgent(AbstractAgent):
     def __init__(self,
+                 env,
                  models,
                  prior_policy=None,
                  rollout_policy=None,
                  iterations=75,
                  temperature=10):
         """
-            A new MCTS agent with multiple models.
-        :param models: a list of possible transition models
+            A new MCTS agent with multiple environment models.
+        :param env: The true environment
+        :param models: A list of env preprocessors that represent possible transition models
         :param prior_policy: The prior distribution over actions given a state
         :param rollout_policy: The distribution over actions used when evaluating leaves
         :param iterations: the number of MCTS iterations
         :param temperature: the temperature of exploration
         """
-
-        self.agents = [MCTSAgent(prior_policy, rollout_policy, iterations, temperature, assume_vehicle_type=model)
+        self.agents = [MCTSAgent(env, prior_policy, rollout_policy, iterations, temperature, env_preprocessor=model)
                        for model in models]
+        self.__env = env
+
+    @property
+    def env(self):
+        return self.__env
+
+    @env.setter
+    def env(self, env):
+        self.__env = env
+        for agent in self.agents:
+            agent.env = env
 
     def plan(self, state):
         for agent in self.agents:
             agent.plan(state)
 
-        min_action_values = {k: np.inf for k in state.ACTIONS.keys()}
+        min_action_values = {k: np.inf for k in self.env.ACTIONS.keys()}
         for agent in self.agents:
             min_action_values = {k: min(v, agent.mcts.root.children[k].value)
                                  for k, v in min_action_values.items()
