@@ -153,11 +153,12 @@ class MCTS(object):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def run(self, state):
+    def run(self, state, observation):
         """
             Run an iteration of Monte-Carlo Tree Search, starting from a given state
 
-        :param state: the initial state
+        :param state: the initial environment state
+        :param observation: the corresponding observation
         """
         node = self.root
         total_reward = 0
@@ -165,42 +166,44 @@ class MCTS(object):
         terminal = False
         while depth > 0 and node.children and not terminal:
             action = node.select_action(temperature=self.temperature)
-            _, reward, terminal, _ = state.step(action)
+            observation, reward, terminal, _ = state.step(action)
             total_reward += reward
             node = node.children[action]
             depth = depth - 1
 
         if not node.children and \
                 (not terminal or node == self.root):
-            node.expand(self.prior_policy(state))
+            node.expand(self.prior_policy(observation))
 
         if not terminal:
-            total_reward = self.evaluate(state, total_reward, limit=depth)
+            total_reward = self.evaluate(state, observation, total_reward, limit=depth)
         node.update_branch(total_reward)
 
-    def evaluate(self, state, total_reward=0, limit=10):
+    def evaluate(self, state, observation, total_reward=0, limit=10):
         """
             Run the rollout policy to yield a sample of the value of being in a given state.
 
         :param state: the leaf state.
+        :param observation: the corresponding observation.
         :param total_reward: the initial total reward accumulated until now
         :param limit: the maximum number of simulation steps
         :return: the total reward of the rollout trajectory
         """
         for _ in range(limit):
-            actions, probabilities = self.rollout_policy(state)
+            actions, probabilities = self.rollout_policy(observation)
             action = self.np_random.choice(actions, 1, p=probabilities)[0]
-            _, reward, terminal, _ = state.step(action)
+            observation, reward, terminal, _ = state.step(action)
             total_reward += reward
             if terminal:
                 break
         return total_reward
 
-    def plan(self, state):
+    def plan(self, state, observation):
         """
             Plan an optimal sequence of actions by running several iterations of MCTS.
 
-        :param state: the initial state
+        :param state: the initial environment state
+        :param observation: the corresponding state observation
         :return: the list of actions
         """
         for i in range(self.iterations):
@@ -217,7 +220,7 @@ class MCTS(object):
                 state_copy = self.custom_deepcopy(state_copy)
             except ValueError:
                 state_copy = copy.deepcopy(state_copy)
-            self.run(state_copy)
+            self.run(state_copy, observation)
         return self.get_plan()
 
     @staticmethod
@@ -312,8 +315,8 @@ class MCTSAgent(AbstractAgent):
         :param env_preprocessor: a preprocessor function to apply to the environment before planning
         """
         self.env = env
-        prior_policy = prior_policy or MCTSAgent.random_policy
-        rollout_policy = rollout_policy or MCTSAgent.random_policy
+        prior_policy = prior_policy or self.random_policy
+        rollout_policy = rollout_policy or self.random_policy
         self.mcts = MCTS(prior_policy, rollout_policy, iterations, temperature, max_depth)
         self.env_preprocessor = env_preprocessor
         self.previous_action = None
@@ -332,7 +335,7 @@ class MCTSAgent(AbstractAgent):
             env = self.env_preprocessor(self.env)
         except (AttributeError, TypeError):
             env = self.env
-        actions = self.mcts.plan(env)
+        actions = self.mcts.plan(state=env, observation=state)
 
         self.previous_action = actions[0]
         return actions
@@ -343,55 +346,52 @@ class MCTSAgent(AbstractAgent):
     def seed(self, seed=None):
         return self.mcts.seed(seed)
 
-    @staticmethod
-    def random_policy(state):
+    def random_policy(self, observation):
         """
             Choose actions from a uniform distribution.
 
-        :param state: the current MDP state
+        :param observation: the observation of the current state
         :return: a list of action indexes and a list of their respective probabilities
         """
-        actions = np.arange(state.action_space.n)
+        actions = np.arange(self.env.action_space.n)
         probabilities = np.ones((len(actions))) / len(actions)
         return actions, probabilities
 
-    @staticmethod
-    def random_available_policy(state):
+    def random_available_policy(self, observation):
         """
             Choose actions from a uniform distribution over currently available actions only.
 
-        :param state: the current MDP state
+        :param observation: the observation of the current state
         :return: a list of action indexes and a list of their respective probabilities
         """
-        if hasattr(state, 'get_available_actions'):
-            available_actions = state.get_available_actions()
+        if hasattr(self.env, 'get_available_actions'):
+            available_actions = self.env.get_available_actions()
         else:
-            available_actions = np.arange(state.action_space.n)
+            available_actions = np.arange(self.env.action_space.n)
         probabilities = np.ones((len(available_actions))) / len(available_actions)
         return available_actions, probabilities
 
-    @staticmethod
-    def preference_policy(state, action_index, ratio=2):
+    def preference_policy(self, observation, action_index, ratio=2):
         """
             Choose actions with a distribution over currently available actions that favors a preferred action.
 
             The preferred action probability is higher than others with a given ratio, and the distribution is uniform
             over the non-preferred available actions.
-        :param state: the current state
+        :param observation: the observation of the current state
         :param action_index: the label of the preferred action
         :param ratio: the ratio between the preferred action probability and the other available actions probabilities
         :return: a list of action indexes and a list of their respective probabilities
         """
-        if hasattr(state, 'get_available_actions'):
-            available_actions = state.get_available_actions()
+        if hasattr(self.env, 'get_available_actions'):
+            available_actions = self.env.get_available_actions()
         else:
-            available_actions = np.arange(state.action_space.n)
+            available_actions = np.arange(self.env.action_space.n)
         for i in range(len(available_actions)):
             if available_actions[i] == action_index:
                 probabilities = np.ones((len(available_actions))) / (len(available_actions) - 1 + ratio)
                 probabilities[i] *= ratio
                 return available_actions, probabilities
-        return MCTSAgent.random_available_policy(state)
+        return self.random_available_policy(observation)
 
     def record(self, state, action, reward, next_state, done):
         raise NotImplementedError()
@@ -473,3 +473,43 @@ class RobustMCTSAgent(AbstractAgent):
 
     def load(self, filename):
         raise NotImplementedError()
+
+
+class MCTSWithPriorPolicyAgent(MCTSAgent):
+    def __init__(self,
+                 env,
+                 prior_agent,
+                 iterations=75,
+                 temperature=10,
+                 max_depth=7,
+                 env_preprocessor=None):
+        """
+        :param env: The environment
+        :param AbstractStochasticAgent prior_agent: An agent that computes a prior action distribution
+        :param iterations: Number of rollouts in MCTS
+        :param temperature: control exploration from greedy tree search (low) to agent prior distribution (high)
+        :param max_depth: maximum prediction horizon
+        :param env_preprocessor: a preprocessor function to apply to the environment before planning
+        """
+        self.prior_agent = prior_agent
+        super(MCTSWithPriorPolicyAgent, self).__init__(
+            env,
+            prior_policy=self.agent_policy,
+            rollout_policy=self.agent_policy,
+            iterations=iterations,
+            temperature=temperature,
+            max_depth=max_depth,
+            env_preprocessor=env_preprocessor)
+
+    def agent_policy(self, state):
+        distribution = self.prior_agent.action_distribution(state)
+        return list(distribution.keys()), list(distribution.values())
+
+    def record(self, state, action, reward, next_state, done):
+        raise NotImplementedError()
+
+    def save(self, filename):
+        raise NotImplementedError()
+
+    def load(self, filename):
+        self.prior_agent.load(filename)
