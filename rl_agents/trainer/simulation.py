@@ -44,7 +44,8 @@ class Simulation:
         self.sim_seed = sim_seed
 
         self.directory = directory or os.path.join(self.OUTPUT_FOLDER, env.unwrapped.__class__.__name__)
-        self.monitor = MonitorV2(env, self.directory, add_subdirectory=(directory is None))
+        self.agent_directory = os.path.join(self.directory, agent.__class__.__name__)
+        self.monitor = MonitorV2(env, self.agent_directory, add_subdirectory=(directory is None))
 
         if recover:
             self.load_model(recover)
@@ -132,7 +133,7 @@ class Simulation:
 
     def save_model(self, episode, do_save=True):
         # Create the folder if it doesn't exist
-        folder = os.path.join(self.directory, self.SAVED_MODELS_FOLDER)
+        folder = os.path.join(self.agent_directory, self.SAVED_MODELS_FOLDER)
         os.makedirs(folder, exist_ok=True)
 
         if do_save:
@@ -147,7 +148,7 @@ class Simulation:
 
     def load_model(self, model_path):
         if model_path is True:
-            model_path = os.path.join(self.directory, self.SAVED_MODELS_FOLDER, "latest.tar")
+            model_path = os.path.join(self.agent_directory, self.SAVED_MODELS_FOLDER, "latest.tar")
         try:
             self.agent.load(filename=model_path)
             logger.info("Load {} model from {}".format(self.agent.__class__.__name__, model_path))
