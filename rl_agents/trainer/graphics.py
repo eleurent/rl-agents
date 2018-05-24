@@ -58,7 +58,6 @@ class AgentViewer(object):
 class RewardViewer(object):
     def __init__(self):
         self.rewards = []
-        plt.ion()
 
     def update(self, reward):
         self.rewards.append(reward)
@@ -80,4 +79,4 @@ class RewardViewer(object):
             plt.plot(np.zeros(np.shape(self.rewards)))
 
         plt.pause(0.001)
-        plt.draw()
+        plt.plot(block=False)
