@@ -69,3 +69,16 @@ class AbstractAgent(ABC):
         :param str filename: the path of the file to load the model parameters from
         """
         raise NotImplementedError()
+
+
+class AbstractStochasticAgent(AbstractAgent):
+    """
+        Agents that implement a stochastic policy
+    """
+    def action_distribution(self, state):
+        """
+            Compute the distribution of actions for a given state
+        :param state: the current state
+        :return: a dictionary {action:probability}
+        """
+        raise NotImplementedError()

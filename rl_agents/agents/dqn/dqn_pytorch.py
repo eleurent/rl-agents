@@ -5,8 +5,7 @@ import torch.nn.functional as functional
 from torch.autograd import Variable
 
 from rl_agents.agents.dqn.abstract import DQNAgent
-from rl_agents.agents.utils import Transition, ReplayMemory
-from rl_agents.agents.exploration.exploration import ExplorationPolicy
+from rl_agents.agents.utils import Transition
 
 # if gpu is to be used
 use_cuda = torch.cuda.is_available()
@@ -35,12 +34,7 @@ class Network(nn.Module):
 
 class DQNPytorchAgent(DQNAgent):
     def __init__(self, env, config=None):
-        super(DQNPytorchAgent, self).__init__()
-        self.env = env
-        self.config = config or DQNPytorchAgent.default_config()
-        self.config["num_states"] = env.observation_space.shape[0]
-        self.config["num_actions"] = env.action_space.n
-        self.config["layers"] = [self.config["num_states"]] + self.config["layers"] + [self.config["num_actions"]]
+        super(DQNPytorchAgent, self).__init__(env, config)
         self.policy_net = Network(self.config)
         self.target_net = Network(self.config)
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -50,21 +44,7 @@ class DQNPytorchAgent(DQNAgent):
             self.target_net.cuda()
 
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=5e-4)
-        self.memory = ReplayMemory(self.config)
-        self.exploration_policy = ExplorationPolicy(self.config)
         self.steps = 0
-
-    @staticmethod
-    def default_config():
-        return {
-            "layers": [100, 100],
-            "memory_capacity": 5000,
-            "batch_size": 32,
-            "gamma": 0.99,
-            "epsilon": [1.0, 0.01],
-            "epsilon_tau": 5000,
-            "target_update": 1
-        }
 
     def record(self, state, action, reward, next_state, done):
         # Store the transition in memory
@@ -134,12 +114,3 @@ class DQNPytorchAgent(DQNAgent):
         checkpoint = torch.load(filename)
         self.policy_net.load_state_dict(checkpoint['state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
-
-    def seed(self, seed=None):
-        return self.exploration_policy.seed(seed)
-
-    def reset(self):
-        pass
-
-    def plan(self, state):
-        return [self.act(state)]

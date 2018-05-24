@@ -4,34 +4,13 @@ from keras.layers.core import Dense, Activation, Dropout
 from keras.optimizers import Adam
 
 from rl_agents.agents.dqn.abstract import DQNAgent
-from rl_agents.agents.utils import ReplayMemory
-from rl_agents.agents.exploration.exploration import ExplorationPolicy
 
 
 class DQNKerasAgent(DQNAgent):
     def __init__(self, env, config):
         super(DQNKerasAgent, self).__init__()
-        self.env = env
-        self.config = config or self.default_config()
-        self.config["num_states"] = env.observation_space.shape[0]
-        self.config["num_actions"] = env.action_space.n
-        self.config["layers"] = [self.config["num_states"]] + self.config["layers"] + [self.config["num_actions"]]
-        self.memory = ReplayMemory(self.config)
-        self.exploration_policy = ExplorationPolicy(self.config)
         self.model = None
         self.build_neural_net()
-
-    @staticmethod
-    def default_config():
-        return {
-            "layers": [100, 100],
-            "memory_capacity": 5000,
-            "batch_size": 32,
-            "gamma": 0.99,
-            "epsilon": [1.0, 0.01],
-            "epsilon_tau": 5000,
-            "target_update": 1
-        }
 
     def record(self, state, action, reward, next_state, done):
         self.memory.push(state, action, reward, next_state, done)
@@ -97,15 +76,6 @@ class DQNKerasAgent(DQNAgent):
 
     def get_batch_state_action_values(self, states):
         return self.model.predict(np.array(states), batch_size=1)
-
-    def plan(self, state):
-        return [self.act(state)]
-
-    def reset(self):
-        pass
-
-    def seed(self, seed=None):
-        return self.exploration_policy.seed(seed)
 
     def save(self, filename):
         raise NotImplementedError()
