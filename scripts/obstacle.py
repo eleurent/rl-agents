@@ -1,3 +1,5 @@
+import multiprocessing
+
 import gym
 
 from rl_agents.agents.dqn.dqn_pytorch import DQNPytorchAgent
@@ -31,17 +33,23 @@ def dqn_pytorch(environment):
 def mcts(environment):
     return MCTSAgent(environment,
                      rollout_policy=MCTSAgent.random_policy,
-                     prior_policy=MCTSAgent.random_policy,
+                     prior_policy=lambda state:MCTSAgent.preference_policy(state, 0, 0.5),
                      iterations=100,
-                     temperature=50,
+                     temperature=150,
                      max_depth=5)
 
 
-if __name__ == "__main__":
+def main():
     gym.logger.set_level(gym.logger.INFO)
     env, sampler = make_env()
-    agent = dqn_pytorch(env)
-    # agent = mcts(env)
-    sim = Simulation(env, agent, num_episodes=50)
+    # agent = dqn_pytorch(env)
+    agent = mcts(env)
+    sim = Simulation(env, agent, num_episodes=80)
     sim.train()
+
+
+if __name__ == "__main__":
+    for i in range(4):
+        p = multiprocessing.Process(target=main)
+        p.start()
 

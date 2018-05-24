@@ -205,7 +205,7 @@ class MCTS(object):
         """
         for i in range(self.iterations):
             if (i+1) % 10 == 0:
-                logger.info('{} / {}'.format(i+1, self.iterations))
+                logger.debug('{} / {}'.format(i+1, self.iterations))
 
             # Simplify the environment state if supported
             try:
