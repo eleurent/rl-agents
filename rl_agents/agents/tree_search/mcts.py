@@ -1,4 +1,3 @@
-from __future__ import division, print_function
 import numpy as np
 import copy
 
@@ -316,7 +315,7 @@ class MCTSAgent(AbstractAgent, Configurable):
         :param env_preprocessor: a preprocessor function to apply to the environment before planning
         """
         self.env = env
-        prior_policy = prior_policy or self.random_policy
+        prior_policy = prior_policy or self.random_policy(env)
         rollout_policy = rollout_policy or self.random_policy
         self.mcts = MCTS(prior_policy, rollout_policy, iterations, temperature, max_depth)
         self.env_preprocessor = env_preprocessor
@@ -347,52 +346,61 @@ class MCTSAgent(AbstractAgent, Configurable):
     def seed(self, seed=None):
         return self.mcts.seed(seed)
 
-    def random_policy(self, observation):
+    @staticmethod
+    def random_policy(env):
         """
             Choose actions from a uniform distribution.
 
-        :param observation: the observation of the current state
-        :return: a list of action indexes and a list of their respective probabilities
+        :param env: the environment
+        :return: the policy
         """
-        actions = np.arange(self.env.action_space.n)
-        probabilities = np.ones((len(actions))) / len(actions)
-        return actions, probabilities
+        def policy(observation):
+            actions = np.arange(env.action_space.n)
+            probabilities = np.ones((len(actions))) / len(actions)
+            return actions, probabilities
+        return policy
 
-    def random_available_policy(self, observation):
+    @staticmethod
+    def random_available_policy(env):
         """
             Choose actions from a uniform distribution over currently available actions only.
 
-        :param observation: the observation of the current state
-        :return: a list of action indexes and a list of their respective probabilities
+        :param env:the environment
+        :return: the policy
         """
-        if hasattr(self.env, 'get_available_actions'):
-            available_actions = self.env.get_available_actions()
-        else:
-            available_actions = np.arange(self.env.action_space.n)
-        probabilities = np.ones((len(available_actions))) / len(available_actions)
-        return available_actions, probabilities
+        def policy(observation):
+            if hasattr(env, 'get_available_actions'):
+                available_actions = env.get_available_actions()
+            else:
+                available_actions = np.arange(env.action_space.n)
+            probabilities = np.ones((len(available_actions))) / len(available_actions)
+            return available_actions, probabilities
+        return policy
 
-    def preference_policy(self, observation, action_index, ratio=2):
+    @staticmethod
+    def preference_policy(env, action_index, ratio=2):
         """
             Choose actions with a distribution over currently available actions that favors a preferred action.
 
             The preferred action probability is higher than others with a given ratio, and the distribution is uniform
             over the non-preferred available actions.
-        :param observation: the observation of the current state
+        :param env: the environment
         :param action_index: the label of the preferred action
         :param ratio: the ratio between the preferred action probability and the other available actions probabilities
-        :return: a list of action indexes and a list of their respective probabilities
+        :return: the policy
         """
-        if hasattr(self.env, 'get_available_actions'):
-            available_actions = self.env.get_available_actions()
-        else:
-            available_actions = np.arange(self.env.action_space.n)
-        for i in range(len(available_actions)):
-            if available_actions[i] == action_index:
-                probabilities = np.ones((len(available_actions))) / (len(available_actions) - 1 + ratio)
-                probabilities[i] *= ratio
-                return available_actions, probabilities
-        return self.random_available_policy(observation)
+        def policy(observation):
+            if hasattr(env, 'get_available_actions'):
+                available_actions = env.get_available_actions()
+            else:
+                available_actions = np.arange(env.action_space.n)
+            for i in range(len(available_actions)):
+                if available_actions[i] == action_index:
+                    probabilities = np.ones((len(available_actions))) / (len(available_actions) - 1 + ratio)
+                    probabilities[i] *= ratio
+                    return available_actions, probabilities
+            return MCTSAgent.random_available_policy(env)(observation)
+        return policy
 
     def record(self, state, action, reward, next_state, done):
         raise NotImplementedError()
