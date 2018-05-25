@@ -1,3 +1,4 @@
+import json
 import os, six
 from gym import logger
 
@@ -14,6 +15,7 @@ class Simulation:
 
     OUTPUT_FOLDER = 'out'
     SAVED_MODELS_FOLDER = 'saved_models'
+    METADATA_FILE = 'metadata.json'
 
     def __init__(self,
                  env,
@@ -23,7 +25,8 @@ class Simulation:
                  training=True,
                  sim_seed=None,
                  recover=None,
-                 display_agent=True):
+                 display_agent=True,
+                 close_env=True):
         """
 
         :param env: The environment to be solved, possibly wrapping an AbstractEnv environment
@@ -36,6 +39,7 @@ class Simulation:
                         - If True, it the default latest save will be used.
                         - If a string, it will be used as a path.
         :param display_agent: Add the agent graphics to the environment viewer, if supported
+        :param close_env: Should the environment be closed when the simulation is closed
 
         """
         self.env = env
@@ -43,14 +47,14 @@ class Simulation:
         self.num_episodes = num_episodes
         self.training = training
         self.sim_seed = sim_seed
+        self.close_env = close_env
 
-        self.directory = directory or os.path.join(self.OUTPUT_FOLDER, env.unwrapped.__class__.__name__)
-        self.agent_directory = os.path.join(self.directory, agent.__class__.__name__)
-        self.monitor = MonitorV2(env, self.agent_directory, add_subdirectory=(directory is None))
-        self.monitor.write_metadata(dict(env=serialize(self.env), agent=serialize(self.agent)))
+        self.directory = directory or self.default_directory
+        self.monitor = MonitorV2(env, self.directory, add_subdirectory=(directory is None))
+        self.write_metadata(dict(env=serialize(self.env), agent=serialize(self.agent)))
 
         if recover:
-            self.load_model(recover)
+            self.load_agent(recover)
 
         self.agent_viewer = None
         if display_agent:
@@ -65,7 +69,18 @@ class Simulation:
         self.reward_viewer = RewardViewer()
         self.observation = None
 
-    def run(self):
+    def train(self):
+        self.training = True
+        self.run_episodes()
+        self.close()
+
+    def test(self, model_path=True):
+        self.training = False
+        self.load_agent(model_path)
+        self.monitor.video_callable = MonitorV2.always_call_video
+        # Todo this should be replaced by an agent.test() method
+        if hasattr(self.agent, 'config'):
+            self.agent.config['epsilon'] = [0, 0]
         self.run_episodes()
         self.close()
 
@@ -131,11 +146,19 @@ class Simulation:
         if self.monitor.is_episode_selected():
             # Save the model
             if self.training:
-                self.save_model(episode)
+                self.save_agent(episode)
 
-    def save_model(self, episode, do_save=True):
+    @property
+    def default_directory(self):
+        return os.path.join(self.OUTPUT_FOLDER, self.env.unwrapped.__class__.__name__, self.agent.__class__.__name__)
+
+    def write_metadata(self, dictionary):
+        with open(os.path.join(self.monitor.directory, self.METADATA_FILE), 'w') as f:
+            json.dump(dictionary, f, sort_keys=True, indent=4)
+
+    def save_agent(self, episode, do_save=True):
         # Create the folder if it doesn't exist
-        folder = os.path.join(self.agent_directory, self.SAVED_MODELS_FOLDER)
+        folder = os.path.join(self.directory, self.SAVED_MODELS_FOLDER)
         os.makedirs(folder, exist_ok=True)
 
         if do_save:
@@ -148,9 +171,9 @@ class Simulation:
             else:
                 logger.info("Saved {} model to {}".format(self.agent.__class__.__name__, episode_path))
 
-    def load_model(self, model_path):
+    def load_agent(self, model_path):
         if model_path is True:
-            model_path = os.path.join(self.agent_directory, self.SAVED_MODELS_FOLDER, "latest.tar")
+            model_path = os.path.join(self.directory, self.SAVED_MODELS_FOLDER, "latest.tar")
         try:
             self.agent.load(filename=model_path)
             logger.info("Load {} model from {}".format(self.agent.__class__.__name__, model_path))
@@ -158,18 +181,6 @@ class Simulation:
             logger.warn("No pre-trained model found at the desired location.")
         except NotImplementedError:
             pass
-
-    def train(self):
-        self.training = True
-        self.run()
-
-    def test(self, model_path=True):
-        self.training = False
-        self.load_model(model_path)
-        self.monitor.video_callable = MonitorV2.always_call_video
-        if hasattr(self.agent, 'config'):
-            self.agent.config['epsilon'] = [0, 0]
-        self.run()
 
     def seed(self):
         seed = self.env.seed(self.sim_seed)
@@ -185,6 +196,8 @@ class Simulation:
             Close the simulation.
         """
         if self.training:
-            self.save_model(self.monitor.episode_id)
+            self.save_agent(self.monitor.episode_id)
         self.monitor.close()
+        if self.close_env:
+            self.env.close()
 

@@ -5,6 +5,7 @@ from rl_agents.agents.linear.linear import LinearAgent
 from rl_agents.agents.dqn.dqn_keras import DQNKerasAgent
 from rl_agents.agents.dqn.dqn_pytorch import DQNPytorchAgent
 from rl_agents.agents.tree_search.mcts import MCTSAgent
+from rl_agents.trainer.benchmark import Benchmark
 from rl_agents.trainer.simulation import Simulation
 from rl_agents.trainer.state_sampler import CartPoleStateSampler
 
@@ -51,8 +52,8 @@ def linear(environment):
 
 def mcts(environment):
     return MCTSAgent(environment,
-                     rollout_policy=MCTSAgent.random_policy,
-                     prior_policy=MCTSAgent.random_policy,
+                     rollout_policy=MCTSAgent.random_policy(environment),
+                     prior_policy=MCTSAgent.random_policy(environment),
                      iterations=40,
                      temperature=200,
                      max_depth=10)
@@ -61,8 +62,12 @@ def mcts(environment):
 if __name__ == "__main__":
     gym.logger.set_level(gym.logger.INFO)
     env, sampler = make_env()
-    agent = dqn_pytorch(env)
+    # agent = dqn_pytorch(env)
     # agent = mcts(env)
-    sim = Simulation(env, agent, num_episodes=200)
-    sim.train()
+    # sim = Simulation(env, agent, num_episodes=200)
+    # sim.train()
+
+    agents = [dqn_pytorch(env), mcts(env)]
+    benchmark = Benchmark(env, agents, num_episodes=5)
+    benchmark.run()
 

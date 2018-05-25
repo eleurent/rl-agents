@@ -7,24 +7,16 @@ from rl_agents.trainer.monitor import MonitorV2
 
 
 class RunAnalyzer(object):
-    def __init__(self, directory, runs=None):
-        self.directory = directory
+    def __init__(self, run_directories):
+        if len(run_directories) > 1:
+            self.base = os.path.commonprefix(run_directories)
+        self.analyse(run_directories)
 
-        if not runs:
-            runs = self.find_latest_run()
+    def suffix(self, directory):
+        return directory[len(self.base):]
 
-        self.analyse(runs)
-
-    def find_latest_run(self):
-        files = sorted(os.listdir(self.directory))
-        runs = [f for f in files if f.startswith(MonitorV2.RUN_PREFIX + '_')]
-        if not runs:
-            raise FileNotFoundError("No run has been found in {}".format(self.directory))
-        return runs[-1:]
-
-    def analyse(self, runs_directories):
-        runs = {directory: MonitorV2.load_results(os.path.join(self.directory, directory))
-                for directory in runs_directories}
+    def analyse(self, run_directories):
+        runs = {self.suffix(directory): MonitorV2.load_results(directory) for directory in run_directories}
         self.plot_all(runs, field='episode_rewards', title='rewards')
         self.describe_all(runs, field='episode_rewards', title='rewards')
         self.histogram_all(runs, field='episode_rewards', title='rewards')
@@ -33,10 +25,8 @@ class RunAnalyzer(object):
         plt.show()
 
     def compare(self, runs_directories_a, runs_directories_b):
-        runs_a = {directory: MonitorV2.load_results(os.path.join(self.directory, directory))
-                  for directory in runs_directories_a}
-        runs_b = {directory: MonitorV2.load_results(os.path.join(self.directory, directory))
-                  for directory in runs_directories_b}
+        runs_a = {self.suffix(directory): MonitorV2.load_results(directory) for directory in runs_directories_a}
+        runs_b = {self.suffix(directory): MonitorV2.load_results(directory) for directory in runs_directories_b}
         f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
         self.plot_all(runs_a, field='episode_rewards', title='rewards', axes=ax1)
         self.plot_all(runs_b, field='episode_rewards', title='rewards', axes=ax2)

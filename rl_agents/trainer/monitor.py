@@ -25,7 +25,6 @@ class MonitorV2(Monitor):
         - Automatic saving of all fields of the stats recorder
     """
     RUN_PREFIX = 'run'
-    METADATA_FILE = 'metadata.json'
     STATS_HORIZON = 7
 
     def __init__(self, env, directory, add_subdirectory=True, video_callable=None, force=False, resume=False,
@@ -40,10 +39,6 @@ class MonitorV2(Monitor):
         self.stats_recorder = StatsRecorderV2(self.STATS_HORIZON, directory,
                                               '{}.episode_batch.{}'.format(self.file_prefix, self.file_infix)
                                               , autoreset=self.env_semantics_autoreset, env_id=self.env.spec.id)
-
-    def close(self):
-        self.env.close()
-        super(MonitorV2, self).close()
 
     def seed(self, seed=None):
         seeds = super(MonitorV2, self).seed(seed)
@@ -141,10 +136,6 @@ class MonitorV2(Monitor):
     def run_directory(self, directory):
         return os.path.join(directory, '{}_{}'.format(self.RUN_PREFIX,
                                                       datetime.datetime.now().strftime('%Y%m%d-%H%M%S')))
-
-    def write_metadata(self, dictionary):
-        with open(os.path.join(self.directory, self.METADATA_FILE), 'w') as f:
-            json.dump(dictionary, f)
 
 
 class StatsRecorderV2(StatsRecorder):
