@@ -12,7 +12,8 @@ class DQNAgent(AbstractStochasticAgent, ABC, Configurable):
     def __init__(self, env, config=None):
         self.env = env
         self.config = self.default_config()
-        self.config.update(config)
+        if config:
+            self.config.update(config)
         self.config.num_states = env.observation_space.shape[0]
         self.config.num_actions = env.action_space.n
         self.config.all_layers = [self.config.num_states] + self.config.layers + [self.config.num_actions]
