@@ -28,7 +28,6 @@ class AbstractAgent(ABC):
         """
         raise NotImplementedError()
 
-    @abstractmethod
     def plan(self, state):
         """
             Plan an optimal trajectory from an initial state.
@@ -36,7 +35,7 @@ class AbstractAgent(ABC):
         :param state: s, the initial state of the agent
         :return: [a0, a1, a2...], a sequence of actions to perform
         """
-        raise NotImplementedError()
+        return [self.act(state)]
 
     @abstractmethod
     def reset(self):

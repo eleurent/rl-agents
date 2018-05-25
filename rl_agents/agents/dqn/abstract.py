@@ -80,6 +80,3 @@ class DQNAgent(AbstractStochasticAgent, ABC, Configurable):
 
     def reset(self):
         pass
-
-    def plan(self, state):
-        return [self.act(state)]
