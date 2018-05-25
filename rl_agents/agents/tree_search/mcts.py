@@ -173,7 +173,7 @@ class MCTS(Configurable):
 
         if not node.children and \
                 (not terminal or node == self.root):
-            node.expand(self.prior_policy(observation))
+            node.expand(self.prior_policy(state, observation))
 
         if not terminal:
             total_reward = self.evaluate(state, observation, total_reward, limit=depth)
@@ -190,7 +190,7 @@ class MCTS(Configurable):
         :return: the total reward of the rollout trajectory
         """
         for _ in range(limit):
-            actions, probabilities = self.rollout_policy(observation)
+            actions, probabilities = self.rollout_policy(state, observation)
             action = self.np_random.choice(actions, 1, p=probabilities)[0]
             observation, reward, terminal, _ = state.step(action)
             total_reward += reward
@@ -315,8 +315,8 @@ class MCTSAgent(AbstractAgent, Configurable):
         :param env_preprocessor: a preprocessor function to apply to the environment before planning
         """
         self.env = env
-        prior_policy = prior_policy or self.random_policy(env)
-        rollout_policy = rollout_policy or self.random_policy
+        prior_policy = prior_policy or MCTSAgent.random_policy
+        rollout_policy = rollout_policy or MCTSAgent.random_policy
         self.mcts = MCTS(prior_policy, rollout_policy, iterations, temperature, max_depth)
         self.env_preprocessor = env_preprocessor
         self.previous_action = None
@@ -347,60 +347,57 @@ class MCTSAgent(AbstractAgent, Configurable):
         return self.mcts.seed(seed)
 
     @staticmethod
-    def random_policy(env):
+    def random_policy(state, observation):
         """
             Choose actions from a uniform distribution.
 
-        :param env: the environment
-        :return: the policy
+        :param state: the environment state
+        :param observation: the corresponding observation
+        :return: a tuple containing the actions and their probabilities
         """
-        def policy(observation):
-            actions = np.arange(env.action_space.n)
-            probabilities = np.ones((len(actions))) / len(actions)
-            return actions, probabilities
-        return policy
+        actions = np.arange(state.action_space.n)
+        probabilities = np.ones((len(actions))) / len(actions)
+        return actions, probabilities
 
     @staticmethod
-    def random_available_policy(env):
+    def random_available_policy(state, observation):
         """
             Choose actions from a uniform distribution over currently available actions only.
 
-        :param env:the environment
-        :return: the policy
+        :param state: the environment state
+        :param observation: the corresponding observation
+        :return: a tuple containing the actions and their probabilities
         """
-        def policy(observation):
-            if hasattr(env, 'get_available_actions'):
-                available_actions = env.get_available_actions()
-            else:
-                available_actions = np.arange(env.action_space.n)
-            probabilities = np.ones((len(available_actions))) / len(available_actions)
-            return available_actions, probabilities
-        return policy
+        if hasattr(state, 'get_available_actions'):
+            available_actions = state.get_available_actions()
+        else:
+            available_actions = np.arange(state.action_space.n)
+        probabilities = np.ones((len(available_actions))) / len(available_actions)
+        return available_actions, probabilities
 
     @staticmethod
-    def preference_policy(env, action_index, ratio=2):
+    def preference_policy(state, observation, action_index, ratio=2):
         """
             Choose actions with a distribution over currently available actions that favors a preferred action.
 
             The preferred action probability is higher than others with a given ratio, and the distribution is uniform
             over the non-preferred available actions.
-        :param env: the environment
+        :param state: the environment state
+        :param observation: the corresponding observation
         :param action_index: the label of the preferred action
         :param ratio: the ratio between the preferred action probability and the other available actions probabilities
-        :return: the policy
+        :return: a tuple containing the actions and their probabilities
         """
-        def policy(observation):
-            if hasattr(env, 'get_available_actions'):
-                available_actions = env.get_available_actions()
-            else:
-                available_actions = np.arange(env.action_space.n)
-            for i in range(len(available_actions)):
-                if available_actions[i] == action_index:
-                    probabilities = np.ones((len(available_actions))) / (len(available_actions) - 1 + ratio)
-                    probabilities[i] *= ratio
-                    return available_actions, probabilities
-            return MCTSAgent.random_available_policy(env)(observation)
-        return policy
+        if hasattr(state, 'get_available_actions'):
+            available_actions = state.get_available_actions()
+        else:
+            available_actions = np.arange(state.action_space.n)
+        for i in range(len(available_actions)):
+            if available_actions[i] == action_index:
+                probabilities = np.ones((len(available_actions))) / (len(available_actions) - 1 + ratio)
+                probabilities[i] *= ratio
+                return available_actions, probabilities
+        return MCTSAgent.random_available_policy(state, observation)
 
     def record(self, state, action, reward, next_state, done):
         raise NotImplementedError()
@@ -510,8 +507,8 @@ class MCTSWithPriorPolicyAgent(MCTSAgent):
             max_depth=max_depth,
             env_preprocessor=env_preprocessor)
 
-    def agent_policy(self, state):
-        distribution = self.prior_agent.action_distribution(state)
+    def agent_policy(self, state, observation):
+        distribution = self.prior_agent.action_distribution(observation)
         return list(distribution.keys()), list(distribution.values())
 
     def record(self, state, action, reward, next_state, done):

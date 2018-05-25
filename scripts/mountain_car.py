@@ -43,8 +43,6 @@ def dqn_pytorch(env):
 
 def mcts(environment):
     return MCTSAgent(environment,
-                     rollout_policy=MCTSAgent.random_policy,
-                     prior_policy=MCTSAgent.random_policy,
                      iterations=50,
                      temperature=200,
                      max_depth=10)

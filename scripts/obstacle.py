@@ -31,9 +31,9 @@ def dqn_pytorch(environment):
 
 
 def mcts(environment):
+    from functools import partial
     return MCTSAgent(environment,
-                     rollout_policy=MCTSAgent.random_policy,
-                     prior_policy=lambda state:MCTSAgent.preference_policy(state, 0, 0.5),
+                     prior_policy=partial(MCTSAgent.preference_policy, action_index=0, ratio=0.5),
                      iterations=100,
                      temperature=150,
                      max_depth=5)

@@ -52,8 +52,6 @@ def linear(environment):
 
 def mcts(environment):
     return MCTSAgent(environment,
-                     rollout_policy=MCTSAgent.random_policy(environment),
-                     prior_policy=MCTSAgent.random_policy(environment),
                      iterations=40,
                      temperature=200,
                      max_depth=10)
