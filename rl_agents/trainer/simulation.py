@@ -1,6 +1,7 @@
 import os, six
 from gym import logger
 
+from rl_agents.configuration import serialize
 from rl_agents.trainer.graphics import RewardViewer, AgentViewer
 from rl_agents.agents.graphics import AgentGraphics
 from rl_agents.trainer.monitor import MonitorV2
@@ -46,6 +47,7 @@ class Simulation:
         self.directory = directory or os.path.join(self.OUTPUT_FOLDER, env.unwrapped.__class__.__name__)
         self.agent_directory = os.path.join(self.directory, agent.__class__.__name__)
         self.monitor = MonitorV2(env, self.agent_directory, add_subdirectory=(directory is None))
+        self.monitor.write_metadata(dict(env=serialize(self.env), agent=serialize(self.agent)))
 
         if recover:
             self.load_model(recover)

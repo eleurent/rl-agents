@@ -6,6 +6,7 @@ from gym import logger
 from gym.utils import seeding
 
 from rl_agents.agents.abstract import AbstractAgent
+from rl_agents.configuration import Configurable
 
 
 class Node(object):
@@ -121,7 +122,7 @@ class Node(object):
         return '<tree node representation>'
 
 
-class MCTS(object):
+class MCTS(Configurable):
     """
        An implementation of Monte-Carlo Tree Search, with Upper Confidence Tree exploration.
     """
@@ -291,7 +292,7 @@ class MCTS(object):
         self.root.convert_visits_to_prior_in_branch()
 
 
-class MCTSAgent(AbstractAgent):
+class MCTSAgent(AbstractAgent, Configurable):
     """
         An agent that uses Monte Carlo Tree Search to plan a sequence of action in an MDP.
     """

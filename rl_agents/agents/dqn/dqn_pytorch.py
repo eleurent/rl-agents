@@ -18,11 +18,11 @@ Tensor = FloatTensor
 class Network(nn.Module):
     def __init__(self, config):
         super(Network, self).__init__()
-        self.lin1 = nn.Linear(config['layers'][0], config['layers'][1])
+        self.lin1 = nn.Linear(config.all_layers[0], config.all_layers[1])
         self.d1 = nn.Dropout(p=0.2)
-        self.lin2 = nn.Linear(config['layers'][1], config['layers'][2])
+        self.lin2 = nn.Linear(config.all_layers[1], config.all_layers[2])
         self.d2 = nn.Dropout(p=0.2)
-        self.lin3 = nn.Linear(config['layers'][2], config['layers'][3])
+        self.lin3 = nn.Linear(config.all_layers[2], config.all_layers[3])
 
     def forward(self, x):
         x = functional.tanh(self.lin1(x))
@@ -52,9 +52,9 @@ class DQNPytorchAgent(DQNAgent):
         self.optimize_model()
 
     def optimize_model(self):
-        if len(self.memory) < self.config['batch_size']:
+        if len(self.memory) < self.config.batch_size:
             return
-        transitions = self.memory.sample(self.config['batch_size'])
+        transitions = self.memory.sample(self.config.batch_size)
         batch = Transition(*zip(*transitions))
 
         # Compute a mask of non-final states and concatenate the batch elements
@@ -70,7 +70,7 @@ class DQNPytorchAgent(DQNAgent):
         state_action_values = state_action_values.gather(1, action_batch.unsqueeze(1)).squeeze(1)
 
         # Compute V(s_{t+1}) for all next states.
-        next_state_values = Variable(torch.zeros(self.config['batch_size']).type(Tensor))
+        next_state_values = Variable(torch.zeros(self.config.batch_size).type(Tensor))
         # Double Q-learning: pick best actions from policy network
         _, best_actions = self.policy_net(next_states_batch).max(1)
         # Double Q-learning: estimate action values from target network
@@ -78,7 +78,7 @@ class DQNPytorchAgent(DQNAgent):
         next_state_values[non_final_mask] = best_values[non_final_mask]
 
         # Compute the expected Q values
-        expected_state_action_values = reward_batch + self.config['gamma'] * next_state_values
+        expected_state_action_values = reward_batch + self.config.gamma * next_state_values
         # Undo volatility (which was used to prevent unnecessary gradients)
         expected_state_action_values = Variable(expected_state_action_values.data)
 
@@ -95,7 +95,7 @@ class DQNPytorchAgent(DQNAgent):
 
         # Update the target network
         self.steps += 1
-        if self.steps % self.config['target_update'] == 0:
+        if self.steps % self.config.target_update == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
     def get_batch_state_values(self, states):

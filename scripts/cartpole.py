@@ -62,6 +62,7 @@ if __name__ == "__main__":
     gym.logger.set_level(gym.logger.INFO)
     env, sampler = make_env()
     agent = dqn_pytorch(env)
+    # agent = mcts(env)
     sim = Simulation(env, agent, num_episodes=200)
     sim.train()
 

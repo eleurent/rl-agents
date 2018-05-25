@@ -8,7 +8,7 @@ from rl_agents.agents.dqn.abstract import DQNAgent
 
 class DQNKerasAgent(DQNAgent):
     def __init__(self, env, config):
-        super(DQNKerasAgent, self).__init__()
+        super(DQNKerasAgent, self).__init__(env, config)
         self.model = None
         self.build_neural_net()
 
@@ -21,20 +21,19 @@ class DQNKerasAgent(DQNAgent):
             Build a neural network model for value function approximation
         """
         self.model = Sequential()
-        layers = self.config["layers"]
 
         # Input layer
-        self.model.add(Dense(layers[1], kernel_initializer='lecun_uniform', input_shape=(layers[0],)))
+        self.model.add(Dense(self.config.all_layers[1], kernel_initializer='lecun_uniform', input_shape=(self.config.all_layers[0],)))
         self.model.add(Activation('tanh'))
         self.model.add(Dropout(0.2))
 
-        for layer in layers[2:-1]:
+        for layer in self.config.all_layers[2:-1]:
             self.model.add(Dense(layer, kernel_initializer='lecun_uniform'))
             self.model.add(Activation('tanh'))
             self.model.add(Dropout(0.2))
 
         # Output layer
-        self.model.add(Dense(layers[-1], kernel_initializer='lecun_uniform'))
+        self.model.add(Dense(self.config.all_layers[-1], kernel_initializer='lecun_uniform'))
         self.model.add(Activation('linear'))
 
         optim = Adam(lr=5e-4)

@@ -5,30 +5,30 @@ import numpy as np
 from rl_agents.agents.abstract import AbstractStochasticAgent
 from rl_agents.agents.exploration.exploration import EpsilonGreedy
 from rl_agents.agents.utils import ReplayMemory
+from rl_agents.configuration import Config, Configurable
 
 
-class DQNAgent(AbstractStochasticAgent, ABC):
+class DQNAgent(AbstractStochasticAgent, ABC, Configurable):
     def __init__(self, env, config=None):
         self.env = env
-        self.config = config or DQNAgent.default_config()
-        self.config["num_states"] = env.observation_space.shape[0]
-        self.config["num_actions"] = env.action_space.n
-        self.config["layers"] = [self.config["num_states"]] + self.config["layers"] + [self.config["num_actions"]]
+        self.config = self.default_config()
+        self.config.update(config)
+        self.config.num_states = env.observation_space.shape[0]
+        self.config.num_actions = env.action_space.n
+        self.config.all_layers = [self.config.num_states] + self.config.layers + [self.config.num_actions]
         self.memory = ReplayMemory(self.config)
         self.exploration_policy = EpsilonGreedy(self.config, self.env.action_space)
         self.previous_state = None
 
-    @staticmethod
-    def default_config():
-        return {
-            "layers": [100, 100],
-            "memory_capacity": 5000,
-            "batch_size": 32,
-            "gamma": 0.99,
-            "epsilon": [1.0, 0.01],
-            "epsilon_tau": 5000,
-            "target_update": 1
-        }
+    @classmethod
+    def default_config(cls):
+        return Config(layers=[100, 100],
+                      memory_capacity=5000,
+                      batch_size=32,
+                      gamma=0.99,
+                      epsilon=[1.0, 0.01],
+                      epsilon_tau=5000,
+                      target_update=1)
 
     def action_distribution(self, state):
         _, optimal_action = self.get_state_value(state)

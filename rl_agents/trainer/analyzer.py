@@ -56,8 +56,8 @@ class RunAnalyzer(object):
             axes = fig.add_subplot(111)
             axes.set_title('Histogram of {}'.format(title))
             axes.set_xlabel(title.capitalize())
-            axes.set_ylabel('Count')
-        axes.hist(data, label=label)
+            axes.set_ylabel('Frequency')
+        axes.hist(data, density=True, label=label)
         return axes
 
     def plot_all(self, runs, field, title, axes=None):
