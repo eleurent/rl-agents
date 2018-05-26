@@ -15,8 +15,8 @@ class Benchmark(object):
         self.num_episodes = num_episodes
         self.train = train
 
-        self.summary_filename = os.path.join(Simulation.OUTPUT_FOLDER, '{}_{}.json'.format(
-            self.SUMMARY_FILE, datetime.datetime.now().strftime('%Y%m%d-%H%M%S')))
+        self.summary_filename = os.path.join(Simulation.OUTPUT_FOLDER, '{}_{}.{}.json'.format(
+            self.SUMMARY_FILE, datetime.datetime.now().strftime('%Y%m%d-%H%M%S'), os.getpid()))
 
     def run(self):
         run_directories = []

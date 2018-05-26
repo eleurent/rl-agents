@@ -74,6 +74,10 @@ class MonitorV2(Monitor):
         """
         return self._video_enabled()
 
+    @property
+    def monitor_id(self):
+        return self._monitor_id
+
     @staticmethod
     def always_call_video(i):
         return True

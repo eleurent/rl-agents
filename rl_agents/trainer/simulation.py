@@ -15,7 +15,7 @@ class Simulation:
 
     OUTPUT_FOLDER = 'out'
     SAVED_MODELS_FOLDER = 'saved_models'
-    METADATA_FILE = 'metadata.json'
+    METADATA_FILE = 'metadata.{}.json'
 
     def __init__(self,
                  env,
@@ -153,7 +153,9 @@ class Simulation:
         return os.path.join(self.OUTPUT_FOLDER, self.env.unwrapped.__class__.__name__, self.agent.__class__.__name__)
 
     def write_metadata(self, dictionary):
-        with open(os.path.join(self.monitor.directory, self.METADATA_FILE), 'w') as f:
+        file_infix = '{}.{}'.format(self.monitor.monitor_id, os.getpid())
+        file = os.path.join(self.monitor.directory, self.METADATA_FILE.format(file_infix))
+        with open(file, 'w') as f:
             json.dump(dictionary, f, sort_keys=True, indent=4)
 
     def save_agent(self, episode, do_save=True):
