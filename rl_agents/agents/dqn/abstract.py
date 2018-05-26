@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from rl_agents.agents.abstract import AbstractStochasticAgent
-from rl_agents.agents.exploration.exploration import EpsilonGreedy
+from rl_agents.agents.exploration.epsilon_greedy import EpsilonGreedy
 from rl_agents.agents.utils import ReplayMemory
 from rl_agents.configuration import Config, Configurable
 
@@ -18,7 +18,7 @@ class DQNAgent(AbstractStochasticAgent, ABC, Configurable):
         self.config.num_actions = env.action_space.n
         self.config.all_layers = [self.config.num_states] + self.config.layers + [self.config.num_actions]
         self.memory = ReplayMemory(self.config)
-        self.exploration_policy = EpsilonGreedy(self.config, self.env.action_space)
+        self.exploration_policy = self.config.exploration.method(self.config.exploration, self.env.action_space)
         self.previous_state = None
 
     @classmethod
@@ -27,19 +27,22 @@ class DQNAgent(AbstractStochasticAgent, ABC, Configurable):
                       memory_capacity=5000,
                       batch_size=32,
                       gamma=0.99,
-                      epsilon=[1.0, 0.01],
-                      epsilon_tau=5000,
+                      exploration=Config(method=EpsilonGreedy,
+                                         epsilon=[1.0, 0.01],
+                                         epsilon_tau=5000),
                       target_update=1)
 
     def action_distribution(self, state):
-        _, optimal_action = self.get_state_value(state)
-        self.exploration_policy.update(np.asscalar(optimal_action))
+        self.previous_state = state
+        values = self.get_state_action_values(state)
+        self.exploration_policy.update(values)
         return self.exploration_policy.get_distribution()
 
     def act(self, state):
         self.previous_state = state
-        _, optimal_action = self.get_state_value(state)
-        return self.exploration_policy.act(np.asscalar(optimal_action))
+        values = self.get_state_action_values(state)
+        self.exploration_policy.update(values)
+        return self.exploration_policy.sample()
 
     @abstractmethod
     def get_batch_state_values(self, states):

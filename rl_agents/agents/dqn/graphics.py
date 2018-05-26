@@ -26,6 +26,7 @@ class DQNGraphics(object):
         :param display_text: whether to display the action values as text
         """
         action_values = agent.get_state_action_values(agent.previous_state)
+        action_distribution = agent.action_distribution(agent.previous_state)
 
         cell_size = (surface.get_width() // len(action_values), surface.get_height())
         pygame.draw.rect(surface, cls.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
@@ -39,7 +40,7 @@ class DQNGraphics(object):
 
             if display_text:
                 font = pygame.font.Font(None, 15)
-                text = "{:.2f}".format(value)
+                text = "v={:.2f} / p={:.2f}".format(value, action_distribution[action])
                 text = font.render(text,
                                    1, (10, 10, 10), (255, 255, 255))
                 surface.blit(text, (cell_size[0]*action, 0))
