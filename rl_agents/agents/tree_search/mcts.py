@@ -191,7 +191,7 @@ class MCTS(Configurable):
         """
         for _ in range(limit):
             actions, probabilities = self.rollout_policy(state, observation)
-            action = self.np_random.choice(actions, 1, p=probabilities)[0]
+            action = self.np_random.choice(actions, 1, p=np.array(probabilities))[0]
             observation, reward, terminal, _ = state.step(action)
             total_reward += reward
             if terminal:
