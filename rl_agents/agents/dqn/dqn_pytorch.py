@@ -15,28 +15,11 @@ ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
 Tensor = FloatTensor
 
 
-class Network(nn.Module):
-    def __init__(self, config):
-        super(Network, self).__init__()
-        self.lin1 = nn.Linear(config.all_layers[0], config.all_layers[1])
-        self.d1 = nn.Dropout(p=0.2)
-        self.lin2 = nn.Linear(config.all_layers[1], config.all_layers[2])
-        self.d2 = nn.Dropout(p=0.2)
-        self.lin3 = nn.Linear(config.all_layers[2], config.all_layers[3])
-
-    def forward(self, x):
-        x = functional.tanh(self.lin1(x))
-        # x = self.d1(x)
-        x = functional.tanh(self.lin2(x))
-        # x = self.d2(x)
-        return self.lin3(x)
-
-
 class DQNPytorchAgent(DQNAgent):
     def __init__(self, env, config=None):
         super(DQNPytorchAgent, self).__init__(env, config)
-        self.policy_net = Network(self.config)
-        self.target_net = Network(self.config)
+        self.policy_net = FCNetwork(self.config)
+        self.target_net = FCNetwork(self.config)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
         if use_cuda:
@@ -114,3 +97,37 @@ class DQNPytorchAgent(DQNAgent):
         checkpoint = torch.load(filename)
         self.policy_net.load_state_dict(checkpoint['state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
+
+
+class FCNetwork(nn.Module):
+    def __init__(self, config):
+        super(FCNetwork, self).__init__()
+        self.lin1 = nn.Linear(config.all_layers[0], config.all_layers[1])
+        self.d1 = nn.Dropout(p=0.2)
+        self.lin2 = nn.Linear(config.all_layers[1], config.all_layers[2])
+        self.d2 = nn.Dropout(p=0.2)
+        self.lin3 = nn.Linear(config.all_layers[2], config.all_layers[3])
+
+    def forward(self, x):
+        x = functional.tanh(self.lin1(x))
+        # x = self.d1(x)
+        x = functional.tanh(self.lin2(x))
+        # x = self.d2(x)
+        return self.lin3(x)
+
+
+class DuelingNetwork(nn.Module):
+    def __init__(self, config):
+        super(DuelingNetwork, self).__init__()
+        self.config = config
+        self.lin1 = nn.Linear(config.all_layers[0], config.all_layers[1])
+        self.lin2 = nn.Linear(config.all_layers[1], config.all_layers[2])
+        self.advantage = nn.Linear(config.all_layers[2], config.all_layers[3])
+        self.value = nn.Linear(config.all_layers[2], 1)
+
+    def forward(self, x):
+        x = functional.tanh(self.lin1(x))
+        x = functional.tanh(self.lin2(x))
+        advantage = self.advantage(x)
+        value = self.value(x).expand(-1,  self.config.all_layers[3])
+        return value + advantage - advantage.mean(1).unsqueeze(1).expand(-1,  self.config.all_layers[3])
