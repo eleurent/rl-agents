@@ -8,8 +8,7 @@ from rl_agents.trainer.monitor import MonitorV2
 
 class RunAnalyzer(object):
     def __init__(self, run_directories):
-        if len(run_directories) > 1:
-            self.base = os.path.commonprefix(run_directories)
+        self.base = os.path.commonprefix(run_directories) if len(run_directories) > 1 else ''
         self.analyse(run_directories)
 
     def suffix(self, directory):

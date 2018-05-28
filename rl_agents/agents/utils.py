@@ -11,7 +11,7 @@ Transition = namedtuple('Transition',
 
 class ReplayMemory(object):
     def __init__(self, config):
-        self.capacity = config['memory_capacity']
+        self.capacity = int(config['memory_capacity'])
         self.memory = []
         self.position = 0
 
