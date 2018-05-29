@@ -51,7 +51,7 @@ class Simulation:
 
         self.directory = directory or self.default_directory
         self.monitor = MonitorV2(env, self.directory, add_subdirectory=(directory is None))
-        self.write_metadata(dict(env=serialize(self.env), agent=serialize(self.agent)))
+        self.write_metadata()
 
         if recover:
             self.load_agent(recover)
@@ -78,9 +78,10 @@ class Simulation:
         self.training = False
         self.load_agent(model_path)
         self.monitor.video_callable = MonitorV2.always_call_video
-        # Todo this should be replaced by an agent.test() method
-        if hasattr(self.agent, 'config'):
-            self.agent.config['epsilon'] = [0, 0]
+        try:
+            self.agent.test()
+        except AttributeError:
+            pass
         self.run_episodes()
         self.close()
 
@@ -152,11 +153,12 @@ class Simulation:
     def default_directory(self):
         return os.path.join(self.OUTPUT_FOLDER, self.env.unwrapped.__class__.__name__, self.agent.__class__.__name__)
 
-    def write_metadata(self, dictionary):
+    def write_metadata(self):
+        metadata = dict(env=serialize(self.env), agent=serialize(self.agent))
         file_infix = '{}.{}'.format(self.monitor.monitor_id, os.getpid())
         file = os.path.join(self.monitor.directory, self.METADATA_FILE.format(file_infix))
         with open(file, 'w') as f:
-            json.dump(dictionary, f, sort_keys=True, indent=4)
+            json.dump(metadata, f, sort_keys=True, indent=4)
 
     def save_agent(self, episode, do_save=True):
         # Create the folder if it doesn't exist

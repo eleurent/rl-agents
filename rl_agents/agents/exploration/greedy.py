@@ -9,9 +9,8 @@ class Greedy(DiscreteDistribution):
         Always use the optimal action
     """
 
-    def __init__(self, config, action_space):
-        super(Greedy, self).__init__()
-        self.config = config
+    def __init__(self, action_space, config=None):
+        super(Greedy, self).__init__(config)
         self.action_space = action_space
         if not isinstance(self.action_space, spaces.Discrete):
             raise TypeError("The action space should be discrete")

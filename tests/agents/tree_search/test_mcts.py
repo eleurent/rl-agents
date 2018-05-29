@@ -5,7 +5,7 @@ from rl_agents.agents.tree_search.mcts import MCTSAgent
 
 def test_cartpole():
     env = gym.make('CartPole-v0')
-    agent = MCTSAgent(env, iterations=40, temperature=200, max_depth=10)
+    agent = MCTSAgent(env, config=dict(iterations=40, temperature=200, max_depth=10))
 
     state = env.reset()
     done = False

@@ -125,24 +125,30 @@ class MCTS(Configurable):
     """
        An implementation of Monte-Carlo Tree Search, with Upper Confidence Tree exploration.
     """
-    def __init__(self, prior_policy, rollout_policy, iterations, temperature, max_depth):
+    def __init__(self, prior_policy, rollout_policy, config=None):
         """
             New MCTS instance.
 
+        :param config: the mcts configuration. Use default if None.
+                       - iterations: the number of iterations
+                       - temperature: the temperature of exploration
+                       - max_depth: the maximum depth of the tree
         :param prior_policy: the prior policy used when expanding and selecting nodes
         :param rollout_policy: the rollout policy used to estimate the value of a leaf node
-        :param iterations: the number of iterations
-        :param temperature: the temperature of exploration
-        :param max_depth: the maximum depth of the tree
+
         """
+        super(MCTS, self).__init__(config)
         self.root = Node(parent=None)
         self.prior_policy = prior_policy
         self.rollout_policy = rollout_policy
-        self.iterations = iterations
-        self.temperature = temperature
-        self.max_depth = max_depth
         self.np_random = None
         self.seed()
+
+    @classmethod
+    def default_config(cls):
+        return dict(iterations=75,
+                    temperature=10,
+                    max_depth=7)
 
     def seed(self, seed=None):
         """
@@ -162,10 +168,10 @@ class MCTS(Configurable):
         """
         node = self.root
         total_reward = 0
-        depth = self.max_depth
+        depth = self.config['max_depth']
         terminal = False
         while depth > 0 and node.children and not terminal:
-            action = node.select_action(temperature=self.temperature)
+            action = node.select_action(temperature=self.config['temperature'])
             observation, reward, terminal, _ = state.step(action)
             total_reward += reward
             node = node.children[action]
@@ -206,9 +212,9 @@ class MCTS(Configurable):
         :param observation: the corresponding state observation
         :return: the list of actions
         """
-        for i in range(self.iterations):
+        for i in range(self.config['iterations']):
             if (i+1) % 10 == 0:
-                logger.debug('{} / {}'.format(i+1, self.iterations))
+                logger.debug('{} / {}'.format(i+1, self.config['iterations']))
 
             # Simplify the environment state if supported
             try:
@@ -259,7 +265,7 @@ class MCTS(Configurable):
 
         :param action: the chosen action from the root node
         """
-        self.step_by_subtree(action)
+        self.step_by_reset()
 
     def step_by_reset(self):
         """
@@ -291,35 +297,36 @@ class MCTS(Configurable):
         self.root.convert_visits_to_prior_in_branch()
 
 
-class MCTSAgent(AbstractAgent, Configurable):
+class MCTSAgent(AbstractAgent):
     """
         An agent that uses Monte Carlo Tree Search to plan a sequence of action in an MDP.
     """
 
     def __init__(self,
                  env,
+                 config=None,
                  prior_policy=None,
                  rollout_policy=None,
-                 iterations=75,
-                 temperature=10,
-                 max_depth=7,
                  env_preprocessor=None):
         """
             A new MCTS agent.
         :param env: The environment
+        :param config: The agent configuration. Use default if None.
         :param prior_policy: The prior distribution over actions given a state
         :param rollout_policy: The distribution over actions used when evaluating leaves
-        :param iterations: the number of MCTS iterations
-        :param max_depth: the maximum planning horizon
-        :param temperature: the temperature of exploration
         :param env_preprocessor: a preprocessor function to apply to the environment before planning
         """
+        super(MCTSAgent, self).__init__(config)
         self.env = env
         prior_policy = prior_policy or MCTSAgent.random_policy
         rollout_policy = rollout_policy or MCTSAgent.random_policy
-        self.mcts = MCTS(prior_policy, rollout_policy, iterations, temperature, max_depth)
+        self.mcts = MCTS(prior_policy, rollout_policy, self.config)
         self.env_preprocessor = env_preprocessor
         self.previous_action = None
+
+    @classmethod
+    def default_config(cls):
+        return dict()
 
     def plan(self, state):
         """
@@ -416,20 +423,19 @@ class RobustMCTSAgent(AbstractAgent):
     def __init__(self,
                  env,
                  models,
+                 config=None,
                  prior_policy=None,
-                 rollout_policy=None,
-                 iterations=75,
-                 temperature=10):
+                 rollout_policy=None,):
         """
             A new MCTS agent with multiple environment models.
         :param env: The true environment
         :param models: A list of env preprocessors that represent possible transition models
+        :param config: The agent configuration
         :param prior_policy: The prior distribution over actions given a state
         :param rollout_policy: The distribution over actions used when evaluating leaves
-        :param iterations: the number of MCTS iterations
-        :param temperature: the temperature of exploration
         """
-        self.agents = [MCTSAgent(env, prior_policy, rollout_policy, iterations, temperature, env_preprocessor=model)
+        super(RobustMCTSAgent, self).__init__(config)
+        self.agents = [MCTSAgent(env, self.config, prior_policy, rollout_policy, env_preprocessor=model)
                        for model in models]
         self.__env = env
 
@@ -485,26 +491,26 @@ class MCTSWithPriorPolicyAgent(MCTSAgent):
     def __init__(self,
                  env,
                  prior_agent,
-                 iterations=75,
-                 temperature=10,
-                 max_depth=7,
+                 config=None,
                  env_preprocessor=None):
         """
         :param env: The environment
         :param AbstractStochasticAgent prior_agent: An agent that computes a prior action distribution
-        :param iterations: Number of rollouts in MCTS
-        :param temperature: control exploration from greedy tree search (low) to agent prior distribution (high)
-        :param max_depth: maximum prediction horizon
+        :param config: The agent configuration.
+                       - iterations: Number of rollouts in MCTS
+                       - temperature: control exploration from greedy TS (low) to agent prior distribution (high)
+                       - max_depth: maximum prediction horizon
         :param env_preprocessor: a preprocessor function to apply to the environment before planning
         """
+        super(MCTSWithPriorPolicyAgent, self).__init__(config)
         self.prior_agent = prior_agent
+        self.config["prior_agent"] = dict(__class__=repr(prior_agent.__class__),
+                                          config=self.prior_agent.config)
         super(MCTSWithPriorPolicyAgent, self).__init__(
             env,
+            self.config,
             prior_policy=self.agent_policy,
             rollout_policy=self.agent_policy,
-            iterations=iterations,
-            temperature=temperature,
-            max_depth=max_depth,
             env_preprocessor=env_preprocessor)
 
     def agent_policy(self, state, observation):

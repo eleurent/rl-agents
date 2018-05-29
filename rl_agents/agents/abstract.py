@@ -1,7 +1,13 @@
 from abc import ABC, abstractmethod
 
+from rl_agents.configuration import Configurable
 
-class AbstractAgent(ABC):
+
+class AbstractAgent(Configurable, ABC):
+
+    def __init__(self, config=None):
+        super(AbstractAgent, self).__init__(config)
+
     """
         An abstract class specifying the interface of a generic agent.
     """

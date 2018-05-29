@@ -18,25 +18,17 @@ def make_env():
 
 
 def dqn_pytorch(environment):
-    config = {
-        "layers": [100, 100],
-        "memory_capacity": 50000,
-        "batch_size": 100,
-        "gamma": 0.9,
-        "epsilon": [1.0, 0.01],
-        "epsilon_tau": 50000,
-        "target_update": 1
-    }
+    config = dict(model=dict(layers=[100, 100]),
+                  gamma=0.9,
+                  exploration=dict(tau=50000))
     return DQNPytorchAgent(environment, config)
 
 
 def mcts(environment):
     from functools import partial
     return MCTSAgent(environment,
-                     prior_policy=partial(MCTSAgent.preference_policy, action_index=0, ratio=0.5),
-                     iterations=100,
-                     temperature=150,
-                     max_depth=5)
+                     config=dict(iterations=100, temperature=150, max_depth=5),
+                     prior_policy=partial(MCTSAgent.preference_policy, action_index=0, ratio=0.5))
 
 
 def main():

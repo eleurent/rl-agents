@@ -1,36 +1,31 @@
 from abc import ABC, abstractmethod
 
-import numpy as np
-
 from rl_agents.agents.abstract import AbstractStochasticAgent
-from rl_agents.agents.exploration.epsilon_greedy import EpsilonGreedy
+from rl_agents.agents.exploration.common import exploration_factory
 from rl_agents.agents.utils import ReplayMemory
-from rl_agents.configuration import Config, Configurable
 
 
-class DQNAgent(AbstractStochasticAgent, ABC, Configurable):
+class DQNAgent(AbstractStochasticAgent, ABC):
     def __init__(self, env, config=None):
+        super(DQNAgent, self).__init__(config)
         self.env = env
-        self.config = self.default_config()
-        if config:
-            self.config.update(config)
-        self.config.num_states = env.observation_space.shape[0]
-        self.config.num_actions = env.action_space.n
-        self.config.all_layers = [self.config.num_states] + self.config.layers + [self.config.num_actions]
+        self.config["num_states"] = env.observation_space.shape[0]
+        self.config["num_actions"] = env.action_space.n
+        self.config["model"]["all_layers"] = \
+            [self.config["num_states"]] + self.config["model"]["layers"] + [self.config["num_actions"]]
         self.memory = ReplayMemory(self.config)
-        self.exploration_policy = self.config.exploration.method(self.config.exploration, self.env.action_space)
+        self.exploration_policy = exploration_factory(self.config["exploration"], self.env.action_space)
         self.previous_state = None
 
     @classmethod
     def default_config(cls):
-        return Config(layers=[100, 100],
-                      memory_capacity=5000,
-                      batch_size=32,
-                      gamma=0.99,
-                      exploration=Config(method=EpsilonGreedy,
-                                         epsilon=[1.0, 0.01],
-                                         epsilon_tau=5000),
-                      target_update=1)
+        return dict(model=dict(type="DuelingNetwork",
+                               layers=[100, 100]),
+                    memory_capacity=50000,
+                    batch_size=100,
+                    gamma=0.99,
+                    exploration=dict(method="EpsilonGreedy"),
+                    target_update=1)
 
     def action_distribution(self, state):
         self.previous_state = state

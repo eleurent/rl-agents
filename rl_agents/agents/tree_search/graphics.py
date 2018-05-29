@@ -19,10 +19,10 @@ class MCTSGraphics(object):
         :param agent: the MCTSAgent to be displayed
         :param surface: the pygame surface on which the agent is displayed
         """
-        cell_size = (surface.get_width() // agent.mcts.max_depth, surface.get_height())
+        cell_size = (surface.get_width() // agent.mcts.config['max_depth'], surface.get_height())
         pygame.draw.rect(surface, cls.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
         cls.display_node(agent.mcts.root, surface, (0, 0), cell_size,
-                         temperature=agent.mcts.temperature, depth=0, selected=True)
+                         temperature=agent.mcts.config['temperature'], depth=0, selected=True)
 
         actions = agent.mcts.get_plan()
         font = pygame.font.Font(None, 13)
