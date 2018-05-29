@@ -31,7 +31,7 @@ class DQNPytorchAgent(DQNAgent):
 
     def record(self, state, action, reward, next_state, done):
         # Store the transition in memory
-        self.memory.push(Tensor([state]), action, reward, Tensor([next_state]), done)
+        self.memory.push(Tensor([state]), int(action), reward, Tensor([next_state]), done)
         self.optimize_model()
 
     def optimize_model(self):
