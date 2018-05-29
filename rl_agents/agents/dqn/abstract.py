@@ -39,6 +39,10 @@ class DQNAgent(AbstractStochasticAgent, ABC):
         self.exploration_policy.update(values)
         return self.exploration_policy.sample()
 
+    def eval(self):
+        self.config['exploration']['method'] = "Greedy"
+        self.exploration_policy = exploration_factory(self.config["exploration"], self.env.action_space)
+
     @abstractmethod
     def get_batch_state_values(self, states):
         """

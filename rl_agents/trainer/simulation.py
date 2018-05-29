@@ -79,7 +79,7 @@ class Simulation:
         self.load_agent(model_path)
         self.monitor.video_callable = MonitorV2.always_call_video
         try:
-            self.agent.test()
+            self.agent.eval()
         except AttributeError:
             pass
         self.run_episodes()

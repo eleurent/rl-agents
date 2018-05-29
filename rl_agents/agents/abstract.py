@@ -75,6 +75,12 @@ class AbstractAgent(Configurable, ABC):
         """
         raise NotImplementedError()
 
+    def eval(self):
+        """
+            Set to testing mode. Disable any unnecessary exploration.
+        """
+        pass
+
 
 class AbstractStochasticAgent(AbstractAgent):
     """
