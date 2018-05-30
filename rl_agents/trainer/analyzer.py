@@ -51,19 +51,31 @@ class RunAnalyzer(object):
 
     def plot_all(self, runs, field, title, axes=None):
         for directory, manifest in runs.items():
-            axes = self.plot(manifest[field], title=title, label=directory, axes=axes)
+            axes = self.plot(manifest[field], title=title, label=directory, axes=axes, averaged=False)
+        axes.set_prop_cycle(None)
+        for directory, manifest in runs.items():
+            axes = self.plot(manifest[field], title=title, label=directory, axes=axes, averaged=True)
         axes.legend()
         axes.grid()
         return axes
 
-    def plot(self, data, title, label, axes=None):
+    def plot(self, data, title, label, axes=None, averaged=None):
         if not axes:
             fig = plt.figure()
             axes = fig.add_subplot(111)
             axes.set_title('History of {}'.format(title))
             axes.set_xlabel('Runs')
             axes.set_ylabel(title.capitalize())
-        axes.plot(np.arange(np.size(data)), data, label=label)
+        # Normal plot
+        if averaged is None:
+            axes.plot(np.arange(np.size(data)), data, label=label)
+        # Averaged data plot
+        elif averaged:
+            means = np.hstack((np.zeros((100,)), np.convolve(data, np.ones((100,)) / 100, mode='valid')))
+            axes.plot(np.arange(np.size(means)), means, label=label)
+        # Noisy data plot
+        else:
+            axes.plot(np.arange(np.size(data)), data, label=None, lw=3, alpha=.25)
         return axes
 
     def describe_all(self, runs, field, title):
