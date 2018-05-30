@@ -1,5 +1,6 @@
 import collections
-
+from gym.core import Env
+from gym.envs.registration import registry
 
 class Configurable(object):
     """
@@ -75,5 +76,9 @@ def serialize(obj):
     else:
         d = {key: repr(value) for (key, value) in obj.__dict__.items()}
     d['__class__'] = repr(obj.__class__)
+    if isinstance(obj, Env):
+        env_index = list(registry.all()).index(obj.spec)
+        env_id = list(registry.env_specs.keys())[env_index]
+        d['id'] = env_id
     return d
 
