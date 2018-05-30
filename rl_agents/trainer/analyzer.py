@@ -9,12 +9,12 @@ from rl_agents.trainer.monitor import MonitorV2
 class RunAnalyzer(object):
     def __init__(self, run_directories):
         self.base = os.path.commonprefix(run_directories) if len(run_directories) > 1 else ''
-        self.analyse(run_directories)
+        self.analyze(run_directories)
 
     def suffix(self, directory):
         return directory[len(self.base):]
 
-    def analyse(self, run_directories):
+    def analyze(self, run_directories):
         runs = {self.suffix(directory): MonitorV2.load_results(directory) for directory in run_directories}
         self.plot_all(runs, field='episode_rewards', title='rewards')
         self.describe_all(runs, field='episode_rewards', title='rewards')
@@ -70,7 +70,7 @@ class RunAnalyzer(object):
         if averaged is None:
             axes.plot(np.arange(np.size(data)), data, label=label)
         # Averaged data plot
-        elif averaged:
+        elif averaged and np.size(data) > 100:
             means = np.hstack((np.zeros((100,)), np.convolve(data, np.ones((100,)) / 100, mode='valid')))
             axes.plot(np.arange(np.size(means)), means, label=label)
         # Noisy data plot
