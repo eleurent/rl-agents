@@ -3,12 +3,17 @@ from rl_agents.agents.abstract import AbstractAgent
 
 
 class LinearAgent(AbstractAgent):
-    def __init__(self, env, config):
+    def __init__(self, env, config=None):
+        super(LinearAgent, self).__init__(config)
+        self.K = np.array(self.config["K"])
         self.env = env
-        self.config = config
+
+    @classmethod
+    def default_config(cls):
+        return {"K": 0}
 
     def act(self, observation):
-        u = np.dot(self.config['K'], -observation)
+        u = np.dot(self.K, -observation)
         action = 1 if u < 0 else 0
         return action
 
