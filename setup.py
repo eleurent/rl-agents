@@ -17,7 +17,7 @@ setup(
 
     keywords='reinforcement learning agents',
     packages=find_packages(exclude=['docs', 'scripts', 'tests*']),
-    install_requires=['gym', 'numpy', 'pygame', 'matplotlib', 'six'],
+    install_requires=['gym', 'numpy', 'pygame', 'matplotlib', 'six', 'docopt'],
     tests_require=['pytest'],
     extras_require={
         'dev': ['scipy',],
