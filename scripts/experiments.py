@@ -5,16 +5,20 @@ Usage:
   experiments -h | --help
 
 Options:
-  -h --help           Show this screen.
-  --analyze           Automatically analyze the experiment results.
-  --episodes <count>  Number of episodes [default: 5].
-  --seed <num>        Seed the environments and agents.
-  --train             Train the agent.
-  --test              Test the agent.
+  -h --help            Show this screen.
+  --analyze            Automatically analyze the experiment results.
+  --episodes <count>   Number of episodes [default: 5].
+  --processes <count>  Number of running processes [default: 4].
+  --seed <str>         Seed the environments and agents.
+  --train              Train the agent.
+  --test               Test the agent.
 """
+
 import gym
 import json
 from docopt import docopt
+from itertools import product
+from multiprocessing.pool import Pool
 
 from rl_agents.agents.common import agent_factory
 from rl_agents.trainer.analyzer import RunAnalyzer
@@ -42,7 +46,7 @@ def evaluate(environment_config, agent_config, options):
     agent = load_agent(agent_config, env)
     sim = Simulation(env, agent,
                      num_episodes=int(options['--episodes']),
-                     sim_seed=options.get('seed', None))
+                     sim_seed=options['--seed'])
     if options['--train']:
         sim.train()
     elif options['--test']:
@@ -51,12 +55,14 @@ def evaluate(environment_config, agent_config, options):
         sim.close()
     if options['--analyze']:
         RunAnalyzer([sim.monitor.directory])
+    return sim.monitor.directory
 
 
 def benchmark(options):
     """
         Run the evaluations of several agents interacting in several environments.
 
+    The evaluations are dispatched over several processes.
     The benchmark configuration file should look like this:
     {
         "environments": ["path/to/env1.json", ...],
@@ -65,11 +71,12 @@ def benchmark(options):
 
     :param options: the evaluation options, containing the path to the benchmark configuration file.
     """
-    with open(options['benchmark_config']) as f:
+    with open(options['<benchmark_config>']) as f:
         benchmark_config = json.loads(f.read())
-        for env_config in benchmark_config['environments']:
-            for agent_config in benchmark_config['agents']:
-                evaluate(env_config, agent_config, options)  # TODO: Replace with a subprocess.call()
+    experiments = product(benchmark_config['environments'], benchmark_config['agents'], [options])
+    with Pool(processes=int(options['--processes'])) as pool:
+        results = pool.starmap(evaluate, experiments)
+    gym.logger.info('Generated runs: {}'.format(results))
 
 
 def load_environment(env_config):
