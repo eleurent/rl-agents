@@ -96,13 +96,19 @@ A benchmark configuration files contains a list of environment configurations an
 
 The following agents are currently implemented:
 
-### [Double DQN](rl_agents/agents/dqn)
+### [DQN](rl_agents/agents/dqn)
 
 A neural-network model is used to estimate the state-action value function and produce a greedy optimal policy.
+
+Implemented variants:
+* Double DQN
+* Dueling architecture
+* N-step targets
 
 References:
 * [Playing Atari with Deep Reinforcement Learning](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf), Mnih V. et al, 2013
 * [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461), van Hasselt H. et al, 2015.
+* [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581), Wang Z. et al, 2015.
 
 ### [Monte Carlo Tree Search](rl_agents/agents/tree_search/mcts.py)
 
