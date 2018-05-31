@@ -5,7 +5,7 @@
         "layers": [512, 512]
     },
     "gamma": 0.9,
-    "n_steps": 3,
+    "n_steps": 1,
     "batch_size": 128,
     "memory_capacity": 300000,
     "target_update": 3000,

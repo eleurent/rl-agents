@@ -6,7 +6,7 @@
     },
     "gamma": 0.9,
     "n_steps": 3,
-    "batch_size": 128,
+    "batch_size": 512,
     "memory_capacity": 300000,
     "target_update": 3000,
     "exploration": {
