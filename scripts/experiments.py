@@ -6,10 +6,11 @@ Usage:
 
 Options:
   -h --help           Show this screen.
+  --analyze           Automatically analyze the experiment results.
+  --episodes <count>  Number of episodes [default: 5].
+  --seed <num>        Seed the environments and agents.
   --train             Train the agent.
   --test              Test the agent.
-  --episodes <count>  Number of episodes [default: 5].
-  --analyze           Automatically analyze the experiment results.
 """
 import gym
 import json
@@ -39,7 +40,9 @@ def evaluate(environment_config, agent_config, options):
     gym.logger.set_level(gym.logger.INFO)
     env = load_environment(environment_config)
     agent = load_agent(agent_config, env)
-    sim = Simulation(env, agent, num_episodes=int(options['--episodes']))
+    sim = Simulation(env, agent,
+                     num_episodes=int(options['--episodes']),
+                     sim_seed=options.get('seed', None))
     if options['--train']:
         sim.train()
     elif options['--test']:
@@ -71,9 +74,10 @@ def benchmark(options):
 
 def load_environment(env_config):
     """
-        Load an environment.
+        Load an environment from a configuration file.
+
     :param env_config: the path to the environment configuration file
-    :return:
+    :return: the environment
     """
     with open(env_config) as f:
         env_config = json.loads(f.read())
@@ -96,7 +100,11 @@ def load_environment(env_config):
 
 def load_agent(agent_config, env):
     """
-        Load an agent from its configuration file, and environment.
+        Load an agent from a configuration file.
+
+    :param agent_config: the path to the agent configuration file
+    :param env: the environment with which the agent interacts
+    :return: the agent
     """
     # Load agent
     with open(agent_config) as f:
