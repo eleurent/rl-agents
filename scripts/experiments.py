@@ -1,12 +1,13 @@
 """
 Usage:
   experiments evaluate <environment_config> <agent_config> (--train|--test) [options]
+  experiments benchmark <benchmark_config> (--train|--test) [options]
   experiments -h | --help
 
 Options:
   -h --help           Show this screen.
-  --train             Train the agent, low monitoring.
-  --test              Test the agent, high monitoring.
+  --train             Train the agent.
+  --test              Test the agent.
   --episodes <count>  Number of episodes [default: 5].
   --analyze           Automatically analyze the experiment results.
 """
@@ -22,16 +23,22 @@ from rl_agents.trainer.simulation import Simulation
 def main():
     opts = docopt(__doc__)
     if opts['evaluate']:
-        evaluate(opts)
+        evaluate(opts['<environment_config>'], opts['<agent_config>'], opts)
+    elif opts['benchmark']:
+        benchmark(opts)
 
 
-def evaluate(options):
+def evaluate(environment_config, agent_config, options):
     """
-        Evaluate an agent interacting with an environment
+        Evaluate an agent interacting with an environment.
+
+    :param environment_config: the path of the environment configuration file
+    :param agent_config: the path of the agent configuration file
+    :param options: the evaluation options
     """
     gym.logger.set_level(gym.logger.INFO)
-    env = load_environment(options)
-    agent = load_agent(options, env)
+    env = load_environment(environment_config)
+    agent = load_agent(agent_config, env)
     sim = Simulation(env, agent, num_episodes=int(options['--episodes']))
     if options['--train']:
         sim.train()
@@ -43,11 +50,32 @@ def evaluate(options):
         RunAnalyzer([sim.monitor.directory])
 
 
-def load_environment(options):
+def benchmark(options):
     """
-        Load an environment from its configuration file.
+        Run the evaluations of several agents interacting in several environments.
+
+    The benchmark configuration file should look like this:
+    {
+        "environments": ["path/to/env1.json", ...],
+        "agents: ["path/to/agent1.json", ...]
+    }
+
+    :param options: the evaluation options, containing the path to the benchmark configuration file.
     """
-    with open(options['<environment_config>']) as f:
+    with open(options['benchmark_config']) as f:
+        benchmark_config = json.loads(f.read())
+        for env_config in benchmark_config['environments']:
+            for agent_config in benchmark_config['agents']:
+                evaluate(env_config, agent_config, options)  # TODO: Replace with a subprocess.call()
+
+
+def load_environment(env_config):
+    """
+        Load an environment.
+    :param env_config: the path to the environment configuration file
+    :return:
+    """
+    with open(env_config) as f:
         env_config = json.loads(f.read())
     try:
         env = gym.make(env_config['id'])
@@ -66,12 +94,12 @@ def load_environment(options):
     return env
 
 
-def load_agent(options, env):
+def load_agent(agent_config, env):
     """
         Load an agent from its configuration file, and environment.
     """
     # Load agent
-    with open(options['<agent_config>']) as f:
+    with open(agent_config) as f:
         agent_config = json.loads(f.read())
     return agent_factory(env, agent_config)
 
