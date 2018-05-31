@@ -10,19 +10,87 @@ A collection of Reinforcement Learning agents
 
 ## Usage
 
-```python
-import gym
-from rl_agents.agents.dqn.dqn_pytorch import DQNPytorchAgent
-from rl_agents.trainer.simulation import Simulation
+Most experiments can be run from `scripts/experiments.py`
 
-# Make a gym environment
-env = gym.make('your-env')
-# Create a new agent, here a DQN running on PyTorch
-agent = DQNPytorchAgent(env)
-# Train the agent and monitor its performances
-sim = Simulation(env, agent, num_episodes=200)
-sim.train()
 ```
+Usage:
+  experiments evaluate <environment> <agent> (--train|--test)
+                                             [--episodes <count>]
+                                             [--seed <str>]
+                                             [--analyze]
+  experiments benchmark <benchmark> (--train|--test)
+                                    [--processes <count>]
+                                    [--episodes <count>]
+                                    [--seed <str>]
+  experiments -h | --help
+
+Options:
+  -h --help            Show this screen.
+  --analyze            Automatically analyze the experiment results.
+  --episodes <count>   Number of episodes [default: 5].
+  --processes <count>  Number of running processes [default: 4].
+  --seed <str>         Seed the environments and agents.
+  --train              Train the agent.
+  --test               Test the agent.
+```
+
+The `evaluate` command allows to evaluate a given agent on a given environment. For instance,
+
+```bash
+# Train a DQN agent on the CartPole-v0 environment
+$ python3 experiments.py evaluate envs/cartpole.json agents/dqn.json --train --episodes=200
+```
+
+The environments are described by their [gym](https://github.com/openai/gym) registration `id`
+```JSON
+{
+    "id":"CartPole-v0"
+}
+```
+
+And the agents by their class, and configuration dictionary.
+
+```JSON
+{
+    "__class__": "<class 'rl_agents.agents.dqn.pytorch.DQNAgent'>",
+    "model": {
+        "type": "DuelingNetwork",
+        "layers": [512, 512]
+    },
+    "gamma": 0.99,
+    "n_steps": 1,
+    "batch_size": 32,
+    "memory_capacity": 50000,
+    "target_update": 1,
+    "exploration": {
+        "method": "EpsilonGreedy",
+        "tau": 50000,
+        "temperature": 1.0,
+        "final_temperature": 0.1
+    }
+}
+```
+
+If keys are missing from these configurations, default values will be used instead.
+
+Finally, a batch of experiments can be scheduled in a _benchmark_.
+All experiments are then executed in parallel on several processes.
+
+```bash
+# Run a benchmark of several agents interacting with environments
+$ python3 experiments.py benchmark cartpole_benchmark.json --test --processes=4
+```
+
+A benchmark configuration files contains a list of environment configurations and a list of agent configurations.
+
+```JSON
+{
+    "environments": ["envs/cartpole.json"],
+    "agents":["agents/dqn.json", "agents/mcts.json"]
+}
+```
+
+
 
 ## Agents
 

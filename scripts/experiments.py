@@ -1,7 +1,13 @@
 """
 Usage:
-  experiments evaluate <environment_config> <agent_config> (--train|--test) [options]
-  experiments benchmark <benchmark_config> (--train|--test) [options]
+  experiments evaluate <environment> <agent> (--train|--test)
+                                             [--episodes <count>]
+                                             [--seed <str>]
+                                             [--analyze]
+  experiments benchmark <benchmark> (--train|--test)
+                                    [--processes <count>]
+                                    [--episodes <count>]
+                                    [--seed <str>]
   experiments -h | --help
 
 Options:
@@ -28,7 +34,7 @@ from rl_agents.trainer.simulation import Simulation
 def main():
     opts = docopt(__doc__)
     if opts['evaluate']:
-        evaluate(opts['<environment_config>'], opts['<agent_config>'], opts)
+        evaluate(opts['<environment>'], opts['<agent>'], opts)
     elif opts['benchmark']:
         benchmark(opts)
 
@@ -71,7 +77,7 @@ def benchmark(options):
 
     :param options: the evaluation options, containing the path to the benchmark configuration file.
     """
-    with open(options['<benchmark_config>']) as f:
+    with open(options['<benchmark>']) as f:
         benchmark_config = json.loads(f.read())
     experiments = product(benchmark_config['environments'], benchmark_config['agents'], [options])
     with Pool(processes=int(options['--processes'])) as pool:
