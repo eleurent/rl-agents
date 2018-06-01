@@ -162,14 +162,14 @@ class Simulation:
 
     def save_agent(self, episode, do_save=True):
         # Create the folder if it doesn't exist
-        folder = os.path.join(self.directory, self.SAVED_MODELS_FOLDER)
-        os.makedirs(folder, exist_ok=True)
+        permanent_folder = os.path.join(self.directory, self.SAVED_MODELS_FOLDER)
+        os.makedirs(permanent_folder, exist_ok=True)
 
         if do_save:
-            episode_path = os.path.join(folder, "checkpoint-{}.tar".format(episode))
+            episode_path = os.path.join(self.monitor.directory, "checkpoint-{}.tar".format(episode))
             try:
                 self.agent.save(filename=episode_path)
-                self.agent.save(filename=os.path.join(folder, "latest.tar"))
+                self.agent.save(filename=os.path.join(permanent_folder, "latest.tar"))
             except NotImplementedError:
                 pass
             else:
