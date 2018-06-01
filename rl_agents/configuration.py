@@ -1,6 +1,6 @@
 import collections
 from gym.core import Env
-from gym.envs.registration import registry
+
 
 class Configurable(object):
     """
@@ -49,6 +49,12 @@ _ignored_keys = set(Dummy.__dict__.keys())
 
 
 class Serializable(dict):
+    """
+        Automatically serialize all fields of an object to a dictionary.
+
+    Keys correspond to field names, and values correspond to field values representation by default but are
+    recursively expanded to sub-dictionaries for any Serializable field.
+    """
     def to_dict(self):
         d = dict()
         for (key, value) in self.__dict__.items():
@@ -69,6 +75,18 @@ class Serializable(dict):
 
 
 def serialize(obj):
+    """
+        Serialize any object to a dictionary, so that it can be dumped easily to a JSON file.
+
+     Four rules are applied:
+        - To be able to recreate the object, specify its class, or its spec id if the object is an Env.
+        - If the object has a config dictionary field, use it. It is assumed that this config suffices to recreate a
+        similar object.
+        - If the object is Serializable, use its recursive conversion to a dictionary.
+        - Else, use its __dict__ by applying repr() on its values
+    :param obj: an object
+    :return: a dictionary describing the object
+    """
     if hasattr(obj, "config"):
         d = obj.config
     elif isinstance(obj, Serializable):
@@ -77,8 +95,6 @@ def serialize(obj):
         d = {key: repr(value) for (key, value) in obj.__dict__.items()}
     d['__class__'] = repr(obj.__class__)
     if isinstance(obj, Env):
-        env_index = list(registry.all()).index(obj.spec)
-        env_id = list(registry.env_specs.keys())[env_index]
-        d['id'] = env_id
+        d['id'] = obj.spec.id
     return d
 
