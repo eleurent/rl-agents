@@ -2,6 +2,7 @@ import collections
 from gym.core import Env
 from gym.envs.registration import registry
 
+
 class Configurable(object):
     """
         This class is a container for a configuration dictionary.

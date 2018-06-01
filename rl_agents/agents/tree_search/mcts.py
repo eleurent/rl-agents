@@ -8,117 +8,126 @@ from rl_agents.agents.abstract import AbstractAgent
 from rl_agents.configuration import Configurable
 
 
-class Node(object):
+class MCTSAgent(AbstractAgent):
     """
-        An MCTS tree node, corresponding to a given state.
+        An agent that uses Monte Carlo Tree Search to plan a sequence of action in an MDP.
     """
-    K = 1.0
-    """ The value function first-order filter gain"""
 
-    def __init__(self, parent, prior=1):
+    def __init__(self,
+                 env,
+                 config=None,
+                 prior_policy=None,
+                 rollout_policy=None,
+                 env_preprocessor=None):
         """
-            New node.
+            A new MCTS agent.
+        :param env: The environment
+        :param config: The agent configuration. Use default if None.
+        :param prior_policy: The prior distribution over actions given a state
+        :param rollout_policy: The distribution over actions used when evaluating leaves
+        :param env_preprocessor: a preprocessor function to apply to the environment before planning
+        """
+        super(MCTSAgent, self).__init__(config)
+        self.env = env
+        prior_policy = prior_policy or MCTSAgent.random_policy
+        rollout_policy = rollout_policy or MCTSAgent.random_policy
+        self.mcts = MCTS(prior_policy, rollout_policy, self.config)
+        self.env_preprocessor = env_preprocessor
+        self.previous_action = None
 
-        :param parent: its parent node
-        :param prior: its prior probability
-        """
-        self.parent = parent
-        self.prior = prior
-        self.children = {}
-        self.count = 0
-        self.value = 0
+    @classmethod
+    def default_config(cls):
+        return dict()
 
-    def select_action(self, temperature=None):
+    def plan(self, state):
         """
-            Select an action from the node.
-            - if exploration is wanted with some temperature, follow the selection strategy.
-            - else, select the action with maximum visit count
+            Plan an optimal sequence of actions.
 
-        :param temperature: the exploration parameter, positive or zero
-        :return: the selected action
+            Start by updating the previously found tree with the last action performed.
+
+        :param state: the current state
+        :return: the list of actions
         """
-        if self.children:
-            if temperature == 0:
-                return max(self.children.keys(), key=(lambda key: self.children[key].count))
-            else:
-                return max(self.children.keys(), key=(lambda key: self.children[key].selection_strategy(temperature)))
+        self.mcts.step(self.previous_action)
+        try:
+            env = self.env_preprocessor(self.env)
+        except (AttributeError, TypeError):
+            env = self.env
+        actions = self.mcts.plan(state=env, observation=state)
+
+        self.previous_action = actions[0]
+        return actions
+
+    def reset(self):
+        self.mcts.step_by_reset()
+
+    def seed(self, seed=None):
+        return self.mcts.seed(seed)
+
+    @staticmethod
+    def random_policy(state, observation):
+        """
+            Choose actions from a uniform distribution.
+
+        :param state: the environment state
+        :param observation: the corresponding observation
+        :return: a tuple containing the actions and their probabilities
+        """
+        actions = np.arange(state.action_space.n)
+        probabilities = np.ones((len(actions))) / len(actions)
+        return actions, probabilities
+
+    @staticmethod
+    def random_available_policy(state, observation):
+        """
+            Choose actions from a uniform distribution over currently available actions only.
+
+        :param state: the environment state
+        :param observation: the corresponding observation
+        :return: a tuple containing the actions and their probabilities
+        """
+        if hasattr(state, 'get_available_actions'):
+            available_actions = state.get_available_actions()
         else:
-            return None
+            available_actions = np.arange(state.action_space.n)
+        probabilities = np.ones((len(available_actions))) / len(available_actions)
+        return available_actions, probabilities
 
-    def expand(self, actions_distribution):
+    @staticmethod
+    def preference_policy(state, observation, action_index, ratio=2):
         """
-            Expand a leaf node by creating a new child for each available action.
+            Choose actions with a distribution over currently available actions that favors a preferred action.
 
-        :param actions_distribution: the list of available actions and their prior probabilities
+            The preferred action probability is higher than others with a given ratio, and the distribution is uniform
+            over the non-preferred available actions.
+        :param state: the environment state
+        :param observation: the corresponding observation
+        :param action_index: the label of the preferred action
+        :param ratio: the ratio between the preferred action probability and the other available actions probabilities
+        :return: a tuple containing the actions and their probabilities
         """
-        actions, probabilities = actions_distribution
-        for i in range(len(actions)):
-            if actions[i] not in self.children:
-                self.children[actions[i]] = Node(self, probabilities[i])
+        if hasattr(state, 'get_available_actions'):
+            available_actions = state.get_available_actions()
+        else:
+            available_actions = np.arange(state.action_space.n)
+        for i in range(len(available_actions)):
+            if available_actions[i] == action_index:
+                probabilities = np.ones((len(available_actions))) / (len(available_actions) - 1 + ratio)
+                probabilities[i] *= ratio
+                return available_actions, probabilities
+        return MCTSAgent.random_available_policy(state, observation)
 
-    def update(self, total_reward):
-        """
-            Update the visit count and value of this node, given a sample of total reward.
+    def record(self, state, action, reward, next_state, done):
+        raise NotImplementedError()
 
-        :param total_reward: the total reward obtained through a trajectory passing by this node
-        """
-        self.count += 1
-        self.value += self.K / self.count * (total_reward - self.value)
+    def act(self, state):
+        return self.plan(state)[0]
 
-    def max_update(self, total_reward):
-        """
-            Update the estimated value as a maximum over trajectories with no averaging
-        :param total_reward: the total reward obtained through a trajectory passing by this node
-        """
-        self.count += 1
-        self.value = max(total_reward, self.value)
+    def save(self, filename):
+        raise NotImplementedError()
 
-    def update_branch(self, total_reward):
-        """
-            Update the whole branch from this node to the root with the total reward of the corresponding trajectory.
-
-        :param total_reward: the total reward obtained through a trajectory passing by this node
-        """
-        self.update(total_reward)
-        if self.parent:
-            self.parent.update_branch(total_reward)
-
-    def selection_strategy(self, temperature):
-        """
-            Select an action according to its value, prior probability and visit count.
-
-        :param temperature: the exploration parameter, positive or zero.
-        :return: the selected action with maximum value and exploration bonus.
-        """
-        if not self.parent:
-            return self.value
-
-        # return self.value + temperature * self.prior * np.sqrt(np.log(self.parent.count) / self.count)
-        return self.value + temperature*self.prior/(self.count+1)
-
-    def convert_visits_to_prior_in_branch(self, regularization=0.5):
-        """
-            For any node in the subtree, convert the distribution of all children visit counts to prior
-            probabilities, and reset the visit counts.
-
-        :param regularization: in [0, 1], used to add some probability mass to all children.
-                               when 0, the prior is a Boltzmann distribution of visit counts
-                               when 1, the prior is a uniform distribution
-        """
-        self.count = 0
-        total_count = sum([(child.count+1) for child in self.children.values()])
-        for child in self.children.values():
-            child.prior = regularization*(child.count+1)/total_count + regularization/len(self.children)
-            child.convert_visits_to_prior_in_branch()
-
-    def __str__(self, level=0):
-        ret = "\t" * level + repr(self.value) + "\n"
-        for child in self.children.values():
-            ret += child.__str__(level + 1)
-        return ret
-
-    def __repr__(self):
-        return '<tree node representation>'
+    def load(self, filename):
+        raise NotImplementedError()
 
 
 class MCTS(Configurable):
@@ -297,231 +306,116 @@ class MCTS(Configurable):
         self.root.convert_visits_to_prior_in_branch()
 
 
-class MCTSAgent(AbstractAgent):
+class Node(object):
     """
-        An agent that uses Monte Carlo Tree Search to plan a sequence of action in an MDP.
+        An MCTS tree node, corresponding to a given state.
     """
+    K = 1.0
+    """ The value function first-order filter gain"""
 
-    def __init__(self,
-                 env,
-                 config=None,
-                 prior_policy=None,
-                 rollout_policy=None,
-                 env_preprocessor=None):
+    def __init__(self, parent, prior=1):
         """
-            A new MCTS agent.
-        :param env: The environment
-        :param config: The agent configuration. Use default if None.
-        :param prior_policy: The prior distribution over actions given a state
-        :param rollout_policy: The distribution over actions used when evaluating leaves
-        :param env_preprocessor: a preprocessor function to apply to the environment before planning
+            New node.
+
+        :param parent: its parent node
+        :param prior: its prior probability
         """
-        super(MCTSAgent, self).__init__(config)
-        self.env = env
-        prior_policy = prior_policy or MCTSAgent.random_policy
-        rollout_policy = rollout_policy or MCTSAgent.random_policy
-        self.mcts = MCTS(prior_policy, rollout_policy, self.config)
-        self.env_preprocessor = env_preprocessor
-        self.previous_action = None
+        self.parent = parent
+        self.prior = prior
+        self.children = {}
+        self.count = 0
+        self.value = 0
 
-    @classmethod
-    def default_config(cls):
-        return dict()
-
-    def plan(self, state):
+    def select_action(self, temperature=None):
         """
-            Plan an optimal sequence of actions.
+            Select an action from the node.
+            - if exploration is wanted with some temperature, follow the selection strategy.
+            - else, select the action with maximum visit count
 
-            Start by updating the previously found tree with the last action performed.
-
-        :param state: the current state
-        :return: the list of actions
+        :param temperature: the exploration parameter, positive or zero
+        :return: the selected action
         """
-        self.mcts.step(self.previous_action)
-        try:
-            env = self.env_preprocessor(self.env)
-        except (AttributeError, TypeError):
-            env = self.env
-        actions = self.mcts.plan(state=env, observation=state)
-
-        self.previous_action = actions[0]
-        return actions
-
-    def reset(self):
-        self.mcts.step_by_reset()
-
-    def seed(self, seed=None):
-        return self.mcts.seed(seed)
-
-    @staticmethod
-    def random_policy(state, observation):
-        """
-            Choose actions from a uniform distribution.
-
-        :param state: the environment state
-        :param observation: the corresponding observation
-        :return: a tuple containing the actions and their probabilities
-        """
-        actions = np.arange(state.action_space.n)
-        probabilities = np.ones((len(actions))) / len(actions)
-        return actions, probabilities
-
-    @staticmethod
-    def random_available_policy(state, observation):
-        """
-            Choose actions from a uniform distribution over currently available actions only.
-
-        :param state: the environment state
-        :param observation: the corresponding observation
-        :return: a tuple containing the actions and their probabilities
-        """
-        if hasattr(state, 'get_available_actions'):
-            available_actions = state.get_available_actions()
+        if self.children:
+            if temperature == 0:
+                return max(self.children.keys(), key=(lambda key: self.children[key].count))
+            else:
+                return max(self.children.keys(), key=(lambda key: self.children[key].selection_strategy(temperature)))
         else:
-            available_actions = np.arange(state.action_space.n)
-        probabilities = np.ones((len(available_actions))) / len(available_actions)
-        return available_actions, probabilities
+            return None
 
-    @staticmethod
-    def preference_policy(state, observation, action_index, ratio=2):
+    def expand(self, actions_distribution):
         """
-            Choose actions with a distribution over currently available actions that favors a preferred action.
+            Expand a leaf node by creating a new child for each available action.
 
-            The preferred action probability is higher than others with a given ratio, and the distribution is uniform
-            over the non-preferred available actions.
-        :param state: the environment state
-        :param observation: the corresponding observation
-        :param action_index: the label of the preferred action
-        :param ratio: the ratio between the preferred action probability and the other available actions probabilities
-        :return: a tuple containing the actions and their probabilities
+        :param actions_distribution: the list of available actions and their prior probabilities
         """
-        if hasattr(state, 'get_available_actions'):
-            available_actions = state.get_available_actions()
-        else:
-            available_actions = np.arange(state.action_space.n)
-        for i in range(len(available_actions)):
-            if available_actions[i] == action_index:
-                probabilities = np.ones((len(available_actions))) / (len(available_actions) - 1 + ratio)
-                probabilities[i] *= ratio
-                return available_actions, probabilities
-        return MCTSAgent.random_available_policy(state, observation)
+        actions, probabilities = actions_distribution
+        for i in range(len(actions)):
+            if actions[i] not in self.children:
+                self.children[actions[i]] = Node(self, probabilities[i])
 
-    def record(self, state, action, reward, next_state, done):
-        raise NotImplementedError()
-
-    def act(self, state):
-        return self.plan(state)[0]
-
-    def save(self, filename):
-        raise NotImplementedError()
-
-    def load(self, filename):
-        raise NotImplementedError()
-
-
-class RobustMCTSAgent(AbstractAgent):
-    def __init__(self,
-                 env,
-                 models,
-                 config=None,
-                 prior_policy=None,
-                 rollout_policy=None,):
+    def update(self, total_reward):
         """
-            A new MCTS agent with multiple environment models.
-        :param env: The true environment
-        :param models: A list of env preprocessors that represent possible transition models
-        :param config: The agent configuration
-        :param prior_policy: The prior distribution over actions given a state
-        :param rollout_policy: The distribution over actions used when evaluating leaves
+            Update the visit count and value of this node, given a sample of total reward.
+
+        :param total_reward: the total reward obtained through a trajectory passing by this node
         """
-        super(RobustMCTSAgent, self).__init__(config)
-        self.agents = [MCTSAgent(env, self.config, prior_policy, rollout_policy, env_preprocessor=model)
-                       for model in models]
-        self.__env = env
+        self.count += 1
+        self.value += self.K / self.count * (total_reward - self.value)
 
-    @property
-    def env(self):
-        return self.__env
-
-    @env.setter
-    def env(self, env):
-        self.__env = env
-        for agent in self.agents:
-            agent.env = env
-
-    def plan(self, state):
-        for agent in self.agents:
-            agent.plan(state)
-
-        min_action_values = {k: np.inf for k in self.env.ACTIONS.keys()}
-        for agent in self.agents:
-            min_action_values = {k: min(v, agent.mcts.root.children[k].value)
-                                 for k, v in min_action_values.items()
-                                 if k in agent.mcts.root.children}
-        action = max(min_action_values.keys(), key=(lambda key: min_action_values[key]))
-        for agent in self.agents:
-            agent.previous_action = action
-
-        return [action]
-
-    def reset(self):
-        for agent in self.agents:
-            agent.reset()
-
-    def seed(self, seed=None):
-        for agent in self.agents:
-            seeds = agent.seed(seed)
-            seed = seeds[0]
-        return seed
-
-    def record(self, state, action, reward, next_state, done):
-        raise NotImplementedError()
-
-    def act(self, state):
-        return self.plan(state)[0]
-
-    def save(self, filename):
-        raise NotImplementedError()
-
-    def load(self, filename):
-        raise NotImplementedError()
-
-
-class MCTSWithPriorPolicyAgent(MCTSAgent):
-    def __init__(self,
-                 env,
-                 prior_agent,
-                 config=None,
-                 env_preprocessor=None):
+    def max_update(self, total_reward):
         """
-        :param env: The environment
-        :param AbstractStochasticAgent prior_agent: An agent that computes a prior action distribution
-        :param config: The agent configuration.
-                       - iterations: Number of rollouts in MCTS
-                       - temperature: control exploration from greedy TS (low) to agent prior distribution (high)
-                       - max_depth: maximum prediction horizon
-        :param env_preprocessor: a preprocessor function to apply to the environment before planning
+            Update the estimated value as a maximum over trajectories with no averaging
+        :param total_reward: the total reward obtained through a trajectory passing by this node
         """
-        super(MCTSWithPriorPolicyAgent, self).__init__(config)
-        self.prior_agent = prior_agent
-        self.config["prior_agent"] = dict(__class__=repr(prior_agent.__class__),
-                                          config=self.prior_agent.config)
-        super(MCTSWithPriorPolicyAgent, self).__init__(
-            env,
-            self.config,
-            prior_policy=self.agent_policy,
-            rollout_policy=self.agent_policy,
-            env_preprocessor=env_preprocessor)
+        self.count += 1
+        self.value = max(total_reward, self.value)
 
-    def agent_policy(self, state, observation):
-        distribution = self.prior_agent.action_distribution(observation)
-        return list(distribution.keys()), list(distribution.values())
+    def update_branch(self, total_reward):
+        """
+            Update the whole branch from this node to the root with the total reward of the corresponding trajectory.
 
-    def record(self, state, action, reward, next_state, done):
-        raise NotImplementedError()
+        :param total_reward: the total reward obtained through a trajectory passing by this node
+        """
+        self.update(total_reward)
+        if self.parent:
+            self.parent.update_branch(total_reward)
 
-    def save(self, filename):
-        raise NotImplementedError()
+    def selection_strategy(self, temperature):
+        """
+            Select an action according to its value, prior probability and visit count.
 
-    def load(self, filename):
-        self.prior_agent.load(filename)
+        :param temperature: the exploration parameter, positive or zero.
+        :return: the selected action with maximum value and exploration bonus.
+        """
+        if not self.parent:
+            return self.value
+
+        # return self.value + temperature * self.prior * np.sqrt(np.log(self.parent.count) / self.count)
+        return self.value + temperature*self.prior/(self.count+1)
+
+    def convert_visits_to_prior_in_branch(self, regularization=0.5):
+        """
+            For any node in the subtree, convert the distribution of all children visit counts to prior
+            probabilities, and reset the visit counts.
+
+        :param regularization: in [0, 1], used to add some probability mass to all children.
+                               when 0, the prior is a Boltzmann distribution of visit counts
+                               when 1, the prior is a uniform distribution
+        """
+        self.count = 0
+        total_count = sum([(child.count+1) for child in self.children.values()])
+        for child in self.children.values():
+            child.prior = regularization*(child.count+1)/total_count + regularization/len(self.children)
+            child.convert_visits_to_prior_in_branch()
+
+    def __str__(self, level=0):
+        ret = "\t" * level + repr(self.value) + "\n"
+        for child in self.children.values():
+            ret += child.__str__(level + 1)
+        return ret
+
+    def __repr__(self):
+        return '<tree node representation>'
+
+
