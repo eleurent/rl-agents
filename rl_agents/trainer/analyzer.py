@@ -7,8 +7,9 @@ from rl_agents.trainer.monitor import MonitorV2
 
 
 class RunAnalyzer(object):
-    def __init__(self, run_directories):
+    def __init__(self, run_directories, episodes_range=[None, None]):
         self.base = os.path.commonprefix(run_directories) if len(run_directories) > 1 else ''
+        self.episodes_range = episodes_range
         self.analyze(run_directories)
 
     def suffix(self, directory):
@@ -33,7 +34,7 @@ class RunAnalyzer(object):
 
     def histogram_all(self, runs, field, title, axes=None):
         dirs = list(runs.keys())
-        data = [runs[directory][field] for directory in dirs]
+        data = [runs[directory][field][self.episodes_range[0]:self.episodes_range[1]] for directory in dirs]
         axes = self.histogram(data, title=title, label=dirs, axes=axes)
         axes.legend()
         axes.grid()
@@ -81,7 +82,7 @@ class RunAnalyzer(object):
     def describe_all(self, runs, field, title):
         print('---', title, '---')
         for directory, manifest in runs.items():
-            statistics = stats.describe(manifest[field])
+            statistics = stats.describe(manifest[field][self.episodes_range[0]:self.episodes_range[1]])
             print(directory, '{:.2f} +/- {:.2f}'.format(statistics.mean, np.sqrt(statistics.variance)))
 
     def scatter(self, xx, yy, title_x, title_y, label, figure=None):
