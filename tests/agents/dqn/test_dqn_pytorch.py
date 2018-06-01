@@ -5,10 +5,10 @@ torch = pytest.importorskip("torch")
 
 
 def test_cartpole():
-    from rl_agents.agents.dqn.dqn_pytorch import DQNPytorchAgent
+    from rl_agents.agents.dqn.pytorch import AbstractDQNAgent
 
     env = gym.make('CartPole-v0')
-    agent = DQNPytorchAgent(env, config=None)
+    agent = AbstractDQNAgent(env, config=None)
 
     state = env.reset()
     n = 2 * agent.config['batch_size']

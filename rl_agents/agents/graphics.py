@@ -1,6 +1,6 @@
 from __future__ import division, print_function
 
-from rl_agents.agents.dqn.abstract import DQNAgent
+from rl_agents.agents.dqn.abstract import AbstractDQNAgent
 from rl_agents.agents.dqn.graphics import DQNGraphics
 from rl_agents.agents.dynamic_programming.graphics import TTCVIGraphics
 from rl_agents.agents.dynamic_programming.ttc_vi import TTCVIAgent
@@ -24,7 +24,7 @@ class AgentGraphics(object):
 
         if isinstance(agent, MCTSAgent):
             MCTSGraphics.display(agent, surface)
-        elif isinstance(agent, DQNAgent):
+        elif isinstance(agent, AbstractDQNAgent):
             DQNGraphics.display(agent, surface)
         elif isinstance(agent, TTCVIAgent):
             TTCVIGraphics.display(agent, surface)

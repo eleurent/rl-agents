@@ -4,7 +4,7 @@ import torch.optim as optim
 import torch.nn.functional as functional
 from torch.autograd import Variable
 
-from rl_agents.agents.dqn.abstract import DQNAgent
+from rl_agents.agents.dqn.abstract import AbstractDQNAgent
 from rl_agents.agents.utils import Transition
 
 # if gpu is to be used
@@ -15,9 +15,9 @@ ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
 Tensor = FloatTensor
 
 
-class DQNPytorchAgent(DQNAgent):
+class DQNAgent(AbstractDQNAgent):
     def __init__(self, env, config=None):
-        super(DQNPytorchAgent, self).__init__(env, config)
+        super(DQNAgent, self).__init__(env, config)
         self.policy_net = model_factory(self.config["model"])
         self.target_net = model_factory(self.config["model"])
         self.target_net.load_state_dict(self.policy_net.state_dict())

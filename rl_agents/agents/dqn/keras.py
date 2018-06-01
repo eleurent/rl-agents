@@ -3,12 +3,12 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout
 from keras.optimizers import Adam
 
-from rl_agents.agents.dqn.abstract import DQNAgent
+from rl_agents.agents.dqn.abstract import AbstractDQNAgent
 
 
-class DQNKerasAgent(DQNAgent):
+class DQNAgent(AbstractDQNAgent):
     def __init__(self, env, config):
-        super(DQNKerasAgent, self).__init__(env, config)
+        super(DQNAgent, self).__init__(env, config)
         self.model = None
         self.build_neural_net()
 

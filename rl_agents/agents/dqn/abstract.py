@@ -5,9 +5,9 @@ from rl_agents.agents.exploration.common import exploration_factory
 from rl_agents.agents.utils import ReplayMemory
 
 
-class DQNAgent(AbstractStochasticAgent, ABC):
+class AbstractDQNAgent(AbstractStochasticAgent, ABC):
     def __init__(self, env, config=None):
-        super(DQNAgent, self).__init__(config)
+        super(AbstractDQNAgent, self).__init__(config)
         self.env = env
         self.config["num_states"] = env.observation_space.shape[0]
         self.config["num_actions"] = env.action_space.n
