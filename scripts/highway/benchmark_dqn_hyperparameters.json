@@ -1,9 +1,0 @@
-{
-    "environments": ["highway/env.json"],
-    "agents": [
-        "highway/dqn.json",
-        "highway/dqn_1step.json",
-        "highway/dqn_batchsize.json",
-        "highway/dqn_nodueling.json"
-    ]
-}

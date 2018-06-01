@@ -1,0 +1,12 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.mcts_with_prior.MCTSWithPriorPolicyAgent'>",
+    "prior_agent": {
+        "__class__": "<class 'rl_agents.agents.dqn.pytorch.DQNAgent'>",
+        "model": {"layers":[512, 512]},
+        "exploration": {
+            "method":"Boltzmann",
+            "temperature": 2.0
+        },
+        "model_save": "out/HighwayEnv/DQNAgent/saved_models/baseline.tar"
+    }
+}

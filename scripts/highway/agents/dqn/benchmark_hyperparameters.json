@@ -1,0 +1,9 @@
+{
+    "environments": ["highway/env.json"],
+    "agents": [
+        "highway/agents/dqn/baseline.json",
+        "highway/agents/dqn/1_step.json",
+        "highway/agents/dqn/batch_size.json",
+        "highway/agents/dqn/no_dueling.json"
+    ]
+}
