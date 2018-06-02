@@ -7,6 +7,8 @@ from rl_agents.trainer.monitor import MonitorV2
 
 
 class RunAnalyzer(object):
+    WINDOW = 50
+
     def __init__(self, run_directories, episodes_range=[None, None]):
         self.base = os.path.commonprefix(run_directories) if len(run_directories) > 1 else ''
         self.episodes_range = episodes_range
@@ -71,8 +73,10 @@ class RunAnalyzer(object):
         if averaged is None:
             axes.plot(np.arange(np.size(data)), data, label=label)
         # Averaged data plot
-        elif averaged and np.size(data) > 100:
-            means = np.hstack((np.zeros((100,)), np.convolve(data, np.ones((100,)) / 100, mode='valid')))
+
+        elif averaged and np.size(data) > self.WINDOW:
+            means = np.hstack((np.nan*np.ones((self.WINDOW,)),
+                               np.convolve(data, np.ones((self.WINDOW,)) / self.WINDOW, mode='valid')))
             axes.plot(np.arange(np.size(means)), means, label=label)
         # Noisy data plot
         else:
