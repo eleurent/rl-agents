@@ -1,19 +1,19 @@
 import json
-import os, six
+import os
 
 import gym
 from gym import logger
 
 from rl_agents.agents.common import agent_factory
 from rl_agents.configuration import serialize
-from rl_agents.trainer.graphics import RewardViewer, AgentViewer
+from rl_agents.trainer.graphics import RewardViewer
 from rl_agents.agents.graphics import AgentGraphics
 from rl_agents.trainer.monitor import MonitorV2
 
 
-class Evaluation:
+class Evaluation(object):
     """
-        An evaluation is the coupling of an environment and an agent, running in closed loop.
+        The evaluation of an agent interacting with an environment to maximize its expected reward.
     """
 
     OUTPUT_FOLDER = 'out'
@@ -28,7 +28,9 @@ class Evaluation:
                  training=True,
                  sim_seed=None,
                  recover=None,
+                 display_env=True,
                  display_agent=True,
+                 display_rewards=True,
                  close_env=True):
         """
 
@@ -41,7 +43,9 @@ class Evaluation:
         :param recover: Recover the agent parameters from a file.
                         - If True, it the default latest save will be used.
                         - If a string, it will be used as a path.
+        :param display_env: Render the environment, and have a monitor recording its videos
         :param display_agent: Add the agent graphics to the environment viewer, if supported
+        :param display_rewards: Display the performances of the agent through the episodes
         :param close_env: Should the environment be closed when the evaluation is closed
 
         """
@@ -53,7 +57,10 @@ class Evaluation:
         self.close_env = close_env
 
         self.directory = directory or self.default_directory
-        self.monitor = MonitorV2(env, self.directory, add_subdirectory=(directory is None))
+        self.monitor = MonitorV2(env,
+                                 self.directory,
+                                 add_subdirectory=(directory is None),
+                                 video_callable=(None if display_env else False))
         self.write_metadata()
 
         if recover:
@@ -69,7 +76,9 @@ class Evaluation:
                 # The environment viewer doesn't support agent rendering, create a separate agent viewer
                 # self.agent_viewer = AgentViewer(self.agent)
                 pass
-        self.reward_viewer = RewardViewer()
+        self.reward_viewer = None
+        if display_rewards:
+            self.reward_viewer = RewardViewer()
         self.observation = None
 
     def train(self):
@@ -166,6 +175,8 @@ class Evaluation:
                 gym.logger.info("Importing highway_env module")
                 import highway_env
                 env = gym.make(env_config['id'])
+            else:
+                raise gym.error.UnregisteredEnv("Unregistered environment, and neither highway_env nor obstacle_env")
         return env
 
     @staticmethod
@@ -209,7 +220,8 @@ class Evaluation:
             pass
 
     def after_all_episodes(self, episode, total_reward):
-        self.reward_viewer.update(total_reward)
+        if self.reward_viewer:
+            self.reward_viewer.update(total_reward)
         logger.info("Episode {} score: {}".format(episode, total_reward))
 
     def after_some_episodes(self, episode):
@@ -247,4 +259,3 @@ class Evaluation:
         self.monitor.close()
         if self.close_env:
             self.env.close()
-
