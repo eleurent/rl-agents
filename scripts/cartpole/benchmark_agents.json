@@ -1,8 +1,0 @@
-{
-    "environments": ["cartpole/env.json"],
-    "agents": [
-        "cartpole/dqn.json",
-        "cartpole/linear.json",
-        "cartpole/mcts.json"
-    ]
-}

@@ -1,0 +1,8 @@
+{
+    "environments": ["configs/CartpoleEnv/env.json"],
+    "agents": [
+        "configs/CartpoleEnv/DQNAgent.json",
+        "configs/CartpoleEnv/LinearAgent.json",
+        "configs/CartpoleEnv/MCTSAgent.json"
+    ]
+}

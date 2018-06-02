@@ -1,0 +1,13 @@
+{
+    "environments": ["configs/HighwayEnv/env.json"],
+    "agents": [
+        "configs/HighwayEnv/agents/MCTSWithPriorPolicyAgent/baseline.json",
+        "configs/HighwayEnv/agents/MCTSWithPriorPolicyAgent/temperature01.json",
+        "configs/HighwayEnv/agents/MCTSWithPriorPolicyAgent/temperature02.json",
+        "configs/HighwayEnv/agents/MCTSWithPriorPolicyAgent/temperature10.json",
+        "configs/HighwayEnv/agents/MCTSWithPriorPolicyAgent/temperature20.json",
+        "configs/HighwayEnv/agents/MCTSWithPriorPolicyAgent/temperature40.json",
+        "configs/HighwayEnv/agents/MCTSWithPriorPolicyAgent/temperature80.json",
+        "configs/HighwayEnv/agents/MCTSWithPriorPolicyAgent/temperature16.json"
+    ]
+}
