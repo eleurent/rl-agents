@@ -3,7 +3,7 @@ import json
 import os
 
 from rl_agents.trainer.analyzer import RunAnalyzer
-from rl_agents.trainer.simulation import Simulation
+from rl_agents.trainer.evaluation import Evaluation
 
 
 class Benchmark(object):
@@ -15,7 +15,7 @@ class Benchmark(object):
         self.num_episodes = num_episodes
         self.train = train
 
-        self.summary_filename = os.path.join(Simulation.OUTPUT_FOLDER, '{}_{}.{}.json'.format(
+        self.summary_filename = os.path.join(Evaluation.OUTPUT_FOLDER, '{}_{}.{}.json'.format(
             self.SUMMARY_FILE, datetime.datetime.now().strftime('%Y%m%d-%H%M%S'), os.getpid()))
 
     def run(self):
@@ -40,7 +40,7 @@ class Benchmark(object):
 
     @staticmethod
     def evaluate_agent(env, agent, num_episodes, train=False):
-        evaluation = Simulation(env, agent, num_episodes=num_episodes, close_env=False)
+        evaluation = Evaluation(env, agent, num_episodes=num_episodes, close_env=False)
         run_directory = os.path.relpath(evaluation.monitor.directory)
         if train:
             evaluation.train()

@@ -8,9 +8,9 @@ from rl_agents.agents.graphics import AgentGraphics
 from rl_agents.trainer.monitor import MonitorV2
 
 
-class Simulation:
+class Evaluation:
     """
-        A simulation is the coupling of an environment and an agent, running in closed loop.
+        An evaluation is the coupling of an environment and an agent, running in closed loop.
     """
 
     OUTPUT_FOLDER = 'out'
@@ -39,7 +39,7 @@ class Simulation:
                         - If True, it the default latest save will be used.
                         - If a string, it will be used as a path.
         :param display_agent: Add the agent graphics to the environment viewer, if supported
-        :param close_env: Should the environment be closed when the simulation is closed
+        :param close_env: Should the environment be closed when the evaluation is closed
 
         """
         self.env = env
@@ -197,7 +197,7 @@ class Simulation:
 
     def close(self):
         """
-            Close the simulation.
+            Close the evaluation.
         """
         if self.training:
             self.save_agent(self.monitor.episode_id)
