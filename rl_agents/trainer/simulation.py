@@ -166,7 +166,7 @@ class Simulation:
         os.makedirs(permanent_folder, exist_ok=True)
 
         if do_save:
-            episode_path = os.path.join(self.monitor.directory, "checkpoint-{}.tar".format(episode))
+            episode_path = os.path.join(self.monitor.directory, "checkpoint-{}.tar".format(episode+1))
             try:
                 self.agent.save(filename=episode_path)
                 self.agent.save(filename=os.path.join(permanent_folder, "latest.tar"))
