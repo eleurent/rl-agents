@@ -19,6 +19,8 @@ Options:
   --train              Train the agent.
   --test               Test the agent.
 """
+import datetime
+import os
 
 import gym
 import json
@@ -26,9 +28,10 @@ from docopt import docopt
 from itertools import product
 from multiprocessing.pool import Pool
 
-from rl_agents.agents.common import agent_factory
 from rl_agents.trainer.analyzer import RunAnalyzer
 from rl_agents.trainer.evaluation import Evaluation
+
+BENCHMARK_FILE = 'benchmark_summary'
 
 
 def main():
@@ -75,12 +78,21 @@ def benchmark(options):
 
     :param options: the evaluation options, containing the path to the benchmark configuration file.
     """
+    # Prepare experiments
     with open(options['<benchmark>']) as f:
         benchmark_config = json.loads(f.read())
     experiments = product(benchmark_config['environments'], benchmark_config['agents'], [options])
+
+    # Run evaluations
     with Pool(processes=int(options['--processes'])) as pool:
         results = pool.starmap(evaluate, experiments)
-    gym.logger.info('Generated runs: {}'.format(results))
+
+    # Write evaluations summary
+    benchmark_filename = os.path.join(Evaluation.OUTPUT_FOLDER, '{}_{}.{}.json'.format(
+        BENCHMARK_FILE, datetime.datetime.now().strftime('%Y%m%d-%H%M%S'), os.getpid()))
+    with open(benchmark_filename, 'w') as f:
+        json.dump(results, f, sort_keys=True, indent=4)
+        gym.logger.info('Benchmark done. Summary written in: {}'.format(benchmark_filename))
 
 
 if __name__ == "__main__":
