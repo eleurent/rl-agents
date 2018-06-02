@@ -1,7 +1,10 @@
 import json
 import os, six
+
+import gym
 from gym import logger
 
+from rl_agents.agents.common import agent_factory
 from rl_agents.configuration import serialize
 from rl_agents.trainer.graphics import RewardViewer, AgentViewer
 from rl_agents.agents.graphics import AgentGraphics
@@ -54,7 +57,7 @@ class Evaluation:
         self.write_metadata()
 
         if recover:
-            self.load_agent(recover)
+            self.load_agent_model(recover)
 
         self.agent_viewer = None
         if display_agent:
@@ -76,7 +79,7 @@ class Evaluation:
 
     def test(self, model_path=True):
         self.training = False
-        self.load_agent(model_path)
+        self.load_agent_model(model_path)
         self.monitor.video_callable = MonitorV2.always_call_video
         try:
             self.agent.eval()
@@ -139,28 +142,47 @@ class Evaluation:
 
         return reward, terminal
 
-    def after_all_episodes(self, episode, total_reward):
-        self.reward_viewer.update(total_reward)
-        logger.info("Episode {} score: {}".format(episode, total_reward))
+    @staticmethod
+    def load_environment(env_config):
+        """
+            Load an environment from a configuration file.
 
-    def after_some_episodes(self, episode):
-        if self.monitor.is_episode_selected():
-            # Save the model
-            if self.training:
-                self.save_agent(episode)
+        :param env_config: the path to the environment configuration file
+        :return: the environment
+        """
+        with open(env_config) as f:
+            env_config = json.loads(f.read())
+        try:
+            env = gym.make(env_config['id'])
+        except KeyError:
+            raise ValueError("The gym register id of the environment must be provided")
+        except gym.error.UnregisteredEnv:
+            gym.logger.warn("Environment {} not found".format(env_config['id']))
+            if env_config['id'].startswith('obstacle'):
+                gym.logger.info("Importing obstacle_env module")
+                import obstacle_env
+                env = gym.make(env_config['id'])
+            elif env_config['id'].startswith('highway'):
+                gym.logger.info("Importing highway_env module")
+                import highway_env
+                env = gym.make(env_config['id'])
+        return env
 
-    @property
-    def default_directory(self):
-        return os.path.join(self.OUTPUT_FOLDER, self.env.unwrapped.__class__.__name__, self.agent.__class__.__name__)
+    @staticmethod
+    def load_agent(agent_config, env):
+        """
+            Load an agent from a configuration file.
 
-    def write_metadata(self):
-        metadata = dict(env=serialize(self.env), agent=serialize(self.agent))
-        file_infix = '{}.{}'.format(self.monitor.monitor_id, os.getpid())
-        file = os.path.join(self.monitor.directory, self.METADATA_FILE.format(file_infix))
-        with open(file, 'w') as f:
-            json.dump(metadata, f, sort_keys=True, indent=4)
+        :param agent_config: the path to the agent configuration file
+        :param env: the environment with which the agent interacts
+        :return: the agent
+        """
+        # Load agent
+        with open(agent_config) as f:
+            agent_config = json.loads(f.read())
+        return agent_factory(env, agent_config)
 
-    def save_agent(self, episode, do_save=True):
+    def save_agent_model(self, episode, do_save=True):
         # Create the folder if it doesn't exist
         permanent_folder = os.path.join(self.directory, self.SAVED_MODELS_FOLDER)
         os.makedirs(permanent_folder, exist_ok=True)
@@ -175,7 +197,7 @@ class Evaluation:
             else:
                 logger.info("Saved {} model to {}".format(self.agent.__class__.__name__, episode_path))
 
-    def load_agent(self, model_path):
+    def load_agent_model(self, model_path):
         if model_path is True:
             model_path = os.path.join(self.directory, self.SAVED_MODELS_FOLDER, "latest.tar")
         try:
@@ -185,6 +207,27 @@ class Evaluation:
             logger.warn("No pre-trained model found at the desired location.")
         except NotImplementedError:
             pass
+
+    def after_all_episodes(self, episode, total_reward):
+        self.reward_viewer.update(total_reward)
+        logger.info("Episode {} score: {}".format(episode, total_reward))
+
+    def after_some_episodes(self, episode):
+        if self.monitor.is_episode_selected():
+            # Save the model
+            if self.training:
+                self.save_agent_model(episode)
+
+    @property
+    def default_directory(self):
+        return os.path.join(self.OUTPUT_FOLDER, self.env.unwrapped.__class__.__name__, self.agent.__class__.__name__)
+
+    def write_metadata(self):
+        metadata = dict(env=serialize(self.env), agent=serialize(self.agent))
+        file_infix = '{}.{}'.format(self.monitor.monitor_id, os.getpid())
+        file = os.path.join(self.monitor.directory, self.METADATA_FILE.format(file_infix))
+        with open(file, 'w') as f:
+            json.dump(metadata, f, sort_keys=True, indent=4)
 
     def seed(self):
         seed = self.env.seed(self.sim_seed)
@@ -200,7 +243,7 @@ class Evaluation:
             Close the evaluation.
         """
         if self.training:
-            self.save_agent(self.monitor.episode_id)
+            self.save_agent_model(self.monitor.episode_id)
         self.monitor.close()
         if self.close_env:
             self.env.close()

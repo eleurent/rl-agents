@@ -48,20 +48,18 @@ def evaluate(environment_config, agent_config, options):
     :param options: the evaluation options
     """
     gym.logger.set_level(gym.logger.INFO)
-    env = load_environment(environment_config)
-    agent = load_agent(agent_config, env)
-    sim = Evaluation(env, agent,
-                     num_episodes=int(options['--episodes']),
-                     sim_seed=options['--seed'])
+    env = Evaluation.load_environment(environment_config)
+    agent = Evaluation.load_agent(agent_config, env)
+    evaluation = Evaluation(env, agent, num_episodes=int(options['--episodes']), sim_seed=options['--seed'])
     if options['--train']:
-        sim.train()
+        evaluation.train()
     elif options['--test']:
-        sim.test()
+        evaluation.test()
     else:
-        sim.close()
+        evaluation.close()
     if options['--analyze']:
-        RunAnalyzer([sim.monitor.directory])
-    return sim.monitor.directory
+        RunAnalyzer([evaluation.monitor.directory])
+    return evaluation.monitor.directory
 
 
 def benchmark(options):
@@ -83,46 +81,6 @@ def benchmark(options):
     with Pool(processes=int(options['--processes'])) as pool:
         results = pool.starmap(evaluate, experiments)
     gym.logger.info('Generated runs: {}'.format(results))
-
-
-def load_environment(env_config):
-    """
-        Load an environment from a configuration file.
-
-    :param env_config: the path to the environment configuration file
-    :return: the environment
-    """
-    with open(env_config) as f:
-        env_config = json.loads(f.read())
-    try:
-        env = gym.make(env_config['id'])
-    except KeyError:
-        raise ValueError("The gym register id of the environment must be provided")
-    except gym.error.UnregisteredEnv:
-        gym.logger.warn("Environment {} not found".format(env_config['id']))
-        if env_config['id'].startswith('obstacle'):
-            gym.logger.info("Importing obstacle_env module")
-            import obstacle_env
-            env = gym.make(env_config['id'])
-        elif env_config['id'].startswith('highway'):
-            gym.logger.info("Importing highway_env module")
-            import highway_env
-            env = gym.make(env_config['id'])
-    return env
-
-
-def load_agent(agent_config, env):
-    """
-        Load an agent from a configuration file.
-
-    :param agent_config: the path to the agent configuration file
-    :param env: the environment with which the agent interacts
-    :return: the agent
-    """
-    # Load agent
-    with open(agent_config) as f:
-        agent_config = json.loads(f.read())
-    return agent_factory(env, agent_config)
 
 
 if __name__ == "__main__":
