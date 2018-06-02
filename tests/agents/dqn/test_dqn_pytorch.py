@@ -24,5 +24,5 @@ def test_cartpole():
         else:
             state = next_state
 
-    assert len(agent.memory) == n \
-           or len(agent.memory) == agent.config['memory_capacity']
+    assert (len(agent.memory) == n or
+            len(agent.memory) == agent.config['memory_capacity'])
