@@ -1,7 +1,6 @@
 import pygame
 import matplotlib as mpl
 import matplotlib.cm as cm
-from highway_env.envs.abstract import AbstractEnv
 
 
 class MCTSGraphics(object):
@@ -21,7 +20,7 @@ class MCTSGraphics(object):
         """
         cell_size = (surface.get_width() // agent.mcts.config['max_depth'], surface.get_height())
         pygame.draw.rect(surface, cls.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
-        cls.display_node(agent.mcts.root, surface, (0, 0), cell_size,
+        cls.display_node(agent.mcts.root, agent.env.action_space, surface, (0, 0), cell_size,
                          temperature=agent.mcts.config['temperature'], depth=0, selected=True)
 
         actions = agent.mcts.get_plan()
@@ -30,7 +29,7 @@ class MCTSGraphics(object):
         surface.blit(text, (1, surface.get_height()-10))
 
     @classmethod
-    def display_node(cls, node, surface, origin, size,
+    def display_node(cls, node, action_space, surface, origin, size,
                      temperature=0,
                      depth=0,
                      selected=False,
@@ -42,6 +41,7 @@ class MCTSGraphics(object):
             Display an MCTS node at a given position on a surface.
 
         :param node: the MCTS node to be displayed
+        :param action_space: the environment action space
         :param surface: the pygame surface on which the node is displayed
         :param origin: the location of the node on the surface [px]
         :param size: the size of the node on the surface [px]
@@ -88,10 +88,10 @@ class MCTSGraphics(object):
 
         # Recursively display children nodes
         best_action = node.select_action(temperature=0)
-        for a in AbstractEnv.ACTIONS:
+        for a in range(action_space.n):
             if a in node.children:
                 action_selected = (selected and (a == best_action))
-                cls.display_node(node.children[a], surface,
+                cls.display_node(node.children[a], action_space, surface,
                                  (origin[0]+size[0], origin[1]+a*size[1]/len(AbstractEnv.ACTIONS)),
                                  (size[0], size[1]/len(AbstractEnv.ACTIONS)),
                                  depth=depth+1, temperature=temperature, selected=action_selected)
