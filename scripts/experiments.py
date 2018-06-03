@@ -2,18 +2,21 @@
 Usage:
   experiments evaluate <environment> <agent> (--train|--test)
                                              [--episodes <count>]
+                                             [--no-display]
                                              [--seed <str>]
                                              [--analyze]
   experiments benchmark <benchmark> (--train|--test)
-                                    [--processes <count>]
                                     [--episodes <count>]
+                                    [--no-display]
                                     [--seed <str>]
+                                    [--processes <count>]
   experiments -h | --help
 
 Options:
   -h --help            Show this screen.
   --analyze            Automatically analyze the experiment results.
   --episodes <count>   Number of episodes [default: 5].
+  --no-display         Disable environment, agent, and rewards rendering.
   --processes <count>  Number of running processes [default: 4].
   --seed <str>         Seed the environments and agents.
   --train              Train the agent.
@@ -53,7 +56,13 @@ def evaluate(environment_config, agent_config, options):
     gym.logger.set_level(gym.logger.INFO)
     env = Evaluation.load_environment(environment_config)
     agent = Evaluation.load_agent(agent_config, env)
-    evaluation = Evaluation(env, agent, num_episodes=int(options['--episodes']), sim_seed=options['--seed'])
+    evaluation = Evaluation(env,
+                            agent,
+                            num_episodes=int(options['--episodes']),
+                            sim_seed=options['--seed'],
+                            display_env=not options['--no-display'],
+                            display_agent=not options['--no-display'],
+                            display_rewards=not options['--no-display'])
     if options['--train']:
         evaluation.train()
     elif options['--test']:
