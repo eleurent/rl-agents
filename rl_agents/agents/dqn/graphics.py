@@ -4,7 +4,6 @@ from matplotlib import pyplot as plt, gridspec as gridspec
 import pygame
 import matplotlib as mpl
 import matplotlib.cm as cm
-from highway_env.envs.abstract import AbstractEnv
 
 
 class DQNGraphics(object):
