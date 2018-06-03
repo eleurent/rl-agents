@@ -9,7 +9,7 @@ def test_evaluation(tmpdir):
     agent = RandomAgent(env)
     evaluation = Evaluation(env,
                             agent,
-                            directory=tmpdir,
+                            directory=tmpdir.strpath,
                             num_episodes=3,
                             display_env=False,
                             display_agent=False,
