@@ -1,3 +1,4 @@
+import gym
 import numpy as np
 import copy
 
@@ -157,7 +158,8 @@ class MCTS(Configurable):
     def default_config(cls):
         return dict(iterations=75,
                     temperature=10,
-                    max_depth=7)
+                    max_depth=7,
+                    step_strategy="reset")
 
     def seed(self, seed=None):
         """
@@ -274,7 +276,15 @@ class MCTS(Configurable):
 
         :param action: the chosen action from the root node
         """
-        self.step_by_reset()
+        if self.config["step_strategy"] == "reset":
+            self.step_by_reset()
+        elif self.config["step_strategy"] == "subtree":
+            self.step_by_subtree(action)
+        elif self.config["step_strategy"] == "prior":
+            self.step_by_prior(action)
+        else:
+            gym.logger.warn("Unknown step strategy: {}".format(self.config["step_strategy"]))
+            self.step_by_reset()
 
     def step_by_reset(self):
         """
