@@ -24,6 +24,7 @@ def test_evaluation(tmpdir):
 class RandomAgent(AbstractAgent):
 
     def __init__(self, env):
+        super(RandomAgent, self).__init__()
         self.env = env
 
     def record(self, state, action, reward, next_state, done):

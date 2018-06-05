@@ -37,7 +37,7 @@ class EpsilonGreedy(DiscreteDistribution):
         :param values: the state-action values
         """
         self.optimal_action = np.argmax(values)
-        self.epsilon = self.config['final_temperature'] + \
-                       (self.config['temperature'] - self.config['final_temperature']) * \
-                       np.exp(-2. * self.steps_done / self.config['tau'])
+        self.epsilon = self.config['final_temperature'] + (
+                    self.config['temperature'] - self.config['final_temperature']) * np.exp(
+            -2. * self.steps_done / self.config['tau'])
         self.steps_done += 1

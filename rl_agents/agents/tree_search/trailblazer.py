@@ -25,6 +25,7 @@ class MaxNode(object):
         candidates = self.children.values()
         count = 1
         U = np.inf
+        mu = []
         while len(candidates) > 1 and U >= (1 - self.eta)*epsilon:
             sqr = (np.log(self.K*count/(self.delta*epsilon)) +
                    self.gamma / (self.eta - self.gamma) + self.alpha + 1) / count
@@ -106,7 +107,8 @@ class TrailBlazer(object):
         self.epsilon = epsilon
         self.eta = np.power(self.gamma, 1/max(2, np.log(1/self.epsilon)))
         self.K = len(state.get_actions())
-        self.alpha = 2*np.log(self.epsilon*(1-self.gamma))**2 * np.log(np.log(self.K)/(1-self.eta)) / np.log(self.eta/self.gamma)
+        self.alpha = 2*np.log(self.epsilon*(1-self.gamma))**2 * \
+            np.log(np.log(self.K)/(1-self.eta)) / np.log(self.eta/self.gamma)
         self.alpha = 0
         self.m = (np.log(1/self.delta) + self.alpha) / ((1 - self.gamma) ** 2 * self.epsilon ** 2)
         print('gamma {}'.format(gamma))

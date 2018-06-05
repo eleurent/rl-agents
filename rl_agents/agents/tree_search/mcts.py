@@ -248,7 +248,7 @@ class MCTS(Configurable):
         memo = {id(obj): result}
         for k, v in obj.__dict__.items():
             if k not in ['viewer', 'automatic_rendering_callback']:
-                setattr(result, k, copy.deepcopy(v, memo))
+                setattr(result, k, copy.deepcopy(v, memo=memo))
             else:
                 setattr(result, k, None)
         return result

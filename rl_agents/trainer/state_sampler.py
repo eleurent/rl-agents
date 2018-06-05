@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 import numpy as np
 
 
@@ -66,7 +66,8 @@ class ObstacleStateSampler(AbstractStateSampler):
         xf = np.reshape(xx, (np.size(xx), 1))
         yf = np.reshape(yy, (np.size(yy), 1))
         o = np.ones(np.shape(xf))
-        states = np.hstack((1/2+xf/2, 1/2+yf/2, 0*o, 1*o, 0.1+1/2-xf/2, o, o, o, 0.1+1/2-xf/2, o, o, o, o, o, o, o, o, o, o, o))
+        states = np.hstack((1/2+xf/2, 1/2+yf/2, 0*o, 1*o, 0.1+1/2-xf/2, o, o, o, 0.1+1/2-xf/2,
+                            o, o, o, o, o, o, o, o, o, o, o))
         return xx, yy, states
 
     def states_list(self):

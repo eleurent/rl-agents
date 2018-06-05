@@ -9,9 +9,9 @@ from rl_agents.trainer.monitor import MonitorV2
 class RunAnalyzer(object):
     WINDOW = 20
 
-    def __init__(self, run_directories, episodes_range=[None, None]):
+    def __init__(self, run_directories, episodes_range=None):
         self.base = os.path.commonprefix(run_directories) if len(run_directories) > 1 else ''
-        self.episodes_range = episodes_range
+        self.episodes_range = episodes_range or [None, None]
         self.analyze(run_directories)
 
     def suffix(self, directory):
@@ -44,7 +44,8 @@ class RunAnalyzer(object):
             axes.grid()
         return axes
 
-    def histogram(self, data, title, label, axes=None):
+    @staticmethod
+    def histogram(data, title, label, axes=None):
         if not axes:
             fig = plt.figure()
             axes = fig.add_subplot(111)
@@ -93,14 +94,3 @@ class RunAnalyzer(object):
         for directory, manifest in runs.items():
             statistics = stats.describe(manifest[field][self.episodes_range[0]:self.episodes_range[1]])
             print(directory, '{:.2f} +/- {:.2f}'.format(statistics.mean, np.sqrt(statistics.variance)))
-
-    def scatter(self, xx, yy, title_x, title_y, label, figure=None):
-        if not figure:
-            figure = plt.figure()
-            plt.grid(True)
-        plt.scatter(xx, yy, label=label)
-        plt.title('{} with respect to {}'.format(title_x, title_y))
-        plt.xlabel(title_x.capitalize())
-        plt.ylabel(title_y.capitalize())
-        plt.show()
-        return figure

@@ -2,11 +2,10 @@ import collections
 from gym.core import Env
 
 
-
 class Configurable(object):
     """
         This class is a container for a configuration dictionary.
-        It allows to provide a default_config function with prefilled configuration.
+        It allows to provide a default_config function with pre-filled configuration.
         When provided with an input configuration, the default one will recursively be updated,
         and the input configuration will also be updated with the resulting configuration.
     """

@@ -121,8 +121,8 @@ class MonitorV2(Monitor):
                      'videos': videos})
                 return content
         else:
-            data_sources, initial_reset_timestamps, timestamps, episode_lengths, episode_rewards, episode_types, initial_reset_timestamp = merge_stats_files(
-                stats_files)
+            data_sources, initial_reset_timestamps, timestamps, episode_lengths, episode_rewards, \
+                episode_types, initial_reset_timestamp = merge_stats_files(stats_files)
 
             return {
                 'manifests': manifests,

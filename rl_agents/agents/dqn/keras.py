@@ -23,7 +23,8 @@ class DQNAgent(AbstractDQNAgent):
         self.model = Sequential()
 
         # Input layer
-        self.model.add(Dense(self.config.all_layers[1], kernel_initializer='lecun_uniform', input_shape=(self.config.all_layers[0],)))
+        self.model.add(Dense(self.config.all_layers[1], kernel_initializer='lecun_uniform',
+                             input_shape=(self.config.all_layers[0],)))
         self.model.add(Activation('tanh'))
         self.model.add(Dropout(0.2))
 
@@ -36,8 +37,8 @@ class DQNAgent(AbstractDQNAgent):
         self.model.add(Dense(self.config.all_layers[-1], kernel_initializer='lecun_uniform'))
         self.model.add(Activation('linear'))
 
-        optim = Adam(lr=5e-4)
-        self.model.compile(loss='mse', optimizer=optim)
+        optimizer = Adam(lr=5e-4)
+        self.model.compile(loss='mse', optimizer=optimizer)
 
     def optimize_model(self):
         try:
@@ -45,29 +46,29 @@ class DQNAgent(AbstractDQNAgent):
         except ValueError:
             return
 
-        X_train = []
+        x_train = []
         y_train = []
         for memory in minibatch:
             state, action, reward, next_state, terminal = memory
 
             # Get the current prediction of action values
-            qvalues = self.model.predict(np.array([state]), batch_size=1)
+            q_values = self.model.predict(np.array([state]), batch_size=1)
             y = np.zeros((1, self.config['num_actions']))
-            y[:] = qvalues[:]
+            y[:] = q_values[:]
 
             # Get our predicted best next move
-            nextQ = self.model.predict(np.array([next_state]), batch_size=1)
+            next_q = self.model.predict(np.array([next_state]), batch_size=1)
             # Update the value for the action we took.
             if not terminal:
-                value = reward + self.config['gamma'] * np.max(nextQ)
+                value = reward + self.config['gamma'] * np.max(next_q)
             else:
                 value = reward
             y[0][action] = value
 
-            X_train.append(state.reshape(self.config['num_states'],))
-            y_train.append(y.reshape(self.config['num_actions'],))
+            x_train.append(state.reshape(self.config['num_states'], ))
+            y_train.append(y.reshape(self.config['num_actions'], ))
 
-        self.model.fit(np.array(X_train), np.array(y_train), batch_size=self.config['batch_size'], epochs=1, verbose=0)
+        self.model.fit(np.array(x_train), np.array(y_train), batch_size=self.config['batch_size'], epochs=1, verbose=0)
 
     def get_batch_state_values(self, states):
         action_values = self.get_batch_state_action_values(states)

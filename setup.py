@@ -20,7 +20,7 @@ setup(
     install_requires=['gym', 'numpy', 'pygame', 'matplotlib', 'six', 'docopt'],
     tests_require=['pytest'],
     extras_require={
-        'dev': ['scipy',],
+        'dev': ['scipy'],
     },
     entry_points={
         'console_scripts': [],

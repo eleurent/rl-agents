@@ -9,6 +9,7 @@ class SingleTrajectoryAgent(AbstractAgent):
     """
 
     def __init__(self, actions, default_action):
+        super(SingleTrajectoryAgent, self).__init__()
         self.actions = actions
         self.default_action = default_action
 

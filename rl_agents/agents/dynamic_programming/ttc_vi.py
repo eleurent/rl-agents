@@ -39,10 +39,11 @@ class TTCVIAgent(AbstractAgent):
         The discount factor used for planning, in [0, 1].
     """
 
-    def __init__(self):
+    def __init__(self, env, config=None):
         """
             New instance of TTCVI agent.
         """
+        super(TTCVIAgent, self).__init__(config)
         self.state = None
         self.grids = self.value = None
         self.V = self.L = self.T = None
