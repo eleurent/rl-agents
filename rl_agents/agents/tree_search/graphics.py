@@ -92,6 +92,6 @@ class MCTSGraphics(object):
             if a in node.children:
                 action_selected = (selected and (a == best_action))
                 cls.display_node(node.children[a], action_space, surface,
-                                 (origin[0]+size[0], origin[1]+a*size[1]/len(AbstractEnv.ACTIONS)),
-                                 (size[0], size[1]/len(AbstractEnv.ACTIONS)),
+                                 (origin[0]+size[0], origin[1]+a*size[1]/action_space.n),
+                                 (size[0], size[1]/action_space.n),
                                  depth=depth+1, temperature=temperature, selected=action_selected)
