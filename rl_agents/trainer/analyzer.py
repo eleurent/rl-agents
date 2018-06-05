@@ -7,7 +7,7 @@ from rl_agents.trainer.monitor import MonitorV2
 
 
 class RunAnalyzer(object):
-    WINDOW = 50
+    WINDOW = 20
 
     def __init__(self, run_directories, episodes_range=[None, None]):
         self.base = os.path.commonprefix(run_directories) if len(run_directories) > 1 else ''
@@ -19,11 +19,12 @@ class RunAnalyzer(object):
 
     def analyze(self, run_directories):
         runs = {self.suffix(directory): MonitorV2.load_results(directory) for directory in run_directories}
+        runs = {key: value for (key, value) in runs.items() if value is not None}
         self.plot_all(runs, field='episode_rewards', title='rewards')
-        self.describe_all(runs, field='episode_rewards', title='rewards')
         self.histogram_all(runs, field='episode_rewards', title='rewards')
-        # self.histogram_all(runs, field='episode_avg_rewards', title='average rewards')
+        self.describe_all(runs, field='episode_rewards', title='rewards')
         self.histogram_all(runs, field='episode_lengths', title='lengths')
+        self.describe_all(runs, field='episode_lengths', title='lengths')
         plt.show()
 
     def compare(self, runs_directories_a, runs_directories_b):
@@ -38,8 +39,9 @@ class RunAnalyzer(object):
         dirs = list(runs.keys())
         data = [runs[directory][field][self.episodes_range[0]:self.episodes_range[1]] for directory in dirs]
         axes = self.histogram(data, title=title, label=dirs, axes=axes)
-        axes.legend()
-        axes.grid()
+        if axes:
+            axes.legend()
+            axes.grid()
         return axes
 
     def histogram(self, data, title, label, axes=None):
@@ -54,12 +56,16 @@ class RunAnalyzer(object):
 
     def plot_all(self, runs, field, title, axes=None):
         for directory, manifest in runs.items():
-            axes = self.plot(manifest[field], title=title, label=directory, axes=axes, averaged=False)
-        axes.set_prop_cycle(None)
+            axes = self.plot(manifest[field][self.episodes_range[0]:self.episodes_range[1]],
+                             title=title, label=directory, axes=axes, averaged=False)
+        if axes:
+            axes.set_prop_cycle(None)
         for directory, manifest in runs.items():
-            axes = self.plot(manifest[field], title=title, label=directory, axes=axes, averaged=True)
-        axes.legend()
-        axes.grid()
+            axes = self.plot(manifest[field][self.episodes_range[0]:self.episodes_range[1]],
+                             title=title, label=directory, axes=axes, averaged=True)
+        if axes:
+            axes.legend()
+            axes.grid()
         return axes
 
     def plot(self, data, title, label, axes=None, averaged=None):
@@ -73,7 +79,6 @@ class RunAnalyzer(object):
         if averaged is None:
             axes.plot(np.arange(np.size(data)), data, label=label)
         # Averaged data plot
-
         elif averaged and np.size(data) > self.WINDOW:
             means = np.hstack((np.nan*np.ones((self.WINDOW,)),
                                np.convolve(data, np.ones((self.WINDOW,)) / self.WINDOW, mode='valid')))
