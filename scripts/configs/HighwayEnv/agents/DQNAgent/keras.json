@@ -1,0 +1,18 @@
+{
+    "__class__": "<class 'rl_agents.agents.dqn.keras.DQNAgent'>",
+    "model": {
+        "type": "DuelingNetwork",
+        "layers": [100, 100]
+    },
+    "gamma": 0.9,
+    "n_steps": 3,
+    "batch_size": 64,
+    "memory_capacity": 300000,
+    "target_update": 1000,
+    "exploration": {
+        "method": "EpsilonGreedy",
+        "tau": 300000,
+        "temperature": 1.0,
+        "final_temperature": 0.1
+    }
+}
