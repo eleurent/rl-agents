@@ -52,7 +52,8 @@ class RunAnalyzer(object):
             axes.set_title('Histogram of {}'.format(title))
             axes.set_xlabel(title.capitalize())
             axes.set_ylabel('Frequency')
-        axes.hist(data, density=True, label=label)
+        weights = [np.ones(np.size(x))/np.size(x) for x in data]
+        axes.hist(data, weights=weights, label=label, rwidth=1)
         return axes
 
     def plot_all(self, runs, field, title, axes=None):
