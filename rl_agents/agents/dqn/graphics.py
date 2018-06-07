@@ -12,8 +12,8 @@ class DQNGraphics(object):
     """
     RED = (255, 0, 0)
     BLACK = (0, 0, 0)
-    MIN_VALUE = -10
-    MAX_VALUE = 10
+    MIN_VALUE = -2
+    MAX_VALUE = 2
 
     @classmethod
     def display(cls, agent, surface, display_text=True):
