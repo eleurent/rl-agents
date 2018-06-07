@@ -152,21 +152,26 @@ class Evaluation(object):
         return reward, terminal
 
     @staticmethod
-    def load_environment(env_config):
+    def load_environment(env_path):
         """
             Load an environment from a configuration file.
 
-        :param env_config: the path to the environment configuration file
+        :param env_path: the path to the environment configuration file
         :return: the environment
         """
-        with open(env_config) as f:
+        # Load the environment config from file
+        with open(env_path) as f:
             env_config = json.loads(f.read())
+
+        # Make the environment
         try:
             env = gym.make(env_config['id'])
         except KeyError:
             raise ValueError("The gym register id of the environment must be provided")
         except gym.error.UnregisteredEnv:
+            # The environment is unregistered.
             gym.logger.warn("Environment {} not found".format(env_config['id']))
+            # Automatic import of some modules to register them.
             if env_config['id'].startswith('obstacle'):
                 gym.logger.info("Importing obstacle_env module")
                 import obstacle_env
@@ -177,19 +182,25 @@ class Evaluation(object):
                 env = gym.make(env_config['id'])
             else:
                 raise gym.error.UnregisteredEnv("Unregistered environment, and neither highway_env nor obstacle_env")
+
+        # Configure the environment, if supported
+        try:
+            env.configure(env_config)
+        except AttributeError:
+            pass
         return env
 
     @staticmethod
-    def load_agent(agent_config, env):
+    def load_agent(agent_path, env):
         """
             Load an agent from a configuration file.
 
-        :param agent_config: the path to the agent configuration file
+        :param agent_path: the path to the agent configuration file
         :param env: the environment with which the agent interacts
         :return: the agent
         """
         # Load agent
-        with open(agent_config) as f:
+        with open(agent_path) as f:
             agent_config = json.loads(f.read())
         return agent_factory(env, agent_config)
 
