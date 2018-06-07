@@ -1,0 +1,7 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.robust_mcts.RobustMCTSAgent'>",
+    "agents": [
+        {"path": "configs/MergeEnv/agents/MCTSAgent/assume_idm.json"},
+        {"path": "configs/MergeEnv/agents/MCTSAgent/assume_linear.json"}
+    ]
+}

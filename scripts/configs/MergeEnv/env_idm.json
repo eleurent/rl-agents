@@ -1,0 +1,4 @@
+{
+    "id": "highway-merge-v0",
+    "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicle"
+}
