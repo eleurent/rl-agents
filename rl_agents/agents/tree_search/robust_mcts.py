@@ -2,27 +2,28 @@ import numpy as np
 
 from rl_agents.agents.abstract import AbstractAgent
 from rl_agents.agents.tree_search.mcts import MCTSAgent
+from rl_agents.trainer.evaluation import Evaluation
 
 
 class RobustMCTSAgent(AbstractAgent):
     def __init__(self,
                  env,
-                 models,
-                 config=None,
-                 prior_policy=None,
-                 rollout_policy=None,):
+                 config=None):
         """
             A new MCTS agent with multiple environment models.
         :param env: The true environment
-        :param models: A list of env preprocessors that represent possible transition models
-        :param config: The agent configuration
-        :param prior_policy: The prior distribution over actions given a state
-        :param rollout_policy: The distribution over actions used when evaluating leaves
+        :param config: The agent configuration.
+                       It should include an "agents" key giving a list of paths to several MCTSAgent configurations.
+                       This class could be modified to directly load configuration dictionaries instead of agents
+                       config files.
         """
         super(RobustMCTSAgent, self).__init__(config)
-        self.agents = [MCTSAgent(env, self.config, prior_policy, rollout_policy, env_preprocessor=model)
-                       for model in models]
+        self.agents = [Evaluation.load_agent(agent_config["path"], env) for agent_config in self.config["agents"]]
         self.__env = env
+
+    @classmethod
+    def default_config(cls):
+        return dict(agents=[])
 
     @property
     def env(self):
