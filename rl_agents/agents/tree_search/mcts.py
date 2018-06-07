@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 import copy
-
+from functools import partial
 from gym import logger
 from gym.utils import seeding
 
@@ -17,28 +17,25 @@ class MCTSAgent(AbstractAgent):
     def __init__(self,
                  env,
                  config=None,
-                 prior_policy=None,
-                 rollout_policy=None,
                  env_preprocessor=None):
         """
             A new MCTS agent.
         :param env: The environment
         :param config: The agent configuration. Use default if None.
-        :param prior_policy: The prior distribution over actions given a state
-        :param rollout_policy: The distribution over actions used when evaluating leaves
         :param env_preprocessor: a preprocessor function to apply to the environment before planning
         """
         super(MCTSAgent, self).__init__(config)
         self.env = env
-        prior_policy = prior_policy or MCTSAgent.random_policy
-        rollout_policy = rollout_policy or MCTSAgent.random_policy
+        prior_policy = MCTSAgent.policy_factory(self.config["prior_policy"])
+        rollout_policy = MCTSAgent.policy_factory(self.config["rollout_policy"])
         self.mcts = MCTS(prior_policy, rollout_policy, self.config)
-        self.env_preprocessor = env_preprocessor
         self.previous_action = None
 
     @classmethod
     def default_config(cls):
-        return dict()
+        return dict(prior_policy=dict(type="random"),
+                    rollout_policy=dict(type="random"),
+                    env_preprocessor=dict())
 
     def plan(self, state):
         """
@@ -50,10 +47,7 @@ class MCTSAgent(AbstractAgent):
         :return: the list of actions
         """
         self.mcts.step(self.previous_action)
-        try:
-            env = self.env_preprocessor(self.env)
-        except (AttributeError, TypeError):
-            env = self.env
+        env = self.env_preprocessor(self.env)
         actions = self.mcts.plan(state=env, observation=state)
 
         self.previous_action = actions[0]
@@ -64,6 +58,26 @@ class MCTSAgent(AbstractAgent):
 
     def seed(self, seed=None):
         return self.mcts.seed(seed)
+
+    def env_preprocessor(self, env):
+        if "method" in self.config["env_preprocessor"]:
+            preprocessor = getattr(env, self.config["env_preprocessor"]["method"])
+            return preprocessor(self.config["env_preprocessor"]["args"])
+        else:
+            return env
+
+    @staticmethod
+    def policy_factory(policy_config):
+        if policy_config["type"] == "random":
+            return MCTSAgent.random_policy
+        elif policy_config["type"] == "random_available":
+            return MCTSAgent.random_available_policy
+        elif policy_config["type"] == "preference":
+            return partial(MCTSAgent.preference_policy,
+                           action_index=policy_config["action"],
+                           ratio=policy_config["ratio"])
+        else:
+            raise ValueError("Unknown policy type")
 
     @staticmethod
     def random_policy(state, observation):
