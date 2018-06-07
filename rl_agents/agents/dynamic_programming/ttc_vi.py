@@ -26,24 +26,13 @@ class TTCVIAgent(AbstractAgent):
         If the ego-vehicle has the ability to change its velocity, an additional layer is added to the occupancy grid
         to iterate over the different velocity choices available.
     """
-    HORIZON = 10.0
-    """
-        The time horizon used in the state representation [s]
-    """
-    TIME_QUANTIZATION = 1.0
-    """
-        The time quantization used in the state representation [s]
-    """
-    GAMMA = 1.0
-    """
-        The discount factor used for planning, in [0, 1].
-    """
 
     def __init__(self, env, config=None):
         """
             New instance of TTCVI agent.
         """
         super(TTCVIAgent, self).__init__(config)
+        self.env = env
         self.state = None
         self.grids = self.value = None
         self.V = self.L = self.T = None
@@ -51,20 +40,31 @@ class TTCVIAgent(AbstractAgent):
         self.action_reward = self.state_reward = None
         self.lane = self.speed = None
 
+    @classmethod
+    def default_config(cls):
+        return dict(gamma=1.0,              # The discount factor used for planning, in [0, 1].
+                    time_quantization=1.0,  # The time quantization used in the state representation [s]
+                    horizon=10.0)           # The time horizon used in the state representation [s]
+
     def plan(self, state):
         """
             Perform a value iteration and return the sequence of optimal actions.
 
             Compute the TTC-grid to build the associated reward function, and run the value iteration.
 
-        :param state: the current MDP state
+        :param state: an observation of the state
         :return: a list of optimal actions
         """
+        # Use the true environment state, not the observation
+        state = self.env.unwrapped
+        if not hasattr(state, "vehicle"):
+            raise EnvironmentError("This agent is only able to interact with the highway-env environment")
+
         # Initialize variables if needed
         if self.grids is None:
             self.grids = np.zeros((state.vehicle.SPEED_COUNT,
                                    len(state.vehicle.road.lanes),
-                                   int(self.HORIZON / self.TIME_QUANTIZATION)))
+                                   int(self.config["horizon"] / self.config["time_quantization"])))
             self.V, self.L, self.T = np.shape(self.grids)
             self.value = np.zeros(np.shape(self.grids))
 
@@ -76,11 +76,11 @@ class TTCVIAgent(AbstractAgent):
                               2: state.LANE_CHANGE_REWARD,
                               3: 0,
                               4: 0}
-        lanes = (self.L - 1 - np.arange(self.L))/(self.L - 1)
+        lanes = np.arange(self.L)/(self.L - 1)
         vels = np.arange(self.V)/(self.V - 1)
         self.state_reward = \
             + state.COLLISION_REWARD * self.grids \
-            + state.LEFT_LANE_REWARD * np.tile(lanes[np.newaxis, :, np.newaxis], (self.V, 1, self.T)) \
+            + state.RIGHT_LANE_REWARD * np.tile(lanes[np.newaxis, :, np.newaxis], (self.V, 1, self.T)) \
             + state.HIGH_VELOCITY_REWARD * np.tile(vels[:, np.newaxis, np.newaxis], (1, self.L, self.T))
 
         # Run value iteration
@@ -131,8 +131,8 @@ class TTCVIAgent(AbstractAgent):
                         continue
                     # Quantize time-to-collision to both upper and lower values
                     lane = other.lane_index
-                    for time in [int(time_to_collision / self.TIME_QUANTIZATION),
-                                 int(np.ceil(time_to_collision / self.TIME_QUANTIZATION))]:
+                    for time in [int(time_to_collision / self.config["time_quantization"]),
+                                 int(np.ceil(time_to_collision / self.config["time_quantization"]))]:
                         if 0 <= lane < np.shape(self.grids)[1] and 0 <= time < np.shape(self.grids)[2]:
                             self.grids[velocity_index, lane, time] = max(self.grids[velocity_index, lane, time], cost)
 
@@ -155,7 +155,7 @@ class TTCVIAgent(AbstractAgent):
                 for j in range(self.T):
                     q_values = self.get_q_values(h, i, j)
                     if q_values:
-                        new_value[h, i, j] = self.GAMMA * np.max(list(q_values.values()))
+                        new_value[h, i, j] = self.config["gamma"] * np.max(list(q_values.values()))
                     else:
                         new_value[h, i, j] = self.state_reward[h, i, j]
         self.value = new_value
@@ -269,3 +269,9 @@ class TTCVIAgent(AbstractAgent):
         if not actions:
             actions = [1]
         return path, actions
+
+    def save(self, filename):
+        raise NotImplementedError()
+
+    def load(self, filename):
+        raise NotImplementedError()
