@@ -59,7 +59,7 @@ def evaluate(environment_config, agent_config, options):
     evaluation = Evaluation(env,
                             agent,
                             num_episodes=int(options['--episodes']),
-                            sim_seed=options['--seed'],
+                            sim_seed=int(options['--seed']),
                             display_env=not options['--no-display'],
                             display_agent=not options['--no-display'],
                             display_rewards=not options['--no-display'])
