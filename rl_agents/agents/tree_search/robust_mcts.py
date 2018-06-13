@@ -1,8 +1,7 @@
 import numpy as np
 
 from rl_agents.agents.abstract import AbstractAgent
-from rl_agents.agents.tree_search.mcts import MCTSAgent
-from rl_agents.trainer.evaluation import Evaluation
+from rl_agents.agents.common import load_agent
 
 
 class RobustMCTSAgent(AbstractAgent):
@@ -18,7 +17,7 @@ class RobustMCTSAgent(AbstractAgent):
                        config files.
         """
         super(RobustMCTSAgent, self).__init__(config)
-        self.agents = [Evaluation.load_agent(agent_config["path"], env) for agent_config in self.config["agents"]]
+        self.agents = [load_agent(agent_config["path"], env) for agent_config in self.config["agents"]]
         self.__env = env
 
     @classmethod

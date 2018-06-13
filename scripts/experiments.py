@@ -33,6 +33,7 @@ from multiprocessing.pool import Pool
 
 from rl_agents.trainer.analyzer import RunAnalyzer
 from rl_agents.trainer.evaluation import Evaluation
+from rl_agents.agents.common import load_agent, load_environment
 
 BENCHMARK_FILE = 'benchmark_summary'
 
@@ -54,8 +55,8 @@ def evaluate(environment_config, agent_config, options):
     :param options: the evaluation options
     """
     gym.logger.set_level(gym.logger.INFO)
-    env = Evaluation.load_environment(environment_config)
-    agent = Evaluation.load_agent(agent_config, env)
+    env = load_environment(environment_config)
+    agent = load_agent(agent_config, env)
     evaluation = Evaluation(env,
                             agent,
                             num_episodes=int(options['--episodes']),
