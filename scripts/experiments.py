@@ -83,7 +83,7 @@ def evaluate(environment_config, agent_config, options):
         evaluation.close()
     if options['--analyze']:
         RunAnalyzer([evaluation.monitor.directory])
-    return evaluation.monitor.directory
+    return os.path.relpath(evaluation.monitor.directory)
 
 
 def benchmark(options):
