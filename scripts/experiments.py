@@ -2,11 +2,13 @@
 Usage:
   experiments evaluate <environment> <agent> (--train|--test)
                                              [--episodes <count>]
+                                             [--name-from-config]
                                              [--no-display]
                                              [--seed <str>]
                                              [--analyze]
   experiments benchmark <benchmark> (--train|--test)
                                     [--episodes <count>]
+                                    [--name-from-config]
                                     [--no-display]
                                     [--seed <str>]
                                     [--processes <count>]
@@ -17,6 +19,7 @@ Options:
   --analyze            Automatically analyze the experiment results.
   --episodes <count>   Number of episodes [default: 5].
   --no-display         Disable environment, agent, and rewards rendering.
+  --name-from-config   Name the output folder from the corresponding config files
   --processes <count>  Number of running processes [default: 4].
   --seed <str>         Seed the environments and agents.
   --train              Train the agent.
@@ -57,10 +60,18 @@ def evaluate(environment_config, agent_config, options):
     gym.logger.set_level(gym.logger.INFO)
     env = load_environment(environment_config)
     agent = load_agent(agent_config, env)
+    if options['--name-from-config']:
+        directory = os.path.join(Evaluation.OUTPUT_FOLDER,
+                                 os.path.basename(environment_config).split('.')[0],
+                                 os.path.basename(agent_config).split('.')[0])
+    else:
+        directory = None
+    options['--seed'] = int(options['--seed']) if options['--seed'] is not None else None
     evaluation = Evaluation(env,
                             agent,
+                            directory=directory,
                             num_episodes=int(options['--episodes']),
-                            sim_seed=int(options['--seed']),
+                            sim_seed=options['--seed'],
                             display_env=not options['--no-display'],
                             display_agent=not options['--no-display'],
                             display_rewards=not options['--no-display'])
@@ -103,6 +114,9 @@ def benchmark(options):
     with open(benchmark_filename, 'w') as f:
         json.dump(results, f, sort_keys=True, indent=4)
         gym.logger.info('Benchmark done. Summary written in: {}'.format(benchmark_filename))
+
+    if options['--analyze']:
+        RunAnalyzer(results)
 
 
 if __name__ == "__main__":
