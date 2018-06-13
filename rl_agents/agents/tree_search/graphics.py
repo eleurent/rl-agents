@@ -95,3 +95,15 @@ class MCTSGraphics(object):
                                  (origin[0]+size[0], origin[1]+a*size[1]/action_space.n),
                                  (size[0], size[1]/action_space.n),
                                  depth=depth+1, temperature=temperature, selected=action_selected)
+
+
+class RobustMCTSGraphics(object):
+    @classmethod
+    def display(cls, agent, surface):
+        cell_size = (surface.get_width() // len(agent.agents), surface.get_height())
+        pygame.draw.rect(surface, MCTSGraphics.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
+        for i, sub_agent in enumerate(agent.agents):
+            sub_cell_size = (cell_size[0] // sub_agent.mcts.config["max_depth"], cell_size[1])
+            MCTSGraphics.display_node(sub_agent.mcts.root, sub_agent.env.action_space, surface,
+                                      (i*cell_size[0], 0), sub_cell_size,
+                                      temperature=sub_agent.mcts.config['temperature'], depth=0, selected=True)
