@@ -1,0 +1,20 @@
+{
+    "environments": [
+        "configs/MergeEnv/env_agg.json",
+        "configs/MergeEnv/env_def.json"
+    ],
+    "agents": [
+        "configs/MergeEnv/agents/MCTSAgent/assume_aggressive.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_defensive.json",
+        "configs/MergeEnv/agents/RobustMCTSAgent/agg_def.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_aggressive.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_defensive.json",
+        "configs/MergeEnv/agents/RobustMCTSAgent/agg_def.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_aggressive.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_defensive.json",
+        "configs/MergeEnv/agents/RobustMCTSAgent/agg_def.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_aggressive.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_defensive.json",
+        "configs/MergeEnv/agents/RobustMCTSAgent/agg_def.json"
+    ]
+}

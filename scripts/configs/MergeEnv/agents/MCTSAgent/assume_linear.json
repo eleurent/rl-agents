@@ -11,6 +11,7 @@
         "action": 1,
         "ratio": 2
     },
+    "step_strategy": "subtree",
     "env_preprocessor": {
         "method": "change_vehicles",
         "args": "highway_env.vehicle.behavior.LinearVehicle"

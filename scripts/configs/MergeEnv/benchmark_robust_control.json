@@ -6,6 +6,15 @@
     "agents": [
         "configs/MergeEnv/agents/MCTSAgent/assume_idm.json",
         "configs/MergeEnv/agents/MCTSAgent/assume_linear.json",
+        "configs/MergeEnv/agents/RobustMCTSAgent/idm_linear.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_idm.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_linear.json",
+        "configs/MergeEnv/agents/RobustMCTSAgent/idm_linear.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_idm.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_linear.json",
+        "configs/MergeEnv/agents/RobustMCTSAgent/idm_linear.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_idm.json",
+        "configs/MergeEnv/agents/MCTSAgent/assume_linear.json",
         "configs/MergeEnv/agents/RobustMCTSAgent/idm_linear.json"
     ]
 }
