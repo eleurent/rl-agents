@@ -2,9 +2,9 @@ import numpy as np
 from rl_agents.agents.abstract import AbstractAgent
 
 
-class LinearAgent(AbstractAgent):
+class LinearCommandAgent(AbstractAgent):
     def __init__(self, env, config=None):
-        super(LinearAgent, self).__init__(config)
+        super(LinearCommandAgent, self).__init__(config)
         self.K = np.array(self.config["K"])
         self.env = env
 
