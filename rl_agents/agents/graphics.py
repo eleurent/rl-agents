@@ -14,22 +14,20 @@ class AgentGraphics(object):
         Graphical visualization of any Agent implementing AbstractAgent.
     """
     @classmethod
-    def display(cls, agent, surface):
+    def display(cls, agent, agent_surface, sim_surface=None):
         """
             Display an agent visualization on a pygame surface.
 
         :param agent: the agent to be displayed
-        :param surface: the pygame surface on which the agent is displayed
-        :return:
+        :param agent_surface: the pygame surface on which the agent is displayed
+        :param sim_surface: the pygame surface on which the environment is displayed
         """
 
         if isinstance(agent, MCTSAgent):
-            MCTSGraphics.display(agent, surface)
+            MCTSGraphics.display(agent, agent_surface)
         elif isinstance(agent, AbstractDQNAgent):
-            DQNGraphics.display(agent, surface)
+            DQNGraphics.display(agent, agent_surface)
         elif isinstance(agent, TTCVIAgent):
-            TTCVIGraphics.display(agent, surface)
+            TTCVIGraphics.display(agent, agent_surface)
         elif isinstance(agent, RobustMCTSAgent):
-            RobustMCTSGraphics.display(agent, surface)
-
-
+            RobustMCTSGraphics.display(agent, agent_surface)

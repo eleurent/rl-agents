@@ -69,7 +69,8 @@ class Evaluation(object):
             try:
                 # Render the agent within the environment viewer, if supported
                 self.env.render()
-                self.env.unwrapped.viewer.set_agent_display(lambda surface: AgentGraphics.display(self.agent, surface))
+                self.env.unwrapped.viewer.set_agent_display(
+                    lambda agent_surface, sim_surface: AgentGraphics.display(self.agent, agent_surface, sim_surface))
             except AttributeError:
                 # The environment viewer doesn't support agent rendering, create a separate agent viewer
                 # self.agent_viewer = AgentViewer(self.agent)
