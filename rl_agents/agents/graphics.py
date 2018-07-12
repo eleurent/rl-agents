@@ -4,6 +4,8 @@ from rl_agents.agents.dqn.abstract import AbstractDQNAgent
 from rl_agents.agents.dqn.graphics import DQNGraphics
 from rl_agents.agents.dynamic_programming.graphics import TTCVIGraphics
 from rl_agents.agents.dynamic_programming.ttc_vi import TTCVIAgent
+from rl_agents.agents.linear.graphics import LinearModelGraphics
+from rl_agents.agents.linear.linear_model import LinearModelAgent
 from rl_agents.agents.tree_search.graphics import MCTSGraphics, RobustMCTSGraphics
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 from rl_agents.agents.tree_search.robust_mcts import RobustMCTSAgent
@@ -31,3 +33,5 @@ class AgentGraphics(object):
             TTCVIGraphics.display(agent, agent_surface)
         elif isinstance(agent, RobustMCTSAgent):
             RobustMCTSGraphics.display(agent, agent_surface)
+        elif isinstance(agent, LinearModelAgent):
+            LinearModelGraphics.display(agent, sim_surface)

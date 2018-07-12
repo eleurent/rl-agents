@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from sklearn import linear_model
 
-from highway_env.vehicle.behavior import IDMVehicle
-from highway_env.vehicle.control import MDPVehicle
+from highway_env.vehicle.behavior import IntervalObserver
+from highway_env.vehicle.control import MDPVehicle, ControlledVehicle
 from rl_agents.agents.abstract import AbstractAgent
 from highway_env.envs.abstract import AbstractEnv
 
@@ -18,26 +18,26 @@ class LinearModelAgent(AbstractAgent):
         if not isinstance(env, AbstractEnv):
             raise ValueError("Only compatible with highway-env environments.")
         self.env = env
-        self.tracked_vehicles = {}
+        self.tracked_vehicles = []
+        self.observers = []
 
     @classmethod
     def default_config(cls):
         return dict()
 
     def act(self, observation):
-        self.update_tracked_vehicles()
-        self.linear_regression()
+        self.update_interval_observer()
         return 1
 
-    def update_tracked_vehicles(self):
-        for vehicle in self.env.unwrapped.road.vehicles:
-            if vehicle not in self.tracked_vehicles and isinstance(vehicle, MDPVehicle):
-                self.tracked_vehicles[vehicle] = {}
-        for vehicle in self.tracked_vehicles.keys():
-            vehicle.dump()
+    def update_interval_observer(self):
+        if not self.observers:
+            for vehicle in self.env.unwrapped.road.vehicles:
+                if vehicle not in self.tracked_vehicles and isinstance(vehicle, ControlledVehicle):
+                    self.tracked_vehicles.append(vehicle)
+                    self.observers.append(IntervalObserver(vehicle))
 
     def linear_regression(self):
-        for vehicle in self.tracked_vehicles.keys():
+        for vehicle in self.tracked_vehicles:
             history = vehicle.get_log()
             if np.shape(history)[0] < 2:
                 return
