@@ -1,9 +1,6 @@
 import numpy as np
 
-from highway_env.vehicle.behavior import IntervalObserver
-from highway_env.vehicle.control import MDPVehicle, ControlledVehicle
 from rl_agents.agents.abstract import AbstractAgent
-from highway_env.envs.abstract import AbstractEnv
 
 
 class LinearModelAgent(AbstractAgent):
@@ -13,6 +10,8 @@ class LinearModelAgent(AbstractAgent):
         :param config: the agent config
         """
         super(LinearModelAgent, self).__init__(config)
+
+        from highway_env.envs.abstract import AbstractEnv
         if not isinstance(env, AbstractEnv):
             raise ValueError("Only compatible with highway-env environments.")
         self.env = env
@@ -28,6 +27,8 @@ class LinearModelAgent(AbstractAgent):
         return 1
 
     def update_interval_observer(self):
+        from highway_env.vehicle.control import ControlledVehicle
+        from highway_env.vehicle.behavior import IntervalObserver
         if not self.observers:
             for vehicle in self.env.unwrapped.road.vehicles:
                 if vehicle not in self.tracked_vehicles and isinstance(vehicle, ControlledVehicle):
