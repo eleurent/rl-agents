@@ -17,8 +17,9 @@ class LinearModelGraphics(object):
 
     @classmethod
     def display(cls, agent, surface):
-        for observer in agent.observers:
-            model_traj, min_traj, max_traj = observer.compute_trajectories(15, 1/15)
+        agent.road_observer.compute_trajectories(15, 1/15)
+        for observer in agent.road_observer.observers.values():
+            model_traj, min_traj, max_traj = observer.get_trajectories()
             cls.display_bounding_polygons(min_traj, max_traj, surface, cls.RED)
             cls.display_trajectory(model_traj, surface, cls.BLUE)
 

@@ -16,24 +16,17 @@ class LinearModelAgent(AbstractAgent):
             raise ValueError("Only compatible with highway-env environments.")
         self.env = env
         self.tracked_vehicles = []
-        self.observers = []
+        self.road_observer = None
 
     @classmethod
     def default_config(cls):
         return dict()
 
     def act(self, observation):
-        self.update_interval_observer()
-        return 1
+        from highway_env.vehicle.behavior import RoadObserver
 
-    def update_interval_observer(self):
-        from highway_env.vehicle.control import ControlledVehicle
-        from highway_env.vehicle.behavior import IntervalObserver
-        if not self.observers:
-            for vehicle in self.env.unwrapped.road.vehicles:
-                if vehicle not in self.tracked_vehicles and isinstance(vehicle, ControlledVehicle):
-                    self.tracked_vehicles.append(vehicle)
-                    self.observers.append(IntervalObserver(vehicle))
+        self.road_observer = RoadObserver(self.env.unwrapped.road)
+        return 1
 
     def linear_regression(self):
         import pandas as pd
