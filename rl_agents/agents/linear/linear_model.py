@@ -1,6 +1,4 @@
 import numpy as np
-import pandas as pd
-from sklearn import linear_model
 
 from highway_env.vehicle.behavior import IntervalObserver
 from highway_env.vehicle.control import MDPVehicle, ControlledVehicle
@@ -37,21 +35,24 @@ class LinearModelAgent(AbstractAgent):
                     self.observers.append(IntervalObserver(vehicle))
 
     def linear_regression(self):
-        for vehicle in self.tracked_vehicles:
-            history = vehicle.get_log()
-            if np.shape(history)[0] < 2:
-                return
+        import pandas as pd
+        from sklearn import linear_model
 
-            for lane_index in range(len(vehicle.road.lanes)):
-                dy = history['dy_lane_{}'.format(lane_index)]
-                d_psi = history['psi_lane_{}'.format(lane_index)] - history['psi']
-                v = history['v']
-                l = vehicle.LENGTH
-                x = pd.concat([l / v / v * dy, l / v * d_psi], axis=1)
-                y = history['steering']
-                regr = linear_model.LinearRegression(fit_intercept=False)
-                regr.fit(x, y)
-                print(vehicle.target_lane_index, lane_index, regr.score(x, y))
+        vehicle = self.env.unwrapped.vehicle
+        history = vehicle.get_log()
+        if np.shape(history)[0] < 2:
+            return
+
+        for lane_index in range(len(vehicle.road.lanes)):
+            dy = history['dy_lane_{}'.format(lane_index)]
+            d_psi = history['psi_lane_{}'.format(lane_index)] - history['psi']
+            v = history['v']
+            l = vehicle.LENGTH
+            x = pd.concat([l / v / v * dy, l / v * d_psi], axis=1)
+            y = history['steering']
+            regr = linear_model.LinearRegression(fit_intercept=False)
+            regr.fit(x, y)
+            print(vehicle.target_lane_index, lane_index, regr.score(x, y))
 
     def reset(self):
         pass
