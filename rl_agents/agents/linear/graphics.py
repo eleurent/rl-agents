@@ -17,7 +17,7 @@ class LinearModelGraphics(object):
         agent.road_observer.compute_trajectories(15, 1/15)
         for observer in agent.road_observer.observers.values():
             model_traj, min_traj, max_traj = observer.get_trajectories()
-            cls.display_boxes(min_traj, max_traj, surface, cls.TIME_MAP)
+            cls.display_bounding_polygons(min_traj, max_traj, surface, cls.TIME_MAP)
             cls.display_trajectory(model_traj, surface, cls.BLUE)
 
     @classmethod
