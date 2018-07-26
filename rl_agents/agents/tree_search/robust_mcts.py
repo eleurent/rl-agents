@@ -4,7 +4,7 @@ from rl_agents.agents.abstract import AbstractAgent
 from rl_agents.agents.common import load_agent
 
 
-class RobustMCTSAgent(AbstractAgent):
+class DiscreteRobustMCTS(AbstractAgent):
     def __init__(self,
                  env,
                  config=None):
@@ -16,7 +16,7 @@ class RobustMCTSAgent(AbstractAgent):
                        This class could be modified to directly load configuration dictionaries instead of agents
                        config files.
         """
-        super(RobustMCTSAgent, self).__init__(config)
+        super(DiscreteRobustMCTS, self).__init__(config)
         self.agents = [load_agent(agent_config["path"], env) for agent_config in self.config["agents"]]
         self.__env = env
 
@@ -70,3 +70,42 @@ class RobustMCTSAgent(AbstractAgent):
 
     def load(self, filename):
         raise NotImplementedError()
+
+
+class IntervalRobustMCTS(AbstractAgent):
+    def __init__(self, env, config=None):
+        """
+        :param highway_env.envs.abstract.AbstractEnv env: a highway-env environment
+        :param config: the agent config
+        """
+        super(IntervalRobustMCTS, self).__init__(config)
+
+        from highway_env.envs.abstract import AbstractEnv
+        if not isinstance(env, AbstractEnv):
+            raise ValueError("Only compatible with highway-env environments.")
+        self.env = env
+        self.road_observer = None
+        self.reset()
+
+    @classmethod
+    def default_config(cls):
+        return dict()
+
+    def act(self, observation):
+        return 1
+
+    def reset(self):
+        from highway_env.vehicle.uncertainty import RoadObserver
+        self.road_observer = RoadObserver(self.env.unwrapped.road)
+
+    def seed(self, seed=None):
+        pass
+
+    def save(self, filename):
+        raise NotImplementedError()
+
+    def load(self, filename):
+        raise NotImplementedError()
+
+    def record(self, state, action, reward, next_state, done):
+        pass
