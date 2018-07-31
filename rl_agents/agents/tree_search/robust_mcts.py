@@ -84,7 +84,7 @@ class IntervalRobustMCTS(AbstractAgent):
         if not isinstance(env, AbstractEnv):
             raise ValueError("Only compatible with highway-env environments.")
         self.env = env
-        self.road_observer = None
+        self.robust_env = None
         self.reset()
 
     @classmethod
@@ -92,11 +92,13 @@ class IntervalRobustMCTS(AbstractAgent):
         return dict()
 
     def act(self, observation):
+        self.robust_env = self.env.change_vehicles('highway_env.vehicle.uncertainty.IntervalVehicle')
+        self.robust_env.step(1)
+        self.robust_env.step(1)
         return 1
 
     def reset(self):
-        from highway_env.vehicle.uncertainty import RoadObserver
-        self.road_observer = RoadObserver(self.env.unwrapped.road)
+        pass
 
     def seed(self, seed=None):
         pass
