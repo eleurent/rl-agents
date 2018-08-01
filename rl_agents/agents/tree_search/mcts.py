@@ -31,8 +31,8 @@ class MCTSAgent(AbstractAgent):
 
     @classmethod
     def default_config(cls):
-        return dict(prior_policy=dict(type="random"),
-                    rollout_policy=dict(type="random"),
+        return dict(prior_policy=dict(type="random_available"),
+                    rollout_policy=dict(type="random_available"),
                     env_preprocessor=dict())
 
     def plan(self, observation):
@@ -169,8 +169,8 @@ class MCTS(Configurable):
     @classmethod
     def default_config(cls):
         return dict(iterations=75,
-                    temperature=10,
-                    max_depth=7,
+                    temperature=20,
+                    max_depth=6,
                     step_strategy="reset")
 
     def seed(self, seed=None):
