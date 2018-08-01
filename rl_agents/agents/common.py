@@ -1,6 +1,7 @@
 import importlib
 import json
 import gym
+from gym import logger
 
 
 def agent_factory(environment, config):
@@ -71,4 +72,23 @@ def load_environment(env_path):
         env.configure(env_config)
     except AttributeError:
         pass
+    return env
+
+
+def preprocess_env(env, preprocessor_configs):
+    """
+        Apply a series of pre-processes to an environment, before it is used by an agent.
+    :param env: an environment
+    :param preprocessor_configs: a list of preprocessor configs
+    :return: a preprocessed copy of the environment
+    """
+    for preprocessor_config in preprocessor_configs:
+        if "method" in preprocessor_config:
+            preprocessor = getattr(env, preprocessor_config["method"])
+            if "args" in preprocessor_config:
+                env = preprocessor(preprocessor_config["args"])
+            else:
+                env = preprocessor()
+        else:
+            logger.error("Unknown environment preprocessor", preprocessor)
     return env

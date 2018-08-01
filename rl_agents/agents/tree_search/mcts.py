@@ -6,6 +6,7 @@ from gym import logger
 from gym.utils import seeding
 
 from rl_agents.agents.abstract import AbstractAgent
+from rl_agents.agents.common import preprocess_env
 from rl_agents.configuration import Configurable
 
 
@@ -33,7 +34,7 @@ class MCTSAgent(AbstractAgent):
     def default_config(cls):
         return dict(prior_policy=dict(type="random_available"),
                     rollout_policy=dict(type="random_available"),
-                    env_preprocessor=dict())
+                    env_preprocessors=[])
 
     def plan(self, observation):
         """
@@ -45,7 +46,7 @@ class MCTSAgent(AbstractAgent):
         :return: the list of actions
         """
         self.mcts.step(self.previous_action)
-        env = self.env_preprocessor(self.env)
+        env = preprocess_env(self.env, self.config["env_preprocessors"])
         actions = self.mcts.plan(state=env, observation=observation)
 
         self.previous_action = actions[0]
@@ -56,13 +57,6 @@ class MCTSAgent(AbstractAgent):
 
     def seed(self, seed=None):
         return self.mcts.seed(seed)
-
-    def env_preprocessor(self, env):
-        if "method" in self.config["env_preprocessor"]:
-            preprocessor = getattr(env, self.config["env_preprocessor"]["method"])
-            return preprocessor(self.config["env_preprocessor"]["args"])
-        else:
-            return env
 
     @staticmethod
     def policy_factory(policy_config):
@@ -239,17 +233,11 @@ class MCTS(Configurable):
         for i in range(self.config['iterations']):
             if (i+1) % 10 == 0:
                 logger.debug('{} / {}'.format(i+1, self.config['iterations']))
-
-            # Simplify the environment state if supported
-            try:
-                state_copy = state.unwrapped.simplified()
-            except AttributeError:
-                state_copy = state.unwrapped
             # Copy the environment state
             try:
-                state_copy = self.custom_deepcopy(state_copy)
+                state_copy = self.custom_deepcopy(state.unwrapped)
             except ValueError:
-                state_copy = copy.deepcopy(state_copy)
+                state_copy = copy.deepcopy(state.unwrapped)
             self.run(state_copy, observation)
         return self.get_plan()
 
