@@ -16,13 +16,11 @@ class MCTSAgent(AbstractAgent):
 
     def __init__(self,
                  env,
-                 config=None,
-                 env_preprocessor=None):
+                 config=None):
         """
             A new MCTS agent.
         :param env: The environment
         :param config: The agent configuration. Use default if None.
-        :param env_preprocessor: a preprocessor function to apply to the environment before planning
         """
         super(MCTSAgent, self).__init__(config)
         self.env = env
@@ -37,18 +35,18 @@ class MCTSAgent(AbstractAgent):
                     rollout_policy=dict(type="random"),
                     env_preprocessor=dict())
 
-    def plan(self, state):
+    def plan(self, observation):
         """
             Plan an optimal sequence of actions.
 
             Start by updating the previously found tree with the last action performed.
 
-        :param state: the current state
+        :param observation: the current state
         :return: the list of actions
         """
         self.mcts.step(self.previous_action)
         env = self.env_preprocessor(self.env)
-        actions = self.mcts.plan(state=env, observation=state)
+        actions = self.mcts.plan(state=env, observation=observation)
 
         self.previous_action = actions[0]
         return actions
@@ -162,11 +160,11 @@ class MCTS(Configurable):
 
         """
         super(MCTS, self).__init__(config)
-        self.root = Node(parent=None)
-        self.prior_policy = prior_policy
-        self.rollout_policy = rollout_policy
         self.np_random = None
         self.seed()
+        self.root = Node(parent=None, np_random=self.np_random)
+        self.prior_policy = prior_policy
+        self.rollout_policy = rollout_policy
 
     @classmethod
     def default_config(cls):
@@ -202,8 +200,9 @@ class MCTS(Configurable):
             node = node.children[action]
             depth = depth - 1
 
-        if not node.children and \
-                (not terminal or node == self.root):
+        if not node.children \
+                and depth > 0 \
+                and (not terminal or node == self.root):
             node.expand(self.prior_policy(state, observation))
 
         if not terminal:
@@ -304,7 +303,7 @@ class MCTS(Configurable):
         """
             Reset the MCTS tree to a root node for the new state.
         """
-        self.root = Node(None)
+        self.root = Node(None, np_random=self.np_random)
 
     def step_by_subtree(self, action):
         """
@@ -337,15 +336,17 @@ class Node(object):
     K = 1.0
     """ The value function first-order filter gain"""
 
-    def __init__(self, parent, prior=1):
+    def __init__(self, parent, prior=1, np_random=None):
         """
             New node.
 
         :param parent: its parent node
         :param prior: its prior probability
+        :param np_random: source of randomness
         """
         self.parent = parent
         self.prior = prior
+        self.np_random = np_random or np.random
         self.children = {}
         self.count = 0
         self.value = 0
@@ -360,12 +361,30 @@ class Node(object):
         :return: the selected action
         """
         if self.children:
+            actions = list(self.children.keys())
             if temperature == 0:
-                return max(self.children.keys(), key=(lambda key: self.children[key].count))
+                # Tie best counts by best value
+                counts = Node.all_argmax([self.children[a].count for a in actions])
+                return actions[max(counts, key=(lambda i: self.children[actions[i]].value))]
             else:
-                return max(self.children.keys(), key=(lambda key: self.children[key].selection_strategy(temperature)))
+                # Randomly tie best candidates with respect to selection strategy
+                return actions[self.random_argmax([self.children[a].selection_strategy(temperature) for a in actions])]
         else:
             return None
+
+    @staticmethod
+    def all_argmax(x):
+        m = np.amax(x)
+        return np.nonzero(x == m)[0]
+
+    def random_argmax(self, x):
+        """
+            Randomly tie-breaking arg max
+        :param x: an array
+        :return: a random index among the maximums
+        """
+        indices = Node.all_argmax(x)
+        return self.np_random.choice(indices)
 
     def expand(self, actions_distribution):
         """
@@ -376,7 +395,7 @@ class Node(object):
         actions, probabilities = actions_distribution
         for i in range(len(actions)):
             if actions[i] not in self.children:
-                self.children[actions[i]] = Node(self, probabilities[i])
+                self.children[actions[i]] = Node(self, probabilities[i], self.np_random)
 
     def update(self, total_reward):
         """
