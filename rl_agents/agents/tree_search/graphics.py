@@ -116,8 +116,9 @@ class IntervalRobustMCTSGraphics(object):
         Graphical visualization of the IntervalRobustMCTS interval observer.
     """
     UNCERTAINTY_TIME_COLORMAP = cm.RdYlGn_r
-    RED = (255, 0, 0)
     MODEL_TRAJ_COLOR = (0, 0, 255)
+    RED = (255, 0, 0)
+    TRANSPARENCY = 128
 
     @classmethod
     def display(cls, agent, agent_surface, sim_surface):
@@ -157,7 +158,7 @@ class IntervalRobustMCTSGraphics(object):
         for i in reversed(range(len(min_traj))):
             for (A, B) in [(min_traj, max_traj), (min_traj, min_traj)]:
                 color = cmap(i / len(min_traj), bytes=True)
-                color = (color[0], color[1], color[2], 128)
+                color = (color[0], color[1], color[2], cls.TRANSPARENCY)
                 if boxes:
                     cls.display_box(min_traj[i], max_traj[i], surface, sim_surface, color)
                 if i < len(min_traj)-1:

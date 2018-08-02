@@ -83,13 +83,15 @@ class IntervalRobustMCTS(AbstractAgent):
     @classmethod
     def default_config(cls):
         return dict(sub_agent_path="",
-                    env_preprocessors=[])
+                    env_preprocessors=[],
+                    enable_robust_planning=True)
 
     def act(self, observation):
         return self.plan(observation)[0]
 
     def plan(self, observation):
-        self.sub_agent.env = preprocess_env(self.env, self.config["env_preprocessors"])
+        if self.config["enable_robust_planning"]:
+            self.sub_agent.env = preprocess_env(self.env, self.config["env_preprocessors"])
         return self.sub_agent.plan(observation)
 
     def reset(self):

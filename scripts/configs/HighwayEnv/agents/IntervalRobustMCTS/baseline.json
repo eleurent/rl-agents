@@ -10,5 +10,6 @@
             "args": "highway_env.vehicle.uncertainty.IntervalVehicle"
         }
     ],
-    "sub_agent_path": "configs/HighwayEnv/agents/MCTSWithPriorPolicyAgent/vi_prior.json"
+    "sub_agent_path": "configs/HighwayEnv/agents/MCTSWithPriorPolicyAgent/vi_prior.json",
+    "enable_robust_planning": true
 }
