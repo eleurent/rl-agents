@@ -1,7 +1,9 @@
 import numpy as np
+from gym import logger
 
 from rl_agents.agents.abstract import AbstractAgent
-from rl_agents.agents.common import load_agent
+from rl_agents.agents.common import load_agent, preprocess_env
+from rl_agents.agents.tree_search.mcts import MCTSAgent
 
 
 class DiscreteRobustMCTS(AbstractAgent):
@@ -74,28 +76,21 @@ class DiscreteRobustMCTS(AbstractAgent):
 
 class IntervalRobustMCTS(AbstractAgent):
     def __init__(self, env, config=None):
-        """
-        :param highway_env.envs.abstract.AbstractEnv env: a highway-env environment
-        :param config: the agent config
-        """
         super(IntervalRobustMCTS, self).__init__(config)
-
-        from highway_env.envs.abstract import AbstractEnv
-        if not isinstance(env, AbstractEnv):
-            raise ValueError("Only compatible with highway-env environments.")
         self.env = env
-        self.robust_env = None
-        self.reset()
+        self.sub_agent = load_agent(self.config['sub_agent_path'], env)
 
     @classmethod
     def default_config(cls):
-        return dict()
+        return dict(sub_agent_path="",
+                    env_preprocessors=[])
 
     def act(self, observation):
-        self.robust_env = self.env.change_vehicles('highway_env.vehicle.uncertainty.IntervalVehicle')
-        self.robust_env.step(1)
-        self.robust_env.step(1)
-        return 1
+        return self.plan(observation)[0]
+
+    def plan(self, observation):
+        self.sub_agent.env = preprocess_env(self.env, self.config["env_preprocessors"])
+        return self.sub_agent.plan(observation)
 
     def reset(self):
         pass

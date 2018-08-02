@@ -32,4 +32,4 @@ class AgentGraphics(object):
         elif isinstance(agent, DiscreteRobustMCTS):
             DiscreteRobustMCTSGraphics.display(agent, agent_surface)
         elif isinstance(agent, IntervalRobustMCTS):
-            IntervalRobustMCTSGraphics.display(agent, sim_surface)
+            IntervalRobustMCTSGraphics.display(agent, agent_surface, sim_surface)

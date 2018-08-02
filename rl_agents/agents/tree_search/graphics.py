@@ -2,6 +2,8 @@ import pygame
 import matplotlib as mpl
 import matplotlib.cm as cm
 
+from rl_agents.agents.common import preprocess_env
+
 
 class MCTSGraphics(object):
     """
@@ -118,57 +120,56 @@ class IntervalRobustMCTSGraphics(object):
     MODEL_TRAJ_COLOR = (0, 0, 255)
 
     @classmethod
-    def display(cls, agent, surface):
-
-        robust_env = agent.env.change_vehicles('highway_env.vehicle.uncertainty.IntervalVehicle')
-        robust_env.step(1)
-        robust_env.step(1)
+    def display(cls, agent, agent_surface, sim_surface):
+        horizon = 2
+        robust_env = preprocess_env(agent.env, agent.config["env_preprocessors"])
+        for action in agent.sub_agent.mcts.get_plan()[:horizon]:
+            robust_env.step(action)
         for vehicle in robust_env.road.vehicles:
             if not hasattr(vehicle, 'observer_trajectory'):
                 continue
             min_traj = [o.position[0] for o in vehicle.observer_trajectory]
             max_traj = [o.position[1] for o in vehicle.observer_trajectory]
-            cls.display_bounding_polygons(min_traj, max_traj, surface, cls.UNCERTAINTY_TIME_COLORMAP)
-            cls.display_trajectory(vehicle.trajectory, surface, cls.MODEL_TRAJ_COLOR)
+            uncertainty_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA, 32)
+            cls.display_uncertainty(min_traj, max_traj, uncertainty_surface, sim_surface, cls.UNCERTAINTY_TIME_COLORMAP)
+            cls.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface, cls.MODEL_TRAJ_COLOR)
+            sim_surface.blit(uncertainty_surface, (0, 0))
+        MCTSGraphics.display(agent.sub_agent, agent_surface)
 
     @classmethod
-    def display_trajectory(cls, trajectory, surface, color):
+    def display_trajectory(cls, trajectory, surface, sim_surface, color):
         for i in range(len(trajectory)-1):
             pygame.draw.line(surface, color,
-                             (surface.vec2pix(trajectory[i].position)),
-                             (surface.vec2pix(trajectory[i+1].position)),
+                             (sim_surface.vec2pix(trajectory[i].position)),
+                             (sim_surface.vec2pix(trajectory[i+1].position)),
                              1)
 
     @classmethod
-    def display_boxes(cls, min_traj, max_traj, surface, cmap):
-        for i in reversed(range(len(min_traj))):
-            color = cmap(i/len(min_traj), bytes=True)
-            rect = (surface.vec2pix(min_traj[i]),
-                    (surface.pix(max_traj[i][0] - min_traj[i][0]),
-                     surface.pix(max_traj[i][1] - min_traj[i][1])))
-            if rect[1] != (0, 0):
-                pygame.draw.rect(surface, color, rect, 0)
+    def display_box(cls, min_pos, max_pos, surface, sim_surface, color):
+        rect = (sim_surface.vec2pix(min_pos),
+                (sim_surface.pix(max_pos[0] - min_pos[0]),
+                 sim_surface.pix(max_pos[1] - min_pos[1])))
+        if rect[1] != (0, 0):
+            pygame.draw.rect(surface, color, rect, 0)
 
     @classmethod
-    def display_bounding_polygons(cls, min_traj, max_traj, surface, cmap, boxes=True):
-        for (A, B) in [(min_traj, max_traj), (min_traj, min_traj)]:
-            for i in reversed(range(len(min_traj)-1)):
+    def display_uncertainty(cls, min_traj, max_traj, surface, sim_surface, cmap, boxes=True):
+        for i in reversed(range(len(min_traj))):
+            for (A, B) in [(min_traj, max_traj), (min_traj, min_traj)]:
                 color = cmap(i / len(min_traj), bytes=True)
-                input_points = [[(A[i][0], min_traj[i][1]), (A[i][0], max_traj[i][1])],
-                                [(B[i][0], min_traj[i][1]), (A[i][0], max_traj[i][1])],
-                                [(A[i][0], min_traj[i][1]), (B[i][0], max_traj[i][1])]]
-                output_points = [[(B[i+1][0], min_traj[i+1][1]), (B[i+1][0], max_traj[i+1][1])],
-                                 [(A[i+1][0], min_traj[i+1][1]), (B[i+1][0], max_traj[i+1][1])],
-                                 [(B[i+1][0], min_traj[i+1][1]), (A[i+1][0], max_traj[i+1][1])]]
-                for p1 in input_points:
-                    for p2 in output_points:
-                        p = list(reversed(p1)) + p2
-                        p.append(p[0])
-                        p = list(map(surface.vec2pix, p))
-                        pygame.draw.polygon(surface, color, p, 0)
+                color = (color[0], color[1], color[2], 128)
                 if boxes:
-                    rect = (surface.vec2pix(min_traj[i+1]),
-                            (surface.pix(max_traj[i+1][0] - min_traj[i+1][0]),
-                             surface.pix(max_traj[i+1][1] - min_traj[i+1][1])))
-                    if rect[1] != (0, 0):
-                        pygame.draw.rect(surface, color, rect, 0)
+                    cls.display_box(min_traj[i], max_traj[i], surface, sim_surface, color)
+                if i < len(min_traj)-1:
+                    input_points = [[(A[i][0], min_traj[i][1]), (A[i][0], max_traj[i][1])],
+                                    [(B[i][0], min_traj[i][1]), (A[i][0], max_traj[i][1])],
+                                    [(A[i][0], min_traj[i][1]), (B[i][0], max_traj[i][1])]]
+                    output_points = [[(B[i+1][0], min_traj[i+1][1]), (B[i+1][0], max_traj[i+1][1])],
+                                     [(A[i+1][0], min_traj[i+1][1]), (B[i+1][0], max_traj[i+1][1])],
+                                     [(B[i+1][0], min_traj[i+1][1]), (A[i+1][0], max_traj[i+1][1])]]
+                    for p1 in input_points:
+                        for p2 in output_points:
+                            p = list(reversed(p1)) + p2
+                            p.append(p[0])
+                            p = list(map(sim_surface.vec2pix, p))
+                            pygame.draw.polygon(surface, color, p, 0)

@@ -1,0 +1,14 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.robust_mcts.IntervalRobustMCTS'>",
+    "env_preprocessors":
+    [
+        {
+            "method": "simplify"
+        },
+        {
+            "method": "change_vehicles",
+            "args": "highway_env.vehicle.uncertainty.IntervalVehicle"
+        }
+    ],
+    "sub_agent_path": "configs/HighwayEnv/agents/MCTSWithPriorPolicyAgent/vi_prior.json"
+}
