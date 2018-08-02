@@ -4,10 +4,11 @@ import operator
 
 # from highway_env import utils
 from rl_agents.agents import utils
-from rl_agents.agents.abstract import AbstractAgent
+from rl_agents.agents.abstract import AbstractStochasticAgent
+from rl_agents.agents.exploration.boltzmann import Boltzmann
 
 
-class TTCVIAgent(AbstractAgent):
+class TTCVIAgent(AbstractStochasticAgent):
     """
         Implementation of Value Iteration over a Time-To-Collision (TTC) representation of the state.
 
@@ -39,6 +40,8 @@ class TTCVIAgent(AbstractAgent):
         self.state_reward = None
         self.action_reward = self.state_reward = None
         self.lane = self.speed = None
+        # For stochastic policy
+        self.stochastic_policy = Boltzmann(self.env.action_space, config=dict(temperature=10.0))
 
     @classmethod
     def default_config(cls):
@@ -56,7 +59,8 @@ class TTCVIAgent(AbstractAgent):
         :return: a list of optimal actions
         """
         # Use the true environment state, not the observation
-        state = self.env.unwrapped
+        if not hasattr(state, "vehicle"):
+            state = self.env.unwrapped
         if not hasattr(state, "vehicle"):
             raise EnvironmentError("This agent is only able to interact with the highway-env environment")
 
@@ -69,8 +73,7 @@ class TTCVIAgent(AbstractAgent):
             self.value = np.zeros(np.shape(self.grids))
 
         # Update state and reward
-        self.state = state
-        self.update_ttc_state()
+        self.update_ttc_state(state)
         self.action_reward = {0: state.LANE_CHANGE_REWARD,
                               1: 0,
                               2: state.LANE_CHANGE_REWARD,
@@ -103,13 +106,14 @@ class TTCVIAgent(AbstractAgent):
     def record(self, state, action, reward, next_state, done):
         pass
 
-    def update_ttc_state(self):
+    def update_ttc_state(self, state):
         """
             Extract the TTC-grid and TTC-state (velocity, lane, time=0) from the current MDP state.
         """
+        self.state = state
         self.fill_ttc_grid()
-        self.lane = self.state.vehicle.lane_index
-        self.speed = self.state.vehicle.speed_index()
+        self.lane = state.vehicle.lane_index
+        self.speed = state.vehicle.speed_index()
 
     def fill_ttc_grid(self):
         """
@@ -136,12 +140,13 @@ class TTCVIAgent(AbstractAgent):
                         if 0 <= lane < np.shape(self.grids)[1] and 0 <= time < np.shape(self.grids)[2]:
                             self.grids[velocity_index, lane, time] = max(self.grids[velocity_index, lane, time], cost)
 
-    def value_iteration(self, steps=50):
+    def value_iteration(self, steps=None):
         """
             Perform a value iteration over the TTC-state and reward.
 
         :param steps: number of backup operations.
         """
+        steps = steps or self.T
         for _ in range(steps):
             self.backup()
 
@@ -154,10 +159,8 @@ class TTCVIAgent(AbstractAgent):
             for i in range(self.L):
                 for j in range(self.T):
                     q_values = self.get_q_values(h, i, j)
-                    if q_values:
-                        new_value[h, i, j] = self.config["gamma"] * np.max(list(q_values.values()))
-                    else:
-                        new_value[h, i, j] = self.state_reward[h, i, j]
+                    new_value[h, i, j] = np.max(list(q_values.values()))
+
         self.value = new_value
 
     def clip_position(self, h, i, j):
@@ -230,11 +233,13 @@ class TTCVIAgent(AbstractAgent):
         """
         q_values = {}
 
-        for a in range(0, 5):
+        for a in range(self.env.action_space.n):
             next_state = self.transition_model(a, h, i, j)
             if next_state:
                 o, p, q = next_state
-                q_values[a] = (self.reward(h, i, j, a) + self.value[o, p, q])
+                q_values[a] = self.reward(h, i, j, a) + self.config["gamma"] * self.value[o, p, q]
+            else:  # terminal state
+                q_values[a] = self.reward(h, i, j, a)
         return q_values
 
     def pick_action(self):
@@ -255,20 +260,27 @@ class TTCVIAgent(AbstractAgent):
 
         :return: a list of next states, and corresponding actions
         """
-        h, i, j = self.speed, self.lane, 0
-        path = [(h, i, j)]
+        ttc_state = self.speed, self.lane, 0
+        path = [ttc_state]
         actions = []
-        q_values = self.get_q_values(h, i, j)
-        while len(q_values):
+        while ttc_state:
+            h, i, j = ttc_state
+            q_values = self.get_q_values(h, i, j)
             a = max(q_values.items(), key=operator.itemgetter(1))[0]
             actions.append(a)
-            h, i, j = self.transition_model(a, h, i, j)
-            path.append((h, i, j))
-            q_values = self.get_q_values(h, i, j)
+            ttc_state = self.transition_model(a, h, i, j)
+            path.append(ttc_state)
+
         # If terminal state, return default action
         if not actions:
             actions = [1]
         return path, actions
+
+    def action_distribution(self, observation):
+        q_values = self.get_q_values(self.speed, self.lane, 0)
+        q_values = np.array([q_values[a] for a in range(self.stochastic_policy.action_space.n)])
+        self.stochastic_policy.update(q_values)
+        return self.stochastic_policy.get_distribution()
 
     def save(self, filename):
         raise NotImplementedError()
