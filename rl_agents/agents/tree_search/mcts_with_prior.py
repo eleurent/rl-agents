@@ -1,3 +1,5 @@
+import numpy as np
+
 from rl_agents.agents.abstract import AbstractAgent
 from rl_agents.agents.common import agent_factory
 from rl_agents.agents.tree_search.mcts import MCTSAgent
@@ -11,14 +13,12 @@ class MCTSWithPriorPolicyAgent(MCTSAgent):
 
     def __init__(self,
                  env,
-                 config=None,
-                 env_preprocessor=None):
+                 config=None):
         """
         :param env: The environment
-        :param config: The agent configuration. It has to contains the fields:
+        :param config: The agent configuration. It has to contains the field:
                        - prior_agent is the config used to create the agent, whose class is specified in
                        its __class__ field.
-        :param env_preprocessor: a preprocessor function to apply to the environment before planning
         """
         super(AbstractAgent, self).__init__(config)
         self.prior_agent = agent_factory(env, config['prior_agent'])
@@ -27,10 +27,9 @@ class MCTSWithPriorPolicyAgent(MCTSAgent):
             self.prior_agent.load(config['prior_agent']['model_save'])
         super(MCTSWithPriorPolicyAgent, self).__init__(
             env,
-            self.config,
-            prior_policy=self.agent_policy,
-            rollout_policy=self.agent_policy,
-            env_preprocessor=env_preprocessor)
+            self.config)
+        self.mcts.prior_policy = self.agent_policy_available
+        self.mcts.rollout_policy = self.agent_policy_available
 
     @classmethod
     def default_config(cls):
@@ -40,6 +39,7 @@ class MCTSWithPriorPolicyAgent(MCTSAgent):
         """
         mcts_config = super(MCTSWithPriorPolicyAgent, cls).default_config()
         mcts_config.update({"iterations": 10})
+        mcts_config.update({"temperature": 200})
         mcts_config.update({"prior_agent": {
                                 "__class__": "<class 'rl_agents.agents.dqn.pytorch.DQNAgent'>",
                                 "exploration": {"method": "Boltzmann"}
@@ -47,8 +47,21 @@ class MCTSWithPriorPolicyAgent(MCTSAgent):
         return mcts_config
 
     def agent_policy(self, state, observation):
+        # Reset prior agent environment
+        self.prior_agent.env = state
+        # Trigger the computation of action distribution
+        self.prior_agent.act(observation)
         distribution = self.prior_agent.action_distribution(observation)
         return list(distribution.keys()), list(distribution.values())
+
+    def agent_policy_available(self, state, observation):
+        actions, probs = self.agent_policy(state, observation)
+        if hasattr(state, 'get_available_actions'):
+            available_actions = state.get_available_actions()
+            probs = np.array([probs[actions.index(a)] for a in available_actions])
+            probs /= np.sum(probs)
+            actions = available_actions
+        return actions, probs
 
     def record(self, state, action, reward, next_state, done):
         raise NotImplementedError()
