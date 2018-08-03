@@ -38,8 +38,6 @@ class MCTSWithPriorPolicyAgent(MCTSAgent):
         :return: the default MCTSWithPriorPolicyAgent config
         """
         mcts_config = super(MCTSWithPriorPolicyAgent, cls).default_config()
-        mcts_config.update({"iterations": 50})
-        mcts_config.update({"temperature": 200})
         mcts_config.update({"prior_agent": {
                                 "__class__": "<class 'rl_agents.agents.dqn.pytorch.DQNAgent'>",
                                 "exploration": {"method": "Boltzmann"}

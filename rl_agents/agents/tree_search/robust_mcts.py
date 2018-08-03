@@ -95,16 +95,16 @@ class IntervalRobustMCTS(AbstractAgent):
         return self.sub_agent.plan(observation)
 
     def reset(self):
-        pass
+        return self.sub_agent.reset()
 
     def seed(self, seed=None):
-        pass
+        return self.sub_agent.seed(seed)
 
     def save(self, filename):
-        raise NotImplementedError()
+        return self.sub_agent.save(filename)
 
     def load(self, filename):
-        raise NotImplementedError()
+        return self.sub_agent.load(filename)
 
     def record(self, state, action, reward, next_state, done):
-        pass
+        return self.sub_agent.record(state, action, reward, next_state, done)

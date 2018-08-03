@@ -155,10 +155,10 @@ class MCTS(Configurable):
         """
         super(MCTS, self).__init__(config)
         self.np_random = None
-        self.seed()
-        self.root = Node(parent=None, np_random=self.np_random)
+        self.root = Node(parent=None, mcts=self)
         self.prior_policy = prior_policy
         self.rollout_policy = rollout_policy
+        self.seed()
 
     @classmethod
     def default_config(cls):
@@ -291,7 +291,7 @@ class MCTS(Configurable):
         """
             Reset the MCTS tree to a root node for the new state.
         """
-        self.root = Node(None, np_random=self.np_random)
+        self.root = Node(None, mcts=self)
 
     def step_by_subtree(self, action):
         """
@@ -324,17 +324,17 @@ class Node(object):
     K = 1.0
     """ The value function first-order filter gain"""
 
-    def __init__(self, parent, prior=1, np_random=None):
+    def __init__(self, parent, mcts, prior=1):
         """
             New node.
 
         :param parent: its parent node
         :param prior: its prior probability
-        :param np_random: source of randomness
         """
         self.parent = parent
+        self.mcts = mcts
         self.prior = prior
-        self.np_random = np_random or np.random
+        self.np_random = None
         self.children = {}
         self.count = 0
         self.value = 0
@@ -372,7 +372,7 @@ class Node(object):
         :return: a random index among the maximums
         """
         indices = Node.all_argmax(x)
-        return self.np_random.choice(indices)
+        return self.mcts.np_random.choice(indices)
 
     def expand(self, actions_distribution):
         """
@@ -383,7 +383,7 @@ class Node(object):
         actions, probabilities = actions_distribution
         for i in range(len(actions)):
             if actions[i] not in self.children:
-                self.children[actions[i]] = Node(self, probabilities[i], self.np_random)
+                self.children[actions[i]] = Node(self, self.mcts, probabilities[i])
 
     def update(self, total_reward):
         """
