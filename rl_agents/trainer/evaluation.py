@@ -199,7 +199,7 @@ class Evaluation(object):
             json.dump(metadata, f, sort_keys=True, indent=4)
 
     def seed(self):
-        seed = self.env.seed(self.sim_seed)
+        seed = self.monitor.seed(self.sim_seed)
         self.agent.seed(seed[0])  # Seed the agent with the main environment seed
         return seed
 
