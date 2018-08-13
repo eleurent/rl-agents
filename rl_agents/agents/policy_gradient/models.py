@@ -11,8 +11,8 @@ class ActorCritic(nn.Module):
     def forward(self, inputs, states, masks):
         raise NotImplementedError
 
-    def act(self, inputs, states):
-        actions, value = self.model(inputs, states)
+    def act(self, states):
+        actions, value = self.model(states)
         action = actions.sample()
         action_log_probs = actions.log_probs(action)
         dist_entropy = actions.entropy().mean()
@@ -43,8 +43,8 @@ class FCActorCritic(nn.Module):
         self.critic = nn.Linear(64, 1)
         self.train()
 
-    def forward(self, inputs, states):
-        features = self.main(inputs)
+    def forward(self, states):
+        features = self.main(states)
         return torch.distributions.Categorical(logits=self.actor(features)), self.critic(features)
 
 
