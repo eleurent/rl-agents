@@ -261,15 +261,15 @@ class TTCVIAgent(AbstractStochasticAgent):
         :return: a list of next states, and corresponding actions
         """
         ttc_state = self.speed, self.lane, 0
-        path = [ttc_state]
+        path = []
         actions = []
         while ttc_state:
             h, i, j = ttc_state
+            path.append(ttc_state)
             q_values = self.get_q_values(h, i, j)
             a = max(q_values.items(), key=operator.itemgetter(1))[0]
             actions.append(a)
             ttc_state = self.transition_model(a, h, i, j)
-            path.append(ttc_state)
 
         # If terminal state, return default action
         if not actions:
