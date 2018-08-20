@@ -1,0 +1,7 @@
+{
+    "id": "highway-v0",
+    "lanes_count": 3,
+    "initial_spacing": 2,
+    "vehicles_count": 1,
+    "duration": 25
+}
