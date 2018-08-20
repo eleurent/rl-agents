@@ -3,7 +3,7 @@ from gym import logger
 
 from rl_agents.agents.abstract import AbstractAgent
 from rl_agents.agents.common import load_agent, preprocess_env
-from rl_agents.agents.tree_search.mcts import MCTSAgent
+from rl_agents.agents.tree_search.mcts import MCTSAgent, MCTS, Node
 
 
 class OneStepRobustMCTS(AbstractAgent):
@@ -72,6 +72,63 @@ class OneStepRobustMCTS(AbstractAgent):
 
     def load(self, filename):
         raise NotImplementedError()
+
+
+class DiscreteRobustMCTSAgent(MCTSAgent):
+    def __init__(self,
+                 env,
+                 config=None):
+        super(DiscreteRobustMCTSAgent, self).__init__(env, config)
+        self.__env = env
+        self.mcts = RobustMCTS(self.mcts.prior_policy, self.mcts.rollout_policy, self.config)
+
+    @classmethod
+    def default_config(cls):
+        config = super(DiscreteRobustMCTSAgent, cls).default_config()
+        config.update(dict(envs_preprocessors=[]))
+        return config
+
+    def record(self, state, action, reward, next_state, done):
+        raise NotImplementedError()
+
+    def plan(self, observation):
+        envs = [preprocess_env(self.__env, preprocessors) for preprocessors in self.config["envs_preprocessors"]]
+        self.env = self.env = JointEnv(envs)
+        return super(DiscreteRobustMCTSAgent, self).plan(observation)
+
+    def act(self, state):
+        return self.plan(state)[0]
+
+    def save(self, filename):
+        raise NotImplementedError()
+
+    def load(self, filename):
+        raise NotImplementedError()
+
+
+class JointEnv(object):
+    def __init__(self, envs):
+        self.joint_state = envs
+
+    def step(self, action):
+        transitions = [state.step(action) for state in self.joint_state]
+        observations, rewards, terminals, info = zip(*transitions)
+        return observations, np.array(rewards), np.array(terminals), info
+
+    @property
+    def action_space(self):
+        return self.joint_state[0].action_space
+
+
+class RobustMCTS(MCTS):
+    def __init__(self, prior_policy, rollout_policy, config=None):
+        super(RobustMCTS, self).__init__(prior_policy, rollout_policy, config)
+        self.root = RobustNode(parent=None, mcts=self)
+
+
+class RobustNode(Node):
+    def get_value(self):
+        return np.min(self.value)
 
 
 class IntervalRobustMCTS(AbstractAgent):

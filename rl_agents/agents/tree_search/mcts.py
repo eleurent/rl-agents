@@ -187,7 +187,7 @@ class MCTS(Configurable):
         total_reward = 0
         depth = self.config['max_depth']
         terminal = False
-        while depth > 0 and node.children and not terminal:
+        while depth > 0 and node.children and not np.all(terminal):
             action = node.select_action(temperature=self.config['temperature'])
             observation, reward, terminal, _ = state.step(action)
             total_reward += reward
@@ -196,10 +196,10 @@ class MCTS(Configurable):
 
         if not node.children \
                 and depth > 0 \
-                and (not terminal or node == self.root):
+                and (not np.all(terminal) or node == self.root):
             node.expand(self.prior_policy(state, observation))
 
-        if not terminal:
+        if not np.all(terminal):
             total_reward = self.evaluate(state, observation, total_reward, limit=depth)
         node.update_branch(total_reward)
 
@@ -218,7 +218,7 @@ class MCTS(Configurable):
             action = self.np_random.choice(actions, 1, p=np.array(probabilities))[0]
             observation, reward, terminal, _ = state.step(action)
             total_reward += reward
-            if terminal:
+            if np.all(terminal):
                 break
         return total_reward
 
@@ -235,9 +235,9 @@ class MCTS(Configurable):
                 logger.debug('{} / {}'.format(i+1, self.config['iterations']))
             # Copy the environment state
             try:
-                state_copy = self.custom_deepcopy(state.unwrapped)
+                state_copy = self.custom_deepcopy(state)
             except ValueError:
-                state_copy = copy.deepcopy(state.unwrapped)
+                state_copy = copy.deepcopy(state)
             self.run(state_copy, observation)
         return self.get_plan()
 
@@ -291,7 +291,7 @@ class MCTS(Configurable):
         """
             Reset the MCTS tree to a root node for the new state.
         """
-        self.root = Node(None, mcts=self)
+        self.root = type(self.root)(None, mcts=self)
 
     def step_by_subtree(self, action):
         """
@@ -339,6 +339,9 @@ class Node(object):
         self.count = 0
         self.value = 0
 
+    def get_value(self):
+        return self.value
+
     def select_action(self, temperature=None):
         """
             Select an action from the node.
@@ -353,7 +356,7 @@ class Node(object):
             if temperature == 0:
                 # Tie best counts by best value
                 counts = Node.all_argmax([self.children[a].count for a in actions])
-                return actions[max(counts, key=(lambda i: self.children[actions[i]].value))]
+                return actions[max(counts, key=(lambda i: self.children[actions[i]].get_value()))]
             else:
                 # Randomly tie best candidates with respect to selection strategy
                 return actions[self.random_argmax([self.children[a].selection_strategy(temperature) for a in actions])]
@@ -383,7 +386,7 @@ class Node(object):
         actions, probabilities = actions_distribution
         for i in range(len(actions)):
             if actions[i] not in self.children:
-                self.children[actions[i]] = Node(self, self.mcts, probabilities[i])
+                self.children[actions[i]] = type(self)(self, self.mcts, probabilities[i])
 
     def update(self, total_reward):
         """
@@ -393,14 +396,6 @@ class Node(object):
         """
         self.count += 1
         self.value += self.K / self.count * (total_reward - self.value)
-
-    def max_update(self, total_reward):
-        """
-            Update the estimated value as a maximum over trajectories with no averaging
-        :param total_reward: the total reward obtained through a trajectory passing by this node
-        """
-        self.count += 1
-        self.value = max(total_reward, self.value)
 
     def update_branch(self, total_reward):
         """
@@ -420,10 +415,10 @@ class Node(object):
         :return: the selected action with maximum value and exploration bonus.
         """
         if not self.parent:
-            return self.value
+            return self.get_value()
 
         # return self.value + temperature * self.prior * np.sqrt(np.log(self.parent.count) / self.count)
-        return self.value + temperature*self.prior/(self.count+1)
+        return self.get_value() + temperature*self.prior/(self.count+1)
 
     def convert_visits_to_prior_in_branch(self, regularization=0.5):
         """

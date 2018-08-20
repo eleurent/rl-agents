@@ -1,0 +1,18 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.robust_mcts.DiscreteRobustMCTSAgent'>",
+    "envs_preprocessors":
+    [
+        [
+            {
+                "method": "set_vehicles_lane_preference",
+                "args": false
+            }
+        ],
+        [
+            {
+                "method": "set_vehicles_lane_preference",
+                "args": true
+            }
+        ]
+    ]
+}
