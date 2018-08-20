@@ -6,15 +6,15 @@
     "agents": [
         "configs/MergeEnv/agents/MCTSAgent/assume_aggressive.json",
         "configs/MergeEnv/agents/MCTSAgent/assume_defensive.json",
-        "configs/MergeEnv/agents/DiscreteRobustMCTS/agg_def.json",
+        "configs/MergeEnv/agents/OneStepRobustMCTS/agg_def.json",
         "configs/MergeEnv/agents/MCTSAgent/assume_aggressive.json",
         "configs/MergeEnv/agents/MCTSAgent/assume_defensive.json",
-        "configs/MergeEnv/agents/DiscreteRobustMCTS/agg_def.json",
+        "configs/MergeEnv/agents/OneStepRobustMCTS/agg_def.json",
         "configs/MergeEnv/agents/MCTSAgent/assume_aggressive.json",
         "configs/MergeEnv/agents/MCTSAgent/assume_defensive.json",
-        "configs/MergeEnv/agents/DiscreteRobustMCTS/agg_def.json",
+        "configs/MergeEnv/agents/OneStepRobustMCTS/agg_def.json",
         "configs/MergeEnv/agents/MCTSAgent/assume_aggressive.json",
         "configs/MergeEnv/agents/MCTSAgent/assume_defensive.json",
-        "configs/MergeEnv/agents/DiscreteRobustMCTS/agg_def.json"
+        "configs/MergeEnv/agents/OneStepRobustMCTS/agg_def.json"
     ]
 }

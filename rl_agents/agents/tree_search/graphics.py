@@ -99,7 +99,7 @@ class MCTSGraphics(object):
                                  depth=depth+1, temperature=temperature, selected=action_selected)
 
 
-class DiscreteRobustMCTSGraphics(object):
+class OneStepRobustMCTSGraphics(object):
     @classmethod
     def display(cls, agent, surface):
         cell_size = (surface.get_width() // len(agent.agents), surface.get_height())

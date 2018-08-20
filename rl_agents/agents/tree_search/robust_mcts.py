@@ -6,7 +6,7 @@ from rl_agents.agents.common import load_agent, preprocess_env
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 
 
-class DiscreteRobustMCTS(AbstractAgent):
+class OneStepRobustMCTS(AbstractAgent):
     def __init__(self,
                  env,
                  config=None):
@@ -18,7 +18,7 @@ class DiscreteRobustMCTS(AbstractAgent):
                        This class could be modified to directly load configuration dictionaries instead of agents
                        config files.
         """
-        super(DiscreteRobustMCTS, self).__init__(config)
+        super(OneStepRobustMCTS, self).__init__(config)
         self.agents = [load_agent(agent_config["path"], env) for agent_config in self.config["agents"]]
         self.__env = env
 

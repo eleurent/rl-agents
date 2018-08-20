@@ -29,7 +29,7 @@ class AgentGraphics(object):
             DQNGraphics.display(agent, agent_surface)
         elif isinstance(agent, TTCVIAgent):
             TTCVIGraphics.display(agent, agent_surface)
-        elif isinstance(agent, DiscreteRobustMCTS):
-            DiscreteRobustMCTSGraphics.display(agent, agent_surface)
+        elif isinstance(agent, OneStepRobustMCTS):
+            OneStepRobustMCTSGraphics.display(agent, agent_surface)
         elif isinstance(agent, IntervalRobustMCTS):
             IntervalRobustMCTSGraphics.display(agent, agent_surface, sim_surface)

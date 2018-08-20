@@ -12,8 +12,8 @@
         "ratio": 2
     },
     "step_strategy": "subtree",
-    "env_preprocessor": {
+    "env_preprocessors": [{
         "method": "change_vehicles",
         "args": "highway_env.vehicle.behavior.IDMVehicle"
-    }
+    }]
 }

@@ -1,0 +1,18 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.robust_mcts.DiscreteRobustMCTSAgent'>",
+    "envs_preprocessors":
+    [
+        [
+            {
+                "method": "change_vehicles",
+                "args": "highway_env.vehicle.behavior.AggressiveVehicle"
+            }
+        ],
+        [
+            {
+                "method": "change_vehicles",
+                "args": "highway_env.vehicle.behavior.DefensiveVehicle"
+            }
+        ]
+    ]
+}
