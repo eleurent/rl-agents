@@ -1,4 +1,5 @@
 {
     "id": "highway-merge-v0",
+    "import_module": "highway_env",
     "other_vehicles_type": "highway_env.vehicle.behavior.LinearVehicle"
 }

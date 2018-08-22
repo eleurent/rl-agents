@@ -1,5 +1,6 @@
 {
     "id": "highway-v0",
+    "import_module": "highway_env",
     "lanes_count": 3,
     "initial_spacing": 2,
     "vehicles_count": 1,

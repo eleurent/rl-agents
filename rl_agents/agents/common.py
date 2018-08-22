@@ -48,29 +48,17 @@ def load_environment(env_path):
         env_config = json.loads(f.read())
 
     # Make the environment
+    if "import_module" in env_config:
+        __import__(env_config["import_module"])
     try:
         env = gym.make(env_config['id'])
     except KeyError:
         raise ValueError("The gym register id of the environment must be provided")
     except gym.error.UnregisteredEnv:
         # The environment is unregistered.
-        gym.logger.warn("Environment {} not found".format(env_config['id']))
-        # Automatic import of some modules to register them.
-        if env_config['id'].startswith('obstacle'):
-            gym.logger.info("Importing obstacle_env module")
-            import obstacle_env
-            env = gym.make(env_config['id'])
-        elif env_config['id'].startswith('highway'):
-            gym.logger.info("Importing highway_env module")
-            import highway_env
-            env = gym.make(env_config['id'])
-        elif env_config['id'].startswith('finite-mdp'):
-            gym.logger.info("Importing finite_mdp module")
-            import finite_mdp
-            env = gym.make(env_config['id'])
-        else:
-            raise gym.error.UnregisteredEnv("Unregistered environment, and neither highway_env, obstacle_env nor "
-                                            "finite-mdp")
+        raise gym.error.UnregisteredEnv('Environment {} not registered. The environment module should be specified by '
+                                        'the "import_module" key of the environment configuration'.format(
+                                            env_config['id']))
 
     # Configure the environment, if supported
     try:
