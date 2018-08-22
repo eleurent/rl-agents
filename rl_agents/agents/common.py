@@ -63,6 +63,8 @@ def load_environment(env_path):
     # Configure the environment, if supported
     try:
         env.configure(env_config)
+        # Reset the environment to ensure configuration is applied
+        env.reset()
     except AttributeError:
         pass
     return env
