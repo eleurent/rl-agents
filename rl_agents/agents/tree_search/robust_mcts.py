@@ -19,7 +19,7 @@ class OneStepRobustMCTS(AbstractAgent):
                        config files.
         """
         super(OneStepRobustMCTS, self).__init__(config)
-        self.agents = [load_agent(agent_config["path"], env) for agent_config in self.config["agents"]]
+        self.agents = [load_agent(agent_config_path, env) for agent_config_path in self.config["agents"]]
         self.__env = env
 
     @classmethod
@@ -40,7 +40,7 @@ class OneStepRobustMCTS(AbstractAgent):
         for agent in self.agents:
             agent.plan(state)
 
-        min_action_values = {k: np.inf for k in self.env.ACTIONS.keys()}
+        min_action_values = {k: np.inf for k in range(self.env.action_space.n)}
         for agent in self.agents:
             min_action_values = {k: min(v, agent.mcts.root.children[k].value)
                                  for k, v in min_action_values.items()
@@ -93,7 +93,7 @@ class DiscreteRobustMCTSAgent(MCTSAgent):
 
     def plan(self, observation):
         envs = [preprocess_env(self.__env, preprocessors) for preprocessors in self.config["envs_preprocessors"]]
-        self.env = self.env = JointEnv(envs)
+        self.env = JointEnv(envs)
         return super(DiscreteRobustMCTSAgent, self).plan(observation)
 
     def act(self, state):

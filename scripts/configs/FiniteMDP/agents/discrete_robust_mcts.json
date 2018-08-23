@@ -1,0 +1,38 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.robust_mcts.DiscreteRobustMCTSAgent'>",
+    "envs_preprocessors":
+    [
+        [
+            {
+                "method": "copy_with_config",
+                "args":
+                {
+                    "transition":
+                    [
+                        [1, 2],
+                        [1, 1],
+                        [3, 4],
+                        [3, 3],
+                        [4, 4]
+                    ]
+                }
+            }
+        ],
+        [
+            {
+                "method": "copy_with_config",
+                "args":
+                {
+                    "transition":
+                    [
+                        [1, 2],
+                        [1, 1],
+                        [4, 3],
+                        [3, 3],
+                        [4, 4]
+                    ]
+                }
+            }
+        ]
+    ]
+}

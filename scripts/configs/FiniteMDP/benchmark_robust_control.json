@@ -1,0 +1,12 @@
+{
+    "environments": [
+        "configs/FiniteMDP/env_trap_m1.json",
+        "configs/FiniteMDP/env_trap_m2.json"
+    ],
+    "agents": [
+        "configs/FiniteMDP/agents/mcts_m1.json",
+        "configs/FiniteMDP/agents/mcts_m2.json",
+        "configs/FiniteMDP/agents/one_step_robust_mcts.json",
+        "configs/FiniteMDP/agents/discrete_robust_mcts.json"
+    ]
+}

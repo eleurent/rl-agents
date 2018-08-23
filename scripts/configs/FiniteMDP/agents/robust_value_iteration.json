@@ -1,0 +1,19 @@
+{
+    "__class__": "<class 'rl_agents.agents.dynamic_programming.robust_value_iteration.RobustValueIterationAgent'>",
+    "gamma": 0.9,
+    "models":
+    [
+        {
+            "transition": [[1, 2],
+                           [1, 1],
+                           [4, 3],
+                           [3, 3],
+                           [4, 4]],
+            "reward": [[0, 0],
+                       [0, 0],
+                       [0, 0],
+                       [1, 1],
+                       [-1, -1]]
+        }
+    ]
+}
