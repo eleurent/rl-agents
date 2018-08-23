@@ -1,4 +1,4 @@
 {
-    "__class__": "<class 'rl_agents.agents.linear.linear.LinearAgent'>",
+    "__class__": "<class 'rl_agents.agents.linear.linear_command.LinearCommandAgent'>",
     "K": [[1, 20, 20, 30]]
 }
