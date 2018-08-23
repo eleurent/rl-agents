@@ -11,6 +11,7 @@ Usage:
                                     [--name-from-config]
                                     [--no-display]
                                     [--seed <str>]
+                                    [--analyze]
                                     [--processes <count>]
   experiments -h | --help
 
@@ -81,7 +82,7 @@ def evaluate(environment_config, agent_config, options):
         evaluation.test()
     else:
         evaluation.close()
-    if options['--analyze']:
+    if options['--analyze'] and not options['<benchmark>']:
         RunAnalyzer([evaluation.monitor.directory])
     return os.path.relpath(evaluation.monitor.directory)
 
