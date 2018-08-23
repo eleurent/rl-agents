@@ -1,6 +1,7 @@
 {
     "id": "finite-mdp-v0",
     "import_module": "finite_mdp",
+    "mode": "deterministic",
     "transition": [[1, 2],
                    [1, 1],
                    [3, 4],

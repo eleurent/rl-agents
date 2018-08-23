@@ -8,6 +8,7 @@ class ValueIterationAgent(AbstractAgent):
         super(ValueIterationAgent, self).__init__(config)
         self.check_env(env)
         self.env = env
+        self.mode = self.env.mdp.to_config()["mode"]
 
     @classmethod
     def default_config(cls):
@@ -19,22 +20,27 @@ class ValueIterationAgent(AbstractAgent):
     def state_value(self, iterations=100):
         return ValueIterationAgent.fixed_point_iteration(
             np.zeros((self.env.observation_space.n,)),
-            lambda v: ValueIterationAgent.value_from_action_values(self.bellman_equation(v)),
+            lambda v: ValueIterationAgent.best_action_value(self.bellman_expectation(v)),
             iterations=iterations)
 
     def state_action_value(self, iterations=100):
         return ValueIterationAgent.fixed_point_iteration(
-            self.env.reward.copy(),
-            lambda q: self.bellman_equation(ValueIterationAgent.value_from_action_values(q)),
+            self.env.mdp.reward.copy(),
+            lambda q: self.bellman_expectation(ValueIterationAgent.best_action_value(q)),
             iterations=iterations)
 
     @staticmethod
-    def value_from_action_values(action_values):
+    def best_action_value(action_values):
         return action_values.max(axis=-1)
 
-    def bellman_equation(self, value):
-        return self.env.reward + self.config["gamma"] * \
-               (self.env.transition * value.reshape((1, 1, self.env.observation_space.n))).sum(axis=-1)
+    def bellman_expectation(self, value):
+        if self.mode == "deterministic":
+            next_v = value[self.env.mdp.transition]
+        elif self.mode == "stochastic":
+            next_v = (self.env.mdp.transition * value.reshape((1, 1, self.env.observation_space.n))).sum(axis=-1)
+        else:
+            raise ValueError("Unknown mode")
+        return self.env.mdp.reward + self.config["gamma"] * next_v
 
     @staticmethod
     def fixed_point_iteration(initial, iterate, iterations):

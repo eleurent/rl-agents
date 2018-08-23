@@ -4,6 +4,20 @@
     "models":
     [
         {
+            "mode": "deterministic",
+            "transition": [[1, 2],
+                           [1, 1],
+                           [3, 4],
+                           [3, 3],
+                           [4, 4]],
+            "reward": [[0, 0],
+                       [0, 0],
+                       [0, 0],
+                       [1, 1],
+                       [-1, -1]]
+        },
+        {
+            "mode": "deterministic",
             "transition": [[1, 2],
                            [1, 1],
                            [4, 3],

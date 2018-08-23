@@ -7,8 +7,9 @@ class RobustValueIterationAgent(ValueIterationAgent):
     def __init__(self, env, config=None):
         super(ValueIterationAgent, self).__init__(config)
         self.env = env
-        self.transitions = np.array([])
-        self.rewards = np.array([])
+        self.mode = None
+        self.transitions = np.array([])  # Dimension: M x S x A (x S)
+        self.rewards = np.array([])  # Dimension: M x S x A
         self.models_from_config()
 
     @classmethod
@@ -17,8 +18,10 @@ class RobustValueIterationAgent(ValueIterationAgent):
                     models=[])
 
     def models_from_config(self):
-        if not self.config["models"]:
+        if not self.config.get("models", None):
             raise ValueError("No finite MDP model provided in agent configuration")
+
+        self.mode = self.config["models"][0]["mode"]  # Assume all modes are the same
         self.transitions = np.array([mdp["transition"] for mdp in self.config["models"]])
         self.rewards = np.array([mdp["reward"] for mdp in self.config["models"]])
 
@@ -28,26 +31,31 @@ class RobustValueIterationAgent(ValueIterationAgent):
     def state_value(self, iterations=100):
         return ValueIterationAgent.fixed_point_iteration(
             np.zeros((self.env.observation_space.n,)),
-            lambda v: RobustValueIterationAgent.value_from_action_values(
+            lambda v: RobustValueIterationAgent.best_action_value(
                 RobustValueIterationAgent.worst_case(
-                    self.bellman_equation(v))),
+                    self.bellman_expectation(v))),
             iterations=iterations)
 
     def state_action_value(self, iterations=100):
         return ValueIterationAgent.fixed_point_iteration(
-            self.rewards,
+            np.zeros(np.shape(self.transitions)[1:3]),
             lambda q: RobustValueIterationAgent.worst_case(
-                self.bellman_equation(
-                    RobustValueIterationAgent.value_from_action_values(q))),
+                self.bellman_expectation(
+                    RobustValueIterationAgent.best_action_value(q))),
             iterations=iterations)
 
     @staticmethod
     def worst_case(model_action_values):
         return np.min(model_action_values, axis=0)
 
-    def bellman_equation(self, value):
-        v_shaped = value.reshape((np.shape(value)[0], 1, 1, np.shape(value)[1]))
-        next_v = (self.transitions * v_shaped).sum(axis=-1)
+    def bellman_expectation(self, value):
+        if self.mode == "deterministic":
+            next_v = value[self.transitions]
+        elif self.mode == "stochastic":
+            v_shaped = value.reshape((1, 1, 1, np.size(value)))
+            next_v = (self.transitions * v_shaped).sum(axis=-1)
+        else:
+            raise ValueError("Unknown mode")
         return self.rewards + self.config["gamma"] * next_v
 
     @staticmethod
