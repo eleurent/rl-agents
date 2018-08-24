@@ -69,6 +69,18 @@ class ValueIterationAgent(AbstractAgent):
         except (ModuleNotFoundError, TypeError):
             return False
 
+    def plan_trajectory(self, state, horizon=10):
+        action_value = self.state_action_value()
+        states, actions = [], []
+        for _ in range(horizon):
+            if self.mdp.terminal[state]:
+                break
+            action = np.argmax(action_value[state])
+            states.append(state)
+            actions.append(action)
+            state = self.mdp.next_state(state, action)
+        return states, actions
+
     def record(self, state, action, reward, next_state, done):
         pass
 
