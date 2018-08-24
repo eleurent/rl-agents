@@ -4,11 +4,21 @@ A collection of Reinforcement Learning agents
 
 [![Build Status](https://travis-ci.org/eleurent/rl-agents.svg?branch=master)](https://travis-ci.org/eleurent/rl-agents/)
 
-## Installation
+* [Installation](#installation)
+* [Usage](#usage)
+* [Agents](#agents)
+  * [Value Iteration](#value-iteration)
+  * [Robust Value Iteration](#robust-value-iteration)
+  * [DQN](#dqn)
+  * [Monte-Carlo Tree Search](#monte-carlo-tree-search)
+  * [Robust Monte-Carlo Tree Search](#robust-monte-carlo-tree-search)
+
+# Installation
 
 `pip install --user git+https://github.com/eleurent/rl-agents`
 
-## Usage
+
+# Usage
 
 Most experiments can be run from `scripts/experiments.py`
 
@@ -92,11 +102,21 @@ A benchmark configuration files contains a list of environment configurations an
 
 
 
-## Agents
+# Agents
 
 The following agents are currently implemented:
 
-### [DQN](rl_agents/agents/dqn)
+## [Value Iteration](rl_agents/agents/dynamics_programming/value_iteration.py)
+
+Perform a Value Iteration to compute the state-action value, and acts greedily with respect to it.
+
+Only compatible with [finite-mdp](https://github.com/eleurent/finite-mdp) environments, or environments that handle an `env.to_finite_mdp()` conversion method.
+
+### [Robust Value Iteration](rl_agents/agents/dynamics_programming/robust_value_iteration.py)
+
+In this variant, a list of possible [finite-mdp] models is provided in the agent configuration, and the corresponding robust state-action value is computed so as to maximize the worst-case total reward.
+
+## [DQN](rl_agents/agents/dqn)
 
 A neural-network model is used to estimate the state-action value function and produce a greedy optimal policy.
 
@@ -110,10 +130,17 @@ References:
 * [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461), van Hasselt H. et al, 2015.
 * [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581), Wang Z. et al, 2015.
 
-### [Monte Carlo Tree Search](rl_agents/agents/tree_search/mcts.py)
+## [Monte-Carlo Tree Search](rl_agents/agents/tree_search/mcts.py)
 
 A world transition model is leveraged for trajectory search. A search tree is expanded by efficient random sampling so as to focus the search around the most promising moves.
 
 References:
 * [Efficient Selectivity and Backup Operators in Monte-Carlo Tree Search](https://hal.inria.fr/inria-00116992/document), Coulom R., 2006.
 * [Bandit based Monte-Carlo Planning](http://ggp.stanford.edu/readings/uct.pdf), Kocsis L., Szepesvári C., 2006.
+
+### [Robust Monte Carlo Tree Search](rl_agents/agents/tree_search/robust_mcts.py)
+
+In this variant, a list of environment modifiers (called preprocessors) is provided in the agent configuration to generate several possible environment, and the corresponding robust state-action value is approximately computed by tree-search so as to maximize the worst-case total reward.
+
+
+
