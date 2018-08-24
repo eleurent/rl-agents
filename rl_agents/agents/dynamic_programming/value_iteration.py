@@ -49,6 +49,7 @@ class ValueIterationAgent(AbstractAgent):
             next_v = (self.mdp.transition * value.reshape((1, 1, value.size))).sum(axis=-1)
         else:
             raise ValueError("Unknown mode")
+        next_v[self.mdp.terminal] = 0
         return self.mdp.reward + self.config["gamma"] * next_v
 
     def fixed_point_iteration(self, operator, initial):
