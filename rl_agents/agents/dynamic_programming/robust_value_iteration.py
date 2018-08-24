@@ -14,8 +14,9 @@ class RobustValueIterationAgent(ValueIterationAgent):
 
     @classmethod
     def default_config(cls):
-        return dict(gamma=1.0,
-                    models=[])
+        config = super(RobustValueIterationAgent, cls).default_config()
+        config.update(dict(models=[]))
+        return config
 
     def models_from_config(self):
         if not self.config.get("models", None):
@@ -28,21 +29,19 @@ class RobustValueIterationAgent(ValueIterationAgent):
     def act(self, state):
         return np.argmax(self.state_action_value()[state, :])
 
-    def state_value(self, iterations=100):
-        return ValueIterationAgent.fixed_point_iteration(
-            np.zeros((self.env.observation_space.n,)),
+    def state_value(self):
+        return self.fixed_point_iteration(
             lambda v: RobustValueIterationAgent.best_action_value(
                 RobustValueIterationAgent.worst_case(
                     self.bellman_expectation(v))),
-            iterations=iterations)
+            np.zeros((self.transitions.shape[0],)))
 
-    def state_action_value(self, iterations=100):
-        return ValueIterationAgent.fixed_point_iteration(
-            np.zeros(np.shape(self.transitions)[1:3]),
+    def state_action_value(self):
+        return self.fixed_point_iteration(
             lambda q: RobustValueIterationAgent.worst_case(
                 self.bellman_expectation(
                     RobustValueIterationAgent.best_action_value(q))),
-            iterations=iterations)
+            np.zeros(self.transitions.shape[1:3]))
 
     @staticmethod
     def worst_case(model_action_values):
@@ -57,16 +56,6 @@ class RobustValueIterationAgent(ValueIterationAgent):
         else:
             raise ValueError("Unknown mode")
         return self.rewards + self.config["gamma"] * next_v
-
-    @staticmethod
-    def fixed_point_iteration(initial, iterate, iterations):
-        value = initial
-        for _ in range(iterations):
-            next_value = iterate(value)
-            if np.allclose(value, next_value):
-                break
-            value = next_value
-        return value
 
     def record(self, state, action, reward, next_state, done):
         pass
