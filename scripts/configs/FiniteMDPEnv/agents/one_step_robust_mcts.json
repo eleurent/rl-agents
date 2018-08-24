@@ -2,7 +2,7 @@
     "__class__": "<class 'rl_agents.agents.tree_search.robust_mcts.OneStepRobustMCTS'>",
     "agents":
     [
-        "configs/FiniteMDP/agents/mcts_m1.json",
-        "configs/FiniteMDP/agents/mcts_m2.json"
+        "configs/FiniteMDPEnv/agents/mcts_m1.json",
+        "configs/FiniteMDPEnv/agents/mcts_m2.json"
     ]
 }

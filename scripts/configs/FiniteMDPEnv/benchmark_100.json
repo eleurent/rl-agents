@@ -1,0 +1,11 @@
+{
+    "environments": [
+        "configs/FiniteMDPEnv/env_100.json"
+    ],
+    "agents": [
+        "configs/FiniteMDPEnv/agents/value_iteration.json",
+        "configs/FiniteMDPEnv/agents/mcts.json",
+        "configs/FiniteMDPEnv/agents/robust_value_iteration_100.json",
+        "configs/FiniteMDPEnv/agents/discrete_robust_mcts_100.json"
+    ]
+}
