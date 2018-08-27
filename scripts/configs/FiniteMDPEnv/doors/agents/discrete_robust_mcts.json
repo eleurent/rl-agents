@@ -1,0 +1,49 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.robust_mcts.DiscreteRobustMCTSAgent'>",
+    "iterations": 200,
+    "temperature": 3000,
+    "step_strategy": "subtree",
+    "envs_preprocessors":
+    [
+        [
+            {
+                "method": "copy_with_config",
+                "args":
+                {
+                    "transition": [[1, 2],
+                                   [0, 3],
+                                   [2, 2],
+                                   [3, 3]],
+                    "reward": [[0, 0],
+                               [0, 0],
+                               [1, 1],
+                               [-1, -1]],
+                    "terminal": [0,
+                                 0,
+                                 1,
+                                 1]
+                }
+            }
+        ],
+        [
+            {
+                "method": "copy_with_config",
+                "args":
+                {
+                    "transition": [[1, 3],
+                                   [0, 2],
+                                   [2, 2],
+                                   [3, 3]],
+                    "reward": [[0, 0],
+                               [0, 0],
+                               [1, 1],
+                               [-1, -1]],
+                    "terminal": [0,
+                                 0,
+                                 1,
+                                 1]
+                }
+            }
+        ]
+    ]
+}
