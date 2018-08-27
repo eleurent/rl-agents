@@ -34,7 +34,7 @@ class RobustValueIterationAgent(ValueIterationAgent):
             lambda v: RobustValueIterationAgent.best_action_value(
                 RobustValueIterationAgent.worst_case(
                     self.bellman_expectation(v))),
-            np.zeros((self.transitions.shape[0],)))
+            np.zeros((self.transitions.shape[1],)))
 
     def state_action_value(self):
         return self.fixed_point_iteration(
