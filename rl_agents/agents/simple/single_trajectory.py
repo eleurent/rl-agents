@@ -8,10 +8,14 @@ class SingleTrajectoryAgent(AbstractAgent):
         Execute a given list of actions
     """
 
-    def __init__(self, actions, default_action):
-        super(SingleTrajectoryAgent, self).__init__()
-        self.actions = actions
-        self.default_action = default_action
+    def __init__(self, env, config=None):
+        super(SingleTrajectoryAgent, self).__init__(config)
+        self.actions = self.config["actions"]
+
+    @classmethod
+    def default_config(cls):
+        return dict(actions=[],
+                    default_action=0)
 
     def plan(self, state):
         if self.actions:
@@ -19,7 +23,7 @@ class SingleTrajectoryAgent(AbstractAgent):
             self.actions.pop(0)
             return actions
         else:
-            return [self.default_action]
+            return [self.config["default_action"]]
 
     def act(self, state):
         return self.plan(state)[0]
@@ -28,8 +32,14 @@ class SingleTrajectoryAgent(AbstractAgent):
         return None
 
     def reset(self):
-        pass
+        self.actions = self.config["actions"]
 
     def record(self, state, action, reward, next_state, done):
         pass
+
+    def save(self, filename):
+        raise NotImplementedError()
+
+    def load(self, filename):
+        raise NotImplementedError()
 
