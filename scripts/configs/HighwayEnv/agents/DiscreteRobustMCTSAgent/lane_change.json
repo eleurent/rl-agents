@@ -1,5 +1,9 @@
 {
     "__class__": "<class 'rl_agents.agents.tree_search.robust_mcts.DiscreteRobustMCTSAgent'>",
+    "step_strategy": "subtree",
+    "iterations": 75,
+    "temperature": 30,
+    "max_depth": 7,
     "envs_preprocessors":
     [
         [
