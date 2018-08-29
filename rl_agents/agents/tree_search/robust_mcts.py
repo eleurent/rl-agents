@@ -119,6 +119,10 @@ class JointEnv(object):
     def action_space(self):
         return self.joint_state[0].action_space
 
+    def get_available_actions(self):
+        return list(set().union(*[s.get_available_actions() if hasattr(s, "get_available_actions") else []
+                                  for s in self.joint_state]))
+
 
 class RobustMCTS(MCTS):
     def __init__(self, prior_policy, rollout_policy, config=None):
