@@ -271,6 +271,18 @@ class MCTS(Configurable):
             node = node.children[action]
         return actions
 
+    def get_plan_values(self, plan):
+        values = []
+        node = self.root
+        while plan and node.children:
+            action = plan.pop(0)
+            values.append(node.value)
+            if action in node.children:
+                node = node.children[action]
+            else:
+                break
+        return values
+
     def step(self, action):
         """
             Update the MCTS tree when the agent performs an action
