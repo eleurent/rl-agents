@@ -94,4 +94,5 @@ class RunAnalyzer(object):
         print('---', title, '---')
         for directory, manifest in runs.items():
             statistics = stats.describe(manifest[field][self.episodes_range[0]:self.episodes_range[1]])
-            print(directory, '{:.2f} +/- {:.2f}'.format(statistics.mean, np.sqrt(statistics.variance)))
+            std = np.sqrt(statistics.variance) if not np.isnan(statistics.variance) else 0
+            print(directory, '{:.2f} +/- {:.2f}'.format(statistics.mean, std))

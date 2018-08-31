@@ -28,15 +28,15 @@ class ValueIterationAgent(AbstractAgent):
             state = self.mdp.state
         return np.argmax(self.state_action_value()[state, :])
 
-    def state_value(self, iterations=100):
+    def state_value(self):
         return self.fixed_point_iteration(
             lambda v: ValueIterationAgent.best_action_value(self.bellman_expectation(v)),
             np.zeros((self.mdp.transition.shape[0],)))
 
-    def state_action_value(self, iterations=100):
+    def state_action_value(self):
         return self.fixed_point_iteration(
             lambda q: self.bellman_expectation(ValueIterationAgent.best_action_value(q)),
-            self.mdp.reward.copy())
+            np.zeros((self.mdp.transition.shape[0:2])))
 
     @staticmethod
     def best_action_value(action_values):
