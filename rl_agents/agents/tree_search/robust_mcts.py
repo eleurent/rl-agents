@@ -52,7 +52,8 @@ class JointEnv(object):
         return self.joint_state[0].action_space
 
     def get_available_actions(self):
-        return list(set().union(*[s.get_available_actions() if hasattr(s, "get_available_actions") else []
+        return list(set().union(*[s.get_available_actions() if hasattr(s, "get_available_actions")
+                                  else range(s.action_space.n)
                                   for s in self.joint_state]))
 
 
