@@ -1,6 +1,7 @@
 {
     "environments": [
-        "configs/FiniteMDPEnv/large/env_1.json"
+        "configs/FiniteMDPEnv/large/env_1.json",
+        "configs/FiniteMDPEnv/large/env_2.json"
     ],
     "agents": [
         "configs/FiniteMDPEnv/large/agents/value_iteration.json",

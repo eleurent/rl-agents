@@ -1,5 +1,5 @@
 {
     "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
     "gamma": 1.0,
-    "iterations": 5
+    "iterations": 2
 }
