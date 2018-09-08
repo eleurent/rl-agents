@@ -1,0 +1,38 @@
+{
+    "__class__": "<class 'rl_agents.agents.dynamic_programming.robust_value_iteration.RobustValueIterationAgent'>",
+    "gamma": 1.0,
+    "iterations": 10,
+    "models":
+    [
+        {
+            "mode": "deterministic",
+            "transition": [[1, 3],
+                           [2, 2],
+                           [2, 2],
+                           [3, 3]],
+            "reward": [[0, -1.5],
+                       [-1, -1],
+                       [0, 0],
+                       [0, 0]],
+            "terminal": [[0],
+                         [0],
+                         [1],
+                         [1]]
+        },
+        {
+            "mode": "deterministic",
+            "transition": [[1, 3],
+                           [2, 2],
+                           [2, 2],
+                           [3, 3]],
+            "reward": [[-1, -1.5],
+                       [0, 0],
+                       [0, 0],
+                       [0, 0]],
+            "terminal": [[0],
+                         [0],
+                         [1],
+                         [1]]
+        }
+    ]
+}

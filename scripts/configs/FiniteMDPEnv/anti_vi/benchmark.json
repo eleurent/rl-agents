@@ -1,0 +1,10 @@
+{
+    "environments": [
+        "configs/FiniteMDPEnv/anti_vi/env_1.json",
+        "configs/FiniteMDPEnv/anti_vi/env_2.json"
+    ],
+    "agents": [
+        "configs/FiniteMDPEnv/anti_vi/agents/robust_value_iteration.json",
+        "configs/FiniteMDPEnv/anti_vi/agents/discrete_robust_mcts.json"
+    ]
+}
