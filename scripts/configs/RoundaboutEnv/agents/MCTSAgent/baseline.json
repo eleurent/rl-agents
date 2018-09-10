@@ -7,6 +7,6 @@
         "ratio": 2
     },
     "rollout_policy": {
-        "type": "random_available",
+        "type": "random_available"
     }
 }
