@@ -8,14 +8,14 @@
     [
         [
             {
-                "method": "set_vehicles_lane_preference",
-                "args": false
+                "method": "set_preferred_lane",
+                "args": null
             }
         ],
         [
             {
-                "method": "set_vehicles_lane_preference",
-                "args": true
+                "method": "set_preferred_lane",
+                "args": "RIGHT"
             }
         ]
     ]
