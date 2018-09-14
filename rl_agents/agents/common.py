@@ -1,3 +1,4 @@
+import copy
 import importlib
 import json
 import gym
@@ -87,3 +88,18 @@ def preprocess_env(env, preprocessor_configs):
         else:
             logger.error("Unknown environment preprocessor", preprocessor)
     return env
+
+
+def custom_deepcopy_env(obj):
+    """
+        Perform a deep copy of an environment but without copying its viewer.
+    """
+    cls = obj.__class__
+    result = cls.__new__(cls)
+    memo = {id(obj): result}
+    for k, v in obj.__dict__.items():
+        if k not in ['viewer', 'automatic_rendering_callback']:
+            setattr(result, k, copy.deepcopy(v, memo=memo))
+        else:
+            setattr(result, k, None)
+    return result

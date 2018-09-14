@@ -3,7 +3,7 @@ from gym import logger
 
 from rl_agents.agents.abstract import AbstractAgent
 from rl_agents.agents.common import load_agent, preprocess_env
-from rl_agents.agents.tree_search.mcts import MCTSAgent, MCTS, Node
+from rl_agents.agents.tree_search.mcts import MCTSAgent, MCTS, MCTSNode
 
 
 class DiscreteRobustMCTSAgent(MCTSAgent):
@@ -60,10 +60,10 @@ class JointEnv(object):
 class RobustMCTS(MCTS):
     def __init__(self, prior_policy, rollout_policy, config=None):
         super(RobustMCTS, self).__init__(prior_policy, rollout_policy, config)
-        self.root = RobustNode(parent=None, mcts=self)
+        self.root = RobustMCTSNode(parent=None, mcts=self)
 
 
-class RobustNode(Node):
+class RobustMCTSNode(MCTSNode):
     def get_value(self):
         return np.min(self.value)
 

@@ -6,7 +6,8 @@ from gym import logger
 from gym.utils import seeding
 
 from rl_agents.agents.abstract import AbstractAgent
-from rl_agents.agents.common import preprocess_env
+from rl_agents.agents.common import preprocess_env, custom_deepcopy_env
+from rl_agents.agents.tree_search.tree import Node
 from rl_agents.configuration import Configurable
 
 
@@ -155,7 +156,7 @@ class MCTS(Configurable):
         """
         super(MCTS, self).__init__(config)
         self.np_random = None
-        self.root = Node(parent=None, mcts=self)
+        self.root = MCTSNode(parent=None, planner=self)
         self.prior_policy = prior_policy
         self.rollout_policy = rollout_policy
         self.seed()
@@ -235,26 +236,11 @@ class MCTS(Configurable):
                 logger.debug('{} / {}'.format(i+1, self.config['iterations']))
             # Copy the environment state
             try:
-                state_copy = self.custom_deepcopy(state)
+                state_copy = custom_deepcopy_env(state)
             except ValueError:
                 state_copy = copy.deepcopy(state)
             self.run(state_copy, observation)
         return self.get_plan()
-
-    @staticmethod
-    def custom_deepcopy(obj):
-        """
-            Perform a deep copy but without copying the environment viewer.
-        """
-        cls = obj.__class__
-        result = cls.__new__(cls)
-        memo = {id(obj): result}
-        for k, v in obj.__dict__.items():
-            if k not in ['viewer', 'automatic_rendering_callback']:
-                setattr(result, k, copy.deepcopy(v, memo=memo))
-            else:
-                setattr(result, k, None)
-        return result
 
     def get_plan(self):
         """
@@ -329,30 +315,13 @@ class MCTS(Configurable):
         self.root.convert_visits_to_prior_in_branch()
 
 
-class Node(object):
-    """
-        An MCTS tree node, corresponding to a given state.
-    """
+class MCTSNode(Node):
     K = 1.0
     """ The value function first-order filter gain"""
 
-    def __init__(self, parent, mcts, prior=1):
-        """
-            New node.
-
-        :param parent: its parent node
-        :param prior: its prior probability
-        """
-        self.parent = parent
-        self.mcts = mcts
+    def __init__(self, parent, planner, prior=1):
+        super(MCTSNode, self).__init__(parent, planner)
         self.prior = prior
-        self.np_random = None
-        self.children = {}
-        self.count = 0
-        self.value = 0
-
-    def get_value(self):
-        return self.value
 
     def select_action(self, temperature=None):
         """
@@ -375,20 +344,6 @@ class Node(object):
         else:
             return None
 
-    @staticmethod
-    def all_argmax(x):
-        m = np.amax(x)
-        return np.nonzero(x == m)[0]
-
-    def random_argmax(self, x):
-        """
-            Randomly tie-breaking arg max
-        :param x: an array
-        :return: a random index among the maximums
-        """
-        indices = Node.all_argmax(x)
-        return self.mcts.np_random.choice(indices)
-
     def expand(self, actions_distribution):
         """
             Expand a leaf node by creating a new child for each available action.
@@ -398,7 +353,7 @@ class Node(object):
         actions, probabilities = actions_distribution
         for i in range(len(actions)):
             if actions[i] not in self.children:
-                self.children[actions[i]] = type(self)(self, self.mcts, probabilities[i])
+                self.children[actions[i]] = type(self)(self, self.planner, probabilities[i])
 
     def update(self, total_reward):
         """
@@ -446,14 +401,5 @@ class Node(object):
         for child in self.children.values():
             child.prior = regularization*(child.count+1)/total_count + regularization/len(self.children)
             child.convert_visits_to_prior_in_branch()
-
-    def __str__(self, level=0):
-        ret = "\t" * level + repr(self.value) + "\n"
-        for child in self.children.values():
-            ret += child.__str__(level + 1)
-        return ret
-
-    def __repr__(self):
-        return '<tree node representation>'
 
 
