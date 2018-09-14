@@ -289,7 +289,7 @@ class MCTS(Configurable):
         """
             Reset the MCTS tree to a root node for the new state.
         """
-        self.root = type(self.root)(None, mcts=self)
+        self.root = type(self.root)(None, planner=self)
 
     def step_by_subtree(self, action):
         """
