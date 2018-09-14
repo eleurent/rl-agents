@@ -3,13 +3,13 @@ import copy
 from rl_agents.agents.abstract import AbstractAgent
 
 
-class SingleTrajectoryAgent(AbstractAgent):
+class OpenLoopAgent(AbstractAgent):
     """
         Execute a given list of actions
     """
 
     def __init__(self, env, config=None):
-        super(SingleTrajectoryAgent, self).__init__(config)
+        super(OpenLoopAgent, self).__init__(config)
         self.actions = self.config["actions"]
 
     @classmethod

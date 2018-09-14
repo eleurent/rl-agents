@@ -1,0 +1,5 @@
+{
+    "__class__": "<class 'rl_agents.agents.simple.open_loop.OpenLoopAgent'>",
+    "actions": [],
+    "default_action": 1
+}
