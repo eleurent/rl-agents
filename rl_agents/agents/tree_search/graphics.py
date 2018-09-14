@@ -6,9 +6,9 @@ import numpy as np
 from rl_agents.agents.common import preprocess_env
 
 
-class MCTSGraphics(object):
+class TreeGraphics(object):
     """
-        Graphical visualization of the MCTSAgent tree.
+        Graphical visualization of a tree-search based agent.
     """
     RED = (255, 0, 0)
     BLACK = (0, 0, 0)
@@ -16,24 +16,24 @@ class MCTSGraphics(object):
     @classmethod
     def display(cls, agent, surface):
         """
-            Display the whole tree of an MCTSAgent.
+            Display the whole tree.
 
-        :param agent: the MCTSAgent to be displayed
+        :param agent: the agent to be displayed
         :param surface: the pygame surface on which the agent is displayed
         """
-        cell_size = (surface.get_width() // agent.mcts.config['max_depth'], surface.get_height())
+        cell_size = (surface.get_width() // agent.planner.config['max_depth'], surface.get_height())
         pygame.draw.rect(surface, cls.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
-        cls.display_node(agent.mcts.root, agent.env.action_space, surface, (0, 0), cell_size,
-                         temperature=agent.mcts.config['temperature'], depth=0, selected=True)
+        cls.display_node(agent.planner.root, agent.env.action_space, surface, (0, 0), cell_size,
+                         config=agent.planner.config, depth=0, selected=True)
 
-        actions = agent.mcts.get_plan()
+        actions = agent.planner.get_plan()
         font = pygame.font.Font(None, 13)
         text = font.render('-'.join(map(str, actions)), 1, (10, 10, 10), (255, 255, 255))
         surface.blit(text, (1, surface.get_height()-10))
 
     @classmethod
     def display_node(cls, node, action_space, surface, origin, size,
-                     temperature=0,
+                     config=0,
                      depth=0,
                      selected=False,
                      display_text=True,
@@ -46,7 +46,7 @@ class MCTSGraphics(object):
         :param surface: the pygame surface on which the node is displayed
         :param origin: the location of the node on the surface [px]
         :param size: the size of the node on the surface [px]
-        :param temperature: the temperature used for exploration bonus visualization
+        :param config: the agent configuration
         :param depth: the depth of the node in the tree
         :param selected: whether the node is within a selected branch of the tree
         :param display_text: display a text showing the value and visitation count of the node
@@ -54,7 +54,7 @@ class MCTSGraphics(object):
         """
         # Display node value
         cmap = cm.jet_r
-        norm = mpl.colors.Normalize(vmin=-2, vmax=2)
+        norm = mpl.colors.Normalize(vmin=0, vmax=config["gamma"]/(1 - config["gamma"]))
         color = cmap(norm(node.value), bytes=True)
         pygame.draw.rect(surface, color, (origin[0], origin[1], size[0], size[1]), 0)
 
@@ -64,7 +64,7 @@ class MCTSGraphics(object):
 
         if display_text and depth < 2:
             font = pygame.font.Font(None, 13)
-            text = "{:.2f} / {:.2f} / {}".format(node.value, node.selection_strategy(temperature), node.count)
+            text = "{:.2f} / {:.2f} / {}".format(node.value, node.selection_strategy(config['temperature']), node.count)
             if display_prior:
                 text += " / {:.2f}".format(node.prior)
             text = font.render(text,
@@ -72,27 +72,27 @@ class MCTSGraphics(object):
             surface.blit(text, (origin[0]+1, origin[1]+1))
 
         # Recursively display children nodes
-        best_action = node.select_action(temperature=0)
+        best_action = node.selection_rule()
         for a in range(action_space.n):
             if a in node.children:
                 action_selected = (selected and (a == best_action))
                 cls.display_node(node.children[a], action_space, surface,
                                  (origin[0]+size[0], origin[1]+a*size[1]/action_space.n),
                                  (size[0], size[1]/action_space.n),
-                                 depth=depth+1, temperature=temperature, selected=action_selected)
+                                 depth=depth+1, config=config, selected=action_selected)
 
 
-class DiscreteRobustMCTSGraphics(MCTSGraphics):
+class DiscreteRobustMCTSGraphics(TreeGraphics):
     @classmethod
     def display_node(cls, node, action_space, surface, origin, size,
-                     temperature=0,
+                     config=0,
                      depth=0,
                      selected=False,
                      display_text=True,
                      display_prior=True):
         # Display node value
         cmap = cm.jet_r
-        norm = mpl.colors.Normalize(vmin=-2, vmax=2)
+        norm = mpl.colors.Normalize(vmin=0, vmax=config["gamma"]/(1 - config["gamma"]))
         n = np.size(node.value)
         for i in range(n):
             v = node.value[i] if n > 1 else node.value
@@ -106,7 +106,7 @@ class DiscreteRobustMCTSGraphics(MCTSGraphics):
         if display_text and depth < 2:
             font = pygame.font.Font(None, 13)
             text = "{} / {:.2f} / {}".format('-'.join(['{:.1f}'.format(i) for i in node.value]),
-                                             node.selection_strategy(temperature), node.count)
+                                             node.selection_strategy(config["temperature"]), node.count)
             if display_prior:
                 text += " / {:.2f}".format(node.prior)
             text = font.render(text,
@@ -114,26 +114,26 @@ class DiscreteRobustMCTSGraphics(MCTSGraphics):
             surface.blit(text, (origin[0] + 1, origin[1] + 1))
 
         # Recursively display children nodes
-        best_action = node.select_action(temperature=0)
+        best_action = node.selection_rule()
         for a in range(action_space.n):
             if a in node.children:
                 action_selected = (selected and (a == best_action))
                 cls.display_node(node.children[a], action_space, surface,
                                  (origin[0] + size[0], origin[1] + a * size[1] / action_space.n),
                                  (size[0], size[1] / action_space.n),
-                                 depth=depth + 1, temperature=temperature, selected=action_selected)
+                                 depth=depth + 1, temperature=config["temperature"], selected=action_selected)
 
 
 class OneStepRobustMCTSGraphics(object):
     @classmethod
     def display(cls, agent, surface):
         cell_size = (surface.get_width() // len(agent.agents), surface.get_height())
-        pygame.draw.rect(surface, MCTSGraphics.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
+        pygame.draw.rect(surface, TreeGraphics.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
         for i, sub_agent in enumerate(agent.agents):
-            sub_cell_size = (cell_size[0] // sub_agent.mcts.config["max_depth"], cell_size[1])
-            MCTSGraphics.display_node(sub_agent.mcts.root, sub_agent.env.action_space, surface,
+            sub_cell_size = (cell_size[0] // sub_agent.planner.config["max_depth"], cell_size[1])
+            TreeGraphics.display_node(sub_agent.planner.root, sub_agent.env.action_space, surface,
                                       (i*cell_size[0], 0), sub_cell_size,
-                                      temperature=sub_agent.mcts.config['temperature'], depth=0, selected=True)
+                                      config=sub_agent.planner.config, depth=0, selected=True)
 
 
 class IntervalRobustMCTSGraphics(object):
@@ -149,7 +149,7 @@ class IntervalRobustMCTSGraphics(object):
     def display(cls, agent, agent_surface, sim_surface):
         horizon = 2
         robust_env = preprocess_env(agent.env, agent.config["env_preprocessors"])
-        for action in agent.sub_agent.mcts.get_plan()[:horizon]:
+        for action in agent.sub_agent.planner.get_plan()[:horizon]:
             robust_env.step(action)
         for vehicle in robust_env.road.vehicles:
             if not hasattr(vehicle, 'observer_trajectory'):
@@ -160,7 +160,7 @@ class IntervalRobustMCTSGraphics(object):
             cls.display_uncertainty(min_traj, max_traj, uncertainty_surface, sim_surface, cls.UNCERTAINTY_TIME_COLORMAP)
             cls.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface, cls.MODEL_TRAJ_COLOR)
             sim_surface.blit(uncertainty_surface, (0, 0))
-        MCTSGraphics.display(agent.sub_agent, agent_surface)
+        TreeGraphics.display(agent.sub_agent, agent_surface)
 
     @classmethod
     def display_trajectory(cls, trajectory, surface, sim_surface, color):

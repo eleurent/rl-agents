@@ -1,5 +1,5 @@
 {
     "__class__": "<class 'rl_agents.agents.tree_search.mcts.MCTSAgent'>",
-    "iterations": 75,
+    "budget": 450,
     "env_preprocessors": [{"method":"simplify"}]
 }

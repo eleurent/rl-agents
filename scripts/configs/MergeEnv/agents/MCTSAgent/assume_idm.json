@@ -1,6 +1,6 @@
 {
     "__class__": "<class 'rl_agents.agents.tree_search.mcts.MCTSAgent'>",
-    "iterations": 50,
+    "budget": 300,
     "prior_policy": {
         "type": "preference",
         "action": 3,

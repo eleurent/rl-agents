@@ -4,7 +4,7 @@ from rl_agents.agents.dqn.abstract import AbstractDQNAgent
 from rl_agents.agents.dqn.graphics import DQNGraphics
 from rl_agents.agents.dynamic_programming.graphics import ValueIterationGraphics
 from rl_agents.agents.dynamic_programming.value_iteration import ValueIterationAgent
-from rl_agents.agents.tree_search.graphics import MCTSGraphics, OneStepRobustMCTSGraphics, DiscreteRobustMCTSGraphics, \
+from rl_agents.agents.tree_search.graphics import TreeGraphics, OneStepRobustMCTSGraphics, DiscreteRobustMCTSGraphics, \
     IntervalRobustMCTSGraphics
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 from rl_agents.agents.tree_search.robust_mcts import DiscreteRobustMCTSAgent, IntervalRobustMCTS, OneStepRobustMCTS
@@ -27,7 +27,7 @@ class AgentGraphics(object):
         if isinstance(agent, DiscreteRobustMCTSAgent):
             DiscreteRobustMCTSGraphics.display(agent, agent_surface)
         elif isinstance(agent, MCTSAgent):
-            MCTSGraphics.display(agent, agent_surface)
+            TreeGraphics.display(agent, agent_surface)
         elif isinstance(agent, AbstractDQNAgent):
             DQNGraphics.display(agent, agent_surface)
         elif isinstance(agent, ValueIterationAgent):

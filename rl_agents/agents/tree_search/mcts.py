@@ -1,63 +1,25 @@
-import gym
 import numpy as np
-import copy
 from functools import partial
 from gym import logger
-from gym.utils import seeding
 
-from rl_agents.agents.abstract import AbstractAgent
-from rl_agents.agents.common import preprocess_env, safe_deepcopy_env
-from rl_agents.agents.tree_search.tree import Node
-from rl_agents.configuration import Configurable
+from rl_agents.agents.common import safe_deepcopy_env
+from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
 
 
-class MCTSAgent(AbstractAgent):
+class MCTSAgent(AbstractTreeSearchAgent):
     """
         An agent that uses Monte Carlo Tree Search to plan a sequence of action in an MDP.
     """
-
-    def __init__(self,
-                 env,
-                 config=None):
-        """
-            A new MCTS agent.
-        :param env: The environment
-        :param config: The agent configuration. Use default if None.
-        """
-        super(MCTSAgent, self).__init__(config)
-        self.env = env
+    def make_planner(self):
         prior_policy = MCTSAgent.policy_factory(self.config["prior_policy"])
         rollout_policy = MCTSAgent.policy_factory(self.config["rollout_policy"])
-        self.mcts = MCTS(prior_policy, rollout_policy, self.config)
-        self.previous_action = None
+        return MCTS(prior_policy, rollout_policy, self.config)
 
     @classmethod
     def default_config(cls):
         return dict(prior_policy=dict(type="random_available"),
                     rollout_policy=dict(type="random_available"),
                     env_preprocessors=[])
-
-    def plan(self, observation):
-        """
-            Plan an optimal sequence of actions.
-
-            Start by updating the previously found tree with the last action performed.
-
-        :param observation: the current state
-        :return: the list of actions
-        """
-        self.mcts.step(self.previous_action)
-        env = preprocess_env(self.env, self.config["env_preprocessors"])
-        actions = self.mcts.plan(state=env, observation=observation)
-
-        self.previous_action = actions[0]
-        return actions
-
-    def reset(self):
-        self.mcts.step_by_reset()
-
-    def seed(self, seed=None):
-        return self.mcts.seed(seed)
 
     @staticmethod
     def policy_factory(policy_config):
@@ -125,20 +87,8 @@ class MCTSAgent(AbstractAgent):
                 return available_actions, probabilities
         return MCTSAgent.random_available_policy(state, observation)
 
-    def record(self, state, action, reward, next_state, done):
-        raise NotImplementedError()
 
-    def act(self, state):
-        return self.plan(state)[0]
-
-    def save(self, filename):
-        raise NotImplementedError()
-
-    def load(self, filename):
-        raise NotImplementedError()
-
-
-class MCTS(Configurable):
+class MCTS(AbstractPlanner):
     """
        An implementation of Monte-Carlo Tree Search, with Upper Confidence Tree exploration.
     """
@@ -147,35 +97,22 @@ class MCTS(Configurable):
             New MCTS instance.
 
         :param config: the mcts configuration. Use default if None.
-                       - iterations: the number of iterations
-                       - temperature: the temperature of exploration
-                       - max_depth: the maximum depth of the tree
         :param prior_policy: the prior policy used when expanding and selecting nodes
         :param rollout_policy: the rollout policy used to estimate the value of a leaf node
-
         """
         super(MCTS, self).__init__(config)
-        self.np_random = None
-        self.root = MCTSNode(parent=None, planner=self)
+        self.config["iterations"] = self.config["budget"] // self.config["max_depth"]
         self.prior_policy = prior_policy
         self.rollout_policy = rollout_policy
-        self.seed()
 
     @classmethod
     def default_config(cls):
-        return dict(iterations=75,
-                    temperature=20,
-                    max_depth=6,
-                    step_strategy="reset")
+        d = super(MCTS, cls).default_config()
+        d.update(dict(temperature=40))
+        return d
 
-    def seed(self, seed=None):
-        """
-            Seed the rollout policy randomness source
-        :param seed: the seed to be used
-        :return: the used seed
-        """
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+    def make_root(self):
+        return MCTSNode(parent=None, planner=self)
 
     def run(self, state, observation):
         """
@@ -189,7 +126,7 @@ class MCTS(Configurable):
         depth = self.config['max_depth']
         terminal = False
         while depth > 0 and node.children and not np.all(terminal):
-            action = node.select_action(temperature=self.config['temperature'])
+            action = node.sampling_rule(temperature=self.config['temperature'])
             observation, reward, terminal, _ = state.step(action)
             total_reward += reward
             node = node.children[action]
@@ -224,85 +161,17 @@ class MCTS(Configurable):
         return total_reward
 
     def plan(self, state, observation):
-        """
-            Plan an optimal sequence of actions by running several iterations of MCTS.
-
-        :param state: the initial environment state
-        :param observation: the corresponding state observation
-        :return: the list of actions
-        """
         for i in range(self.config['iterations']):
             if (i+1) % 10 == 0:
                 logger.debug('{} / {}'.format(i+1, self.config['iterations']))
-            # Copy the environment state
-            try:
-                state_copy = safe_deepcopy_env(state)
-            except ValueError:
-                state_copy = copy.deepcopy(state)
-            self.run(state_copy, observation)
+            self.run(safe_deepcopy_env(state), observation)
         return self.get_plan()
 
-    def get_plan(self):
-        """
-            Get the optimal action sequence of the current tree by recursively selecting the best action within each
-            node with no exploration.
-
-        :return: the list of actions
-        """
-        actions = []
-        node = self.root
-        while node.children:
-            action = node.select_action(temperature=0)
-            actions.append(action)
-            node = node.children[action]
-        return actions
-
-    def get_plan_values(self, plan):
-        values = []
-        node = self.root
-        while plan and node.children:
-            action = plan.pop(0)
-            values.append(node.value)
-            if action in node.children:
-                node = node.children[action]
-            else:
-                break
-        return values
-
     def step(self, action):
-        """
-            Update the MCTS tree when the agent performs an action
-
-        :param action: the chosen action from the root node
-        """
-        if self.config["step_strategy"] == "reset":
-            self.step_by_reset()
-        elif self.config["step_strategy"] == "subtree":
-            self.step_by_subtree(action)
-        elif self.config["step_strategy"] == "prior":
+        if self.config["step_strategy"] == "prior":
             self.step_by_prior(action)
         else:
-            gym.logger.warn("Unknown step strategy: {}".format(self.config["step_strategy"]))
-            self.step_by_reset()
-
-    def step_by_reset(self):
-        """
-            Reset the MCTS tree to a root node for the new state.
-        """
-        self.root = type(self.root)(None, planner=self)
-
-    def step_by_subtree(self, action):
-        """
-            Replace the MCTS tree by its subtree corresponding to the chosen action.
-
-        :param action: a chosen action from the root node
-        """
-        if action in self.root.children:
-            self.root = self.root.children[action]
-            self.root.parent = None
-        else:
-            # The selected action was never explored, start a new tree.
-            self.step_by_reset()
+            super(MCTS, self).step(action)
 
     def step_by_prior(self, action):
         """
@@ -323,7 +192,15 @@ class MCTSNode(Node):
         super(MCTSNode, self).__init__(parent, planner)
         self.prior = prior
 
-    def select_action(self, temperature=None):
+    def selection_rule(self):
+        if not self.children:
+            return None
+        # Tie best counts by best value
+        actions = list(self.children.keys())
+        counts = Node.all_argmax([self.children[a].count for a in actions])
+        return actions[max(counts, key=(lambda i: self.children[actions[i]].get_value()))]
+
+    def sampling_rule(self, temperature=None):
         """
             Select an action from the node.
             - if exploration is wanted with some temperature, follow the selection strategy.
@@ -334,13 +211,8 @@ class MCTSNode(Node):
         """
         if self.children:
             actions = list(self.children.keys())
-            if temperature == 0:
-                # Tie best counts by best value
-                counts = Node.all_argmax([self.children[a].count for a in actions])
-                return actions[max(counts, key=(lambda i: self.children[actions[i]].get_value()))]
-            else:
-                # Randomly tie best candidates with respect to selection strategy
-                return actions[self.random_argmax([self.children[a].selection_strategy(temperature) for a in actions])]
+            # Randomly tie best candidates with respect to selection strategy
+            return actions[self.random_argmax([self.children[a].selection_strategy(temperature) for a in actions])]
         else:
             return None
 

@@ -1,5 +1,4 @@
 import numpy as np
-from gym import logger
 
 from rl_agents.agents.abstract import AbstractAgent
 from rl_agents.agents.common import load_agent, preprocess_env
@@ -10,9 +9,11 @@ class DiscreteRobustMCTSAgent(MCTSAgent):
     def __init__(self,
                  env,
                  config=None):
-        super(DiscreteRobustMCTSAgent, self).__init__(env, config)
         self.__env = env
-        self.mcts = RobustMCTS(self.mcts.prior_policy, self.mcts.rollout_policy, self.config)
+        super(DiscreteRobustMCTSAgent, self).__init__(env, config)
+
+    def make_planner(self):
+        return RobustMCTS(self.planner.prior_policy, self.planner.rollout_policy, self.config)
 
     @classmethod
     def default_config(cls):
@@ -20,22 +21,10 @@ class DiscreteRobustMCTSAgent(MCTSAgent):
         config.update(dict(envs_preprocessors=[]))
         return config
 
-    def record(self, state, action, reward, next_state, done):
-        raise NotImplementedError()
-
     def plan(self, observation):
         envs = [preprocess_env(self.__env, preprocessors) for preprocessors in self.config["envs_preprocessors"]]
         self.env = JointEnv(envs)
         return super(DiscreteRobustMCTSAgent, self).plan(observation)
-
-    def act(self, state):
-        return self.plan(state)[0]
-
-    def save(self, filename):
-        raise NotImplementedError()
-
-    def load(self, filename):
-        raise NotImplementedError()
 
 
 class JointEnv(object):
@@ -58,8 +47,7 @@ class JointEnv(object):
 
 
 class RobustMCTS(MCTS):
-    def __init__(self, prior_policy, rollout_policy, config=None):
-        super(RobustMCTS, self).__init__(prior_policy, rollout_policy, config)
+    def make_root(self):
         self.root = RobustMCTSNode(parent=None, mcts=self)
 
 

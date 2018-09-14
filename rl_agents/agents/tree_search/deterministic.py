@@ -1,88 +1,24 @@
-import copy
-
 import gym
-from gym import logger
 import numpy as np
-from gym.utils import seeding
 
-from rl_agents.agents.abstract import AbstractAgent
-from rl_agents.agents.common import preprocess_env, safe_deepcopy_env
-from rl_agents.agents.tree_search.tree import Node
-from rl_agents.configuration import Configurable
+from rl_agents.agents.common import safe_deepcopy_env
+from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
 
 
-class DeterministicPlannerAgent(AbstractAgent):
+class DeterministicPlannerAgent(AbstractTreeSearchAgent):
     """
         An agent that performs optimistic planning in deterministic MDPs.
     """
-
-    def __init__(self,
-                 env,
-                 config=None):
-        super(DeterministicPlannerAgent, self).__init__(config)
-        self.env = env
-        self.olop = OptimisticDeterministicPlanner(env, self.config)
-        self.previous_action = None
-
-    @classmethod
-    def default_config(cls):
-        return dict(env_preprocessors=[])
-
-    def plan(self, observation):
-        """
-            Plan an optimal sequence of actions.
-
-            Start by updating the previously found tree with the last action performed.
-
-        :param observation: the current state
-        :return: the list of actions
-        """
-        self.olop.step(self.previous_action)
-        env = preprocess_env(self.env, self.config["env_preprocessors"])
-        actions = self.olop.plan(state=env)
-
-        self.previous_action = actions[0]
-        return actions
-
-    def seed(self, seed=None):
-        return [seed]
-
-    def reset(self):
-        self.olop.step_by_reset()
-
-    def record(self, state, action, reward, next_state, done):
-        raise NotImplementedError()
-
-    def act(self, state):
-        return self.plan(state)[0]
-
-    def save(self, filename):
-        raise NotImplementedError()
-
-    def load(self, filename):
-        raise NotImplementedError()
+    def make_planner(self):
+        return OptimisticDeterministicPlanner(self.config)
 
 
-class OptimisticDeterministicPlanner(Configurable):
+class OptimisticDeterministicPlanner(AbstractPlanner):
     """
        An implementation of Open Loop Optimistic Planning.
     """
-    def __init__(self, env, config=None):
-        super(OptimisticDeterministicPlanner, self).__init__(config)
-        self.root = DeterministicNode(None, planner=self)
-        self.env = env
-        self.np_random = None
-        self.seed()
-
-    @classmethod
-    def default_config(cls):
-        return dict(budget=100,
-                    gamma=0.7,
-                    step_strategy="reset")
-
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+    def make_root(self):
+        return DeterministicNode(None, planner=self)
 
     def run(self, leaves):
         """
@@ -93,22 +29,13 @@ class OptimisticDeterministicPlanner(Configurable):
         leaf_to_expand.expand(leaves)
         self.root.backup_values()
 
-    def plan(self, state):
-        """
-            Plan an optimal sequence of actions
-
-        :param state: the initial environment state
-        :return: the list of actions
-        """
+    def plan(self, state, observation):
         self.root.state = state
         leaves = [self.root]
-        for _ in np.arange(self.config["budget"] // self.env.action_space.n):
+        for _ in np.arange(self.config["budget"] // state.action_space.n):
             self.run(leaves)
 
-        # Return best action, tie randomly
-        actions = list(self.root.children.keys())
-        a = self.root.random_argmax([self.root.children[a].value for a in actions])
-        return [actions[a]]
+        return self.get_plan()
 
     def step(self, action):
         """
@@ -133,6 +60,13 @@ class DeterministicNode(Node):
         self.depth = depth
         self.value_upper_bound = 0
         self.terminal = False
+
+    def selection_rule(self):
+        if not self.children:
+            return None
+        actions = list(self.children.keys())
+        index = self.random_argmax([self.children[a].value for a in actions])
+        return actions[index]
 
     def expand(self, leaves):
         if self.state is None:
@@ -165,5 +99,3 @@ class DeterministicNode(Node):
             self.value = np.amax([child.backup_values() for child in self.children.values()])
             self.value_upper_bound = 0  # should be backed-up as well, but not used anyway.
         return self.value
-
-
