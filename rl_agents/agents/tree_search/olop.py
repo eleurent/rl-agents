@@ -110,10 +110,9 @@ class OLOP(Configurable):
 
         # Compute B-values
         list(Node.breadth_first_search(self.root, operator=self.accumulate_ucb, condition=None))
-        # sequences = Node.breadth_first_search(self.root, self.sharpen_ucb, lambda n: n.is_leaf())
-        sequences = map(OLOP.sharpen_ucb, self.leaves)
+        sequences = list(map(OLOP.sharpen_ucb, self.leaves))
         # Pick best action sequence
-        best_sequence = list(self.leaves[np.argmax(list(sequences))].path())
+        best_sequence = list(self.leaves[np.argmax(sequences)].path())
 
         # Execute sequence and collect rewards
         node = self.root
