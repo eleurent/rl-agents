@@ -35,9 +35,7 @@ class TreeGraphics(object):
     def display_node(cls, node, action_space, surface, origin, size,
                      config=0,
                      depth=0,
-                     selected=False,
-                     display_text=True,
-                     display_prior=True):
+                     selected=False):
         """
             Display an MCTS node at a given position on a surface.
 
@@ -49,79 +47,73 @@ class TreeGraphics(object):
         :param config: the agent configuration
         :param depth: the depth of the node in the tree
         :param selected: whether the node is within a selected branch of the tree
-        :param display_text: display a text showing the value and visitation count of the node
-        :param display_prior: show the prior probability of each action
         """
         # Display node value
-        cmap = cm.jet_r
-        norm = mpl.colors.Normalize(vmin=0, vmax=config["gamma"]/(1 - config["gamma"]))
-        color = cmap(norm(node.value), bytes=True)
-        pygame.draw.rect(surface, color, (origin[0], origin[1], size[0], size[1]), 0)
+        cls.draw_node(node, surface, origin, size, config)
 
         # Add selection display
         if selected:
             pygame.draw.rect(surface, cls.RED, (origin[0], origin[1], size[0], size[1]), 1)
 
-        if display_text and depth < 2:
-            font = pygame.font.Font(None, 13)
-            text = "{:.2f} / {:.2f} / {}".format(node.value, node.selection_strategy(config['temperature']), node.count)
-            if display_prior:
-                text += " / {:.2f}".format(node.prior)
-            text = font.render(text,
-                               1, (10, 10, 10), (255, 255, 255))
-            surface.blit(text, (origin[0]+1, origin[1]+1))
+        if depth < 2:
+            cls.display_text(node, surface, origin, config)
 
         # Recursively display children nodes
         best_action = node.selection_rule()
-        for a in range(action_space.n):
-            if a in node.children:
-                action_selected = (selected and (a == best_action))
-                cls.display_node(node.children[a], action_space, surface,
-                                 (origin[0]+size[0], origin[1]+a*size[1]/action_space.n),
-                                 (size[0], size[1]/action_space.n),
-                                 depth=depth+1, config=config, selected=action_selected)
+        for a in node.children:
+            action_selected = (selected and (a == best_action))
+            cls.display_node(node.children[a], action_space, surface,
+                             (origin[0]+size[0], origin[1]+a*size[1]/action_space.n),
+                             (size[0], size[1]/action_space.n),
+                             depth=depth+1, config=config, selected=action_selected)
+
+    @classmethod
+    def draw_node(cls, node, surface, origin, size, config):
+        cmap = cm.jet_r
+        norm = mpl.colors.Normalize(vmin=0, vmax=config["gamma"] / (1 - config["gamma"]))
+        color = cmap(norm(node.value), bytes=True)
+        pygame.draw.rect(surface, color, (origin[0], origin[1], size[0], size[1]), 0)
+
+    @classmethod
+    def display_text(cls, node, surface, origin, config):
+        font = pygame.font.Font(None, 13)
+        text = "{:.2f} / {}".format(node.value, node.count)
+        text = font.render(text,
+                           1, (10, 10, 10), (255, 255, 255))
+        surface.blit(text, (origin[0] + 1, origin[1] + 1))
+
+
+class MCTSGraphics(TreeGraphics):
+    @classmethod
+    def display_text(cls, node, surface, origin, config):
+        font = pygame.font.Font(None, 13)
+        text = "{:.2f} / {:.2f} / {}".format(node.value, node.selection_strategy(config['temperature']), node.count)
+        text += " / {:.2f}".format(node.prior)
+        text = font.render(text,
+                           1, (10, 10, 10), (255, 255, 255))
+        surface.blit(text, (origin[0] + 1, origin[1] + 1))
 
 
 class DiscreteRobustMCTSGraphics(TreeGraphics):
     @classmethod
-    def display_node(cls, node, action_space, surface, origin, size,
-                     config=0,
-                     depth=0,
-                     selected=False,
-                     display_text=True,
-                     display_prior=True):
-        # Display node value
+    def draw_node(cls, node, surface, origin, size, config):
         cmap = cm.jet_r
-        norm = mpl.colors.Normalize(vmin=0, vmax=config["gamma"]/(1 - config["gamma"]))
+        norm = mpl.colors.Normalize(vmin=0, vmax=config["gamma"] / (1 - config["gamma"]))
         n = np.size(node.value)
         for i in range(n):
             v = node.value[i] if n > 1 else node.value
             color = cmap(norm(v), bytes=True)
-            pygame.draw.rect(surface, color, (origin[0] + i/n*size[0], origin[1], size[0]/n, size[1]), 0)
+            pygame.draw.rect(surface, color, (origin[0] + i / n * size[0], origin[1], size[0] / n, size[1]), 0)
 
-        # Add selection display
-        if selected:
-            pygame.draw.rect(surface, cls.RED, (origin[0], origin[1], size[0], size[1]), 1)
-
-        if display_text and depth < 2:
-            font = pygame.font.Font(None, 13)
-            text = "{} / {:.2f} / {}".format('-'.join(['{:.1f}'.format(i) for i in node.value]),
-                                             node.selection_strategy(config["temperature"]), node.count)
-            if display_prior:
-                text += " / {:.2f}".format(node.prior)
-            text = font.render(text,
-                               1, (10, 10, 10), (255, 255, 255))
-            surface.blit(text, (origin[0] + 1, origin[1] + 1))
-
-        # Recursively display children nodes
-        best_action = node.selection_rule()
-        for a in range(action_space.n):
-            if a in node.children:
-                action_selected = (selected and (a == best_action))
-                cls.display_node(node.children[a], action_space, surface,
-                                 (origin[0] + size[0], origin[1] + a * size[1] / action_space.n),
-                                 (size[0], size[1] / action_space.n),
-                                 depth=depth + 1, temperature=config["temperature"], selected=action_selected)
+    @classmethod
+    def display_text(cls, node, surface, origin, config):
+        font = pygame.font.Font(None, 13)
+        text = "{} / {:.2f} / {}".format('-'.join(['{:.1f}'.format(i) for i in node.value]),
+                                         node.selection_strategy(config["temperature"]), node.count)
+        text += " / {:.2f}".format(node.prior)
+        text = font.render(text,
+                           1, (10, 10, 10), (255, 255, 255))
+        surface.blit(text, (origin[0] + 1, origin[1] + 1))
 
 
 class OneStepRobustMCTSGraphics(object):

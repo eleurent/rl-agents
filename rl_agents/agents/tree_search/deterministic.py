@@ -59,7 +59,7 @@ class DeterministicNode(Node):
         self.state = state
         self.depth = depth
         self.value_upper_bound = 0
-        self.terminal = False
+        self.count = 1  # every node is explored exactly once
 
     def selection_rule(self):
         if not self.children:
