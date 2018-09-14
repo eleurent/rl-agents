@@ -5,14 +5,14 @@ from gym import logger
 import numpy as np
 
 from rl_agents.agents.abstract import AbstractAgent
-from rl_agents.agents.common import preprocess_env, custom_deepcopy_env
+from rl_agents.agents.common import preprocess_env, safe_deepcopy_env
 from rl_agents.agents.tree_search.tree import Node
 from rl_agents.configuration import Configurable
 
 
 class OLOPAgent(AbstractAgent):
     """
-        An agent that uses Monte Carlo Tree Search to plan a sequence of action in an MDP.
+        An agent that uses Open Loop Optimistic Planning to plan a sequence of actions in an MDP.
     """
 
     def __init__(self,
@@ -158,7 +158,7 @@ class OLOP(Configurable):
                 logger.debug('{} / {}'.format(i+1, self.config['episodes']))
             # Copy the environment state
             try:
-                state_copy = custom_deepcopy_env(state)
+                state_copy = safe_deepcopy_env(state)
             except ValueError:
                 state_copy = copy.deepcopy(state)
             self.run(state_copy)

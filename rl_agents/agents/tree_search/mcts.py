@@ -6,7 +6,7 @@ from gym import logger
 from gym.utils import seeding
 
 from rl_agents.agents.abstract import AbstractAgent
-from rl_agents.agents.common import preprocess_env, custom_deepcopy_env
+from rl_agents.agents.common import preprocess_env, safe_deepcopy_env
 from rl_agents.agents.tree_search.tree import Node
 from rl_agents.configuration import Configurable
 
@@ -236,7 +236,7 @@ class MCTS(Configurable):
                 logger.debug('{} / {}'.format(i+1, self.config['iterations']))
             # Copy the environment state
             try:
-                state_copy = custom_deepcopy_env(state)
+                state_copy = safe_deepcopy_env(state)
             except ValueError:
                 state_copy = copy.deepcopy(state)
             self.run(state_copy, observation)

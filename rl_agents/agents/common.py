@@ -90,7 +90,7 @@ def preprocess_env(env, preprocessor_configs):
     return env
 
 
-def custom_deepcopy_env(obj):
+def safe_deepcopy_env(obj):
     """
         Perform a deep copy of an environment but without copying its viewer.
     """
