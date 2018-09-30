@@ -19,10 +19,11 @@ class OLOP(AbstractPlanner):
     """
     def __init__(self, env, config=None):
         self.leaves = None
+        self.env = env
         super(OLOP, self).__init__(config)
 
     def make_root(self):
-        root, self.leaves = self.build_tree()
+        root, self.leaves = self.build_tree(self.env.action_space.n)
         return root
 
     @staticmethod
@@ -53,13 +54,15 @@ class OLOP(AbstractPlanner):
 
     def run(self, state):
         """
-            Run an OLOP episode
+            Run an OLOP episode.
+
+            Find the leaf with highest upper bound value, and sample the corresponding action sequence.
 
         :param state: the initial environment state
         """
         # Compute B-values
-        list(Node.breadth_first_search(self.root, operator=self.accumulate_ucb, condition=None))
-        sequences = list(map(OLOP.sharpen_ucb, self.leaves))
+        list(Node.breadth_first_search(self.root, operator=self.compute_u_values, condition=None))
+        sequences = list(map(OLOP.compute_b_values, self.leaves))
 
         # Pick best action sequence
         best_sequence = list(self.leaves[np.argmax(sequences)].path())
@@ -70,31 +73,44 @@ class OLOP(AbstractPlanner):
         for action in best_sequence:
             observation, reward, done, _ = state.step(action)
             terminal = terminal or done
+            reward = reward if not terminal else 0
             node = node.children[action]
-            node.update(reward if not terminal else 0)
+            node.update(reward, self.config["episodes"])
 
-    def accumulate_ucb(self, node, path):
-        node_t = node
+    def compute_u_values(self, node, path):
+        """
+            Compute the upper bound value of the action sequence at a given node.
+
+            It represents the maximum admissible reward over trajectories that start with this particular sequence.
+            It is computed by summing upper bounds of intermediate rewards along the sequence, and an upper bound
+            of the remaining rewards over possible continuations of the sequence.
+        :param node: a node in the look-ahead tree
+        :param path: the path from the root to the node (unused)
+        :return: the path from the root to the node, and the node value.
+        """
+        # Upper bound of the reward-to-go after this node
         node.value = self.config["gamma"] ** (len(path) + 1) / (1 - self.config["gamma"])
-        try:
-            for t in np.arange(len(path), 0, -1):
-                node.value += self.config["gamma"]**t * \
-                              (node_t.total_reward / node_t.count
-                               + np.sqrt(2*np.log(self.config["episodes"])/node_t.count))
-                node_t = node_t.parent
-        except ZeroDivisionError:
-            node.value = np.infty
+        node_t = node
+        for t in np.arange(len(path), 0, -1):  # from current node up to the root
+            node.value += self.config["gamma"]**t * node_t.mu_ucb  # upper bound of the node mean reward
+            node_t = node_t.parent
         return path, node.value
 
     @staticmethod
-    def sharpen_ucb(node):
+    def compute_b_values(node):
+        """
+            Sharpen the upper-bound value of the action sequences at the tree leaves.
+
+            By computing the min over intermediate upper-bounds along the sequence, that must all be satisfied.
+        :param node: a node in the look-ahead tree
+        :return:the sharpened upper-bound
+        """
         node_t = node
         min_ucb = node.value
         while node_t.parent:
             min_ucb = min(min_ucb, node_t.value)
             node_t = node_t.parent
-        node.value = min_ucb
-        return node.value
+        return min_ucb
 
     def plan(self, state, observation):
         for i in range(self.config['episodes']):
@@ -108,7 +124,12 @@ class OLOP(AbstractPlanner):
 class OLOPNode(Node):
     def __init__(self, parent, planner):
         super(OLOPNode, self).__init__(parent, planner)
-        self.total_reward = 0
+
+        self.cumulative_reward = 0
+        """ Sum of all rewards received at this node. """
+
+        self.mu_ucb = np.infty
+        """ Upper bound of the node mean reward. """
 
     def selection_rule(self):
         # Tie best counts by best value
@@ -116,8 +137,9 @@ class OLOPNode(Node):
         counts = Node.all_argmax([self.children[a].count for a in actions])
         return actions[max(counts, key=(lambda i: self.children[actions[i]].get_value()))]
 
-    def update(self, reward):
+    def update(self, reward, episodes):
         if not 0 <= reward <= 1:
             raise ValueError("This planner assumes that all rewards are normalized in [0, 1]")
-        self.total_reward += reward
+        self.cumulative_reward += reward
         self.count += 1
+        self.mu_ucb = self.cumulative_reward / self.count + np.sqrt(2 * np.log(episodes) / self.count)

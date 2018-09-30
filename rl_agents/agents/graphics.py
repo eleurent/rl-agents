@@ -8,6 +8,7 @@ from rl_agents.agents.tree_search.deterministic import DeterministicPlannerAgent
 from rl_agents.agents.tree_search.graphics import TreeGraphics, MCTSGraphics, OneStepRobustMCTSGraphics, DiscreteRobustMCTSGraphics, \
     IntervalRobustMCTSGraphics
 from rl_agents.agents.tree_search.mcts import MCTSAgent
+from rl_agents.agents.tree_search.olop import OLOPAgent
 from rl_agents.agents.tree_search.robust_mcts import DiscreteRobustMCTSAgent, IntervalRobustMCTS, OneStepRobustMCTS
 
 
@@ -37,5 +38,5 @@ class AgentGraphics(object):
             OneStepRobustMCTSGraphics.display(agent, agent_surface)
         elif isinstance(agent, IntervalRobustMCTS):
             IntervalRobustMCTSGraphics.display(agent, agent_surface, sim_surface)
-        elif isinstance(agent, DeterministicPlannerAgent):
+        elif isinstance(agent, DeterministicPlannerAgent) or isinstance(agent, OLOPAgent):
             TreeGraphics.display(agent, agent_surface)

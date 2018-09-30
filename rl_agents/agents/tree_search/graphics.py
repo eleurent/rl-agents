@@ -21,7 +21,7 @@ class TreeGraphics(object):
         :param agent: the agent to be displayed
         :param surface: the pygame surface on which the agent is displayed
         """
-        cell_size = (surface.get_width() // agent.planner.config['max_depth'], surface.get_height())
+        cell_size = (surface.get_width() // (agent.planner.config['max_depth'] + 1), surface.get_height())
         pygame.draw.rect(surface, cls.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
         cls.display_node(agent.planner.root, agent.env.action_space, surface, (0, 0), cell_size,
                          config=agent.planner.config, depth=0, selected=True)
@@ -55,11 +55,16 @@ class TreeGraphics(object):
         if selected:
             pygame.draw.rect(surface, cls.RED, (origin[0], origin[1], size[0], size[1]), 1)
 
-        if depth < 2:
+        if depth < 3:
             cls.display_text(node, surface, origin, config)
 
         # Recursively display children nodes
-        best_action = node.selection_rule()
+        if depth >= config["max_depth"]:
+            return
+        try:
+            best_action = node.selection_rule()
+        except ValueError:
+            best_action = None
         for a in node.children:
             action_selected = (selected and (a == best_action))
             cls.display_node(node.children[a], action_space, surface,
@@ -122,7 +127,7 @@ class OneStepRobustMCTSGraphics(object):
         cell_size = (surface.get_width() // len(agent.agents), surface.get_height())
         pygame.draw.rect(surface, TreeGraphics.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
         for i, sub_agent in enumerate(agent.agents):
-            sub_cell_size = (cell_size[0] // sub_agent.planner.config["max_depth"], cell_size[1])
+            sub_cell_size = (cell_size[0] // (sub_agent.planner.config["max_depth"]+1), cell_size[1])
             TreeGraphics.display_node(sub_agent.planner.root, sub_agent.env.action_space, surface,
                                       (i*cell_size[0], 0), sub_cell_size,
                                       config=sub_agent.planner.config, depth=0, selected=True)

@@ -162,9 +162,15 @@ class Node(object):
         """
         self.parent = parent
         self.planner = planner
+
         self.children = {}
+        """ Dict of children nodes, indexed by action labels"""
+
         self.count = 0
+        """ Number of times the node was visited."""
+
         self.value = 0
+        """ Estimated value of the node's action sequence"""
 
     def get_value(self):
         return self.value
@@ -200,6 +206,9 @@ class Node(object):
         return not self.children
 
     def path(self):
+        """
+        :return: sequence of action labels from the root to the node
+        """
         node = self
         path = []
         while node.parent:
@@ -212,6 +221,10 @@ class Node(object):
 
     @staticmethod
     def all_argmax(x):
+        """
+        :param x: a set
+        :return: the list of indexes of all maximums of x
+        """
         m = np.amax(x)
         return np.nonzero(x == m)[0]
 
