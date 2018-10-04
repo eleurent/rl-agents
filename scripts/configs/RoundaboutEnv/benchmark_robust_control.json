@@ -1,0 +1,11 @@
+{
+    "environments": [
+        "configs/RoundaboutEnv/env_route_0.json",
+        "configs/RoundaboutEnv/env_route_1.json"
+    ],
+    "agents": [
+        "configs/RoundaboutEnv/agents/DeterministicPlannerAgent/baseline.json",
+        "configs/RoundaboutEnv/agents/DeterministicPlannerAgent/assume_route_0.json",
+        "configs/RoundaboutEnv/agents/DeterministicPlannerAgent/assume_route_1.json"
+    ]
+}

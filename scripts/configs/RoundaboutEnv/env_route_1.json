@@ -1,0 +1,5 @@
+{
+    "id": "highway-roundabout-v0",
+    "import_module": "highway_env",
+    "incoming_vehicle_destination": 1
+}
