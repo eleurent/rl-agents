@@ -13,12 +13,12 @@ class MaxNode(object):
         self.delta = delta
         self.alpha = alpha
         self.eta = eta
-        self.K = len(state.get_actions())
+        self.K = state.action_space.n
 
         self.children = {}
         MaxNode.created += 1
         print("New max node ! total: ", MaxNode.created)
-        for action in state.get_actions():
+        for action in range(state.action_space.n):
             self.children[action] = AvgNode(state, action, self.gamma, self.delta, self.alpha, self.eta, self.K)
 
     def run(self, m, epsilon):
@@ -106,7 +106,7 @@ class TrailBlazer(object):
         self.delta = delta
         self.epsilon = epsilon
         self.eta = np.power(self.gamma, 1/max(2, np.log(1/self.epsilon)))
-        self.K = len(state.get_actions())
+        self.K = state.action_space.n
         self.alpha = 2*np.log(self.epsilon*(1-self.gamma))**2 * \
             np.log(np.log(self.K)/(1-self.eta)) / np.log(self.eta/self.gamma)
         self.alpha = 0
@@ -124,38 +124,24 @@ class TrailBlazer(object):
     def run(self):
         return self.root.run(self.m, self.epsilon/2)
 
-
-class DummyState(object):
-    def __init__(self, num):
-        self.num = num
-
-    def step(self, action):
-        if self.num != 0:
-            return 0
-        if action == 0:
-            self.num = 1
-            return 0
-        elif action == 1:
-            self.num = 2
-            return 1
-        elif action == 2:
-            self.num = 3
-            return 0
-
-    @classmethod
-    def get_actions(cls):
-        return [0, 1, 2]
-
-    def __eq__(self, other):
-        return self.num == other
-
-    def __ne__(self, other):
-        return self.num != other
-
-
 def test():
-    s0 = DummyState(0)
-    tb = TrailBlazer(s0, gamma=0.9, delta=0.1, epsilon=1.0)
+    import finite_mdp
+    import gym
+    env = gym.make('finite-mdp-v0')
+    env.configure({
+        "mode": "deterministic",
+        "transition": [[1, 2],
+                       [0, 3],
+                       [2, 2],
+                       [3, 3]],
+        "reward": [[0, 1],
+                   [0, -1],
+                   [0, 0],
+                   [0, 0]]
+    })
+    env.reset()
+
+    tb = TrailBlazer(env, gamma=0.9, delta=0.1, epsilon=1.0)
     print(tb.run())
 
 
