@@ -3,13 +3,10 @@
     "env_preprocessors":
     [
         {
-            "method": "simplify"
-        },
-        {
             "method": "change_vehicles",
             "args": "highway_env.vehicle.uncertainty.IntervalVehicle"
         }
     ],
-    "sub_agent_path": "configs/HighwayEnv/agents/DeterministicPlannerAgent/baseline.json",
+    "sub_agent_path": "configs/RoundaboutEnv/agents/DeterministicPlannerAgent/baseline.json",
     "enable_robust_planning": true
 }
