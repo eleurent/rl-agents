@@ -60,6 +60,7 @@ class DeterministicNode(Node):
         self.depth = depth
         self.value_upper_bound = 0
         self.count = 1  # every node is explored exactly once
+        self.done = False
 
     def selection_rule(self):
         if not self.children:
@@ -82,20 +83,24 @@ class DeterministicNode(Node):
                                                depth=self.depth + 1)
             _, reward, done, _ = self.children[action].state.step(action)
             reward = reward if not done else 0
-            self.children[action].update(reward)
+            self.children[action].update(reward, done)
 
         leaves.remove(self)
         leaves.extend(self.children.values())
 
-    def update(self, reward):
+    def update(self, reward, done):
         if not 0 <= reward <= 1:
             raise ValueError("This planner assumes that all rewards are normalized in [0, 1]")
         gamma = self.planner.config["gamma"]
         self.value = self.parent.value + (gamma ** (self.depth - 1)) * reward
-        self.value_upper_bound = self.value + (gamma ** self.depth) / (1 - gamma)
+        self.value_upper_bound = self.value
+        self.done = done
+        if not done:
+            self.value_upper_bound += (gamma ** self.depth) / (1 - gamma)
 
     def backup_values(self):
         if self.children:
-            self.value = np.amax([child.backup_values() for child in self.children.values()])
-            self.value_upper_bound = 0  # should be backed-up as well, but not used anyway.
-        return self.value
+            backup_children = [child.backup_values() for child in self.children.values()]
+            self.value = np.amax([b[0] for b in backup_children])
+            self.value_upper_bound = np.amax([b[1] for b in backup_children])
+        return self.value, self.value_upper_bound
