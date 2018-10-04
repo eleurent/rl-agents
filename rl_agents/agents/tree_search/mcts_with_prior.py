@@ -28,8 +28,8 @@ class MCTSWithPriorPolicyAgent(MCTSAgent):
         super(MCTSWithPriorPolicyAgent, self).__init__(
             env,
             self.config)
-        self.mcts.prior_policy = self.agent_policy_available
-        self.mcts.rollout_policy = self.agent_policy_available
+        self.planner.prior_policy = self.agent_policy_available
+        self.planner.rollout_policy = self.agent_policy_available
 
     @classmethod
     def default_config(cls):
