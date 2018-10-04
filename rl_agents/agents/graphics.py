@@ -5,7 +5,7 @@ from rl_agents.agents.dqn.graphics import DQNGraphics
 from rl_agents.agents.dynamic_programming.graphics import ValueIterationGraphics
 from rl_agents.agents.dynamic_programming.value_iteration import ValueIterationAgent
 from rl_agents.agents.tree_search.deterministic import DeterministicPlannerAgent
-from rl_agents.agents.tree_search.graphics import TreeGraphics, MCTSGraphics, OneStepRobustMCTSGraphics, DiscreteRobustMCTSGraphics, \
+from rl_agents.agents.tree_search.graphics import TreeGraphics, MCTSGraphics, DiscreteRobustMCTSGraphics, \
     IntervalRobustMCTSGraphics
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 from rl_agents.agents.tree_search.olop import OLOPAgent

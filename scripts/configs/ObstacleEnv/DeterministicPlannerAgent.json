@@ -1,6 +1,4 @@
 {
     "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
-    "budget": 100,
-    "max_depth": 5,
-    "temperature": 150
+    "budget": 30
 }
