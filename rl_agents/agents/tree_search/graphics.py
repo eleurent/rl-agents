@@ -121,21 +121,9 @@ class DiscreteRobustMCTSGraphics(TreeGraphics):
         surface.blit(text, (origin[0] + 1, origin[1] + 1))
 
 
-class OneStepRobustMCTSGraphics(object):
-    @classmethod
-    def display(cls, agent, surface):
-        cell_size = (surface.get_width() // len(agent.agents), surface.get_height())
-        pygame.draw.rect(surface, TreeGraphics.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
-        for i, sub_agent in enumerate(agent.agents):
-            sub_cell_size = (cell_size[0] // (sub_agent.planner.config["max_depth"]+1), cell_size[1])
-            TreeGraphics.display_node(sub_agent.planner.root, sub_agent.env.action_space, surface,
-                                      (i*cell_size[0], 0), sub_cell_size,
-                                      config=sub_agent.planner.config, depth=0, selected=True)
-
-
 class IntervalRobustMCTSGraphics(object):
     """
-        Graphical visualization of the IntervalRobustMCTS interval observer.
+        Graphical visualization of the IntervalRobustPlannerAgent interval observer.
     """
     UNCERTAINTY_TIME_COLORMAP = cm.RdYlGn_r
     MODEL_TRAJ_COLOR = (0, 0, 255)

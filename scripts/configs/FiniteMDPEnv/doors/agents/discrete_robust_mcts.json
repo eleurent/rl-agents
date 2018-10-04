@@ -1,5 +1,5 @@
 {
-    "__class__": "<class 'rl_agents.agents.tree_search.robust_mcts.DiscreteRobustMCTSAgent'>",
+    "__class__": "<class 'rl_agents.agents.tree_search.robust_mcts.DiscreteRobustPlannerAgent'>",
     "budget": 400,
     "temperature": 3000,
     "step_strategy": "subtree",

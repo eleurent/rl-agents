@@ -9,7 +9,7 @@ from rl_agents.agents.tree_search.graphics import TreeGraphics, MCTSGraphics, On
     IntervalRobustMCTSGraphics
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 from rl_agents.agents.tree_search.olop import OLOPAgent
-from rl_agents.agents.tree_search.robust_mcts import DiscreteRobustMCTSAgent, IntervalRobustMCTS, OneStepRobustMCTS
+from rl_agents.agents.tree_search.robust import DiscreteRobustPlannerAgent, IntervalRobustPlannerAgent
 
 
 class AgentGraphics(object):
@@ -26,7 +26,7 @@ class AgentGraphics(object):
         :param sim_surface: the pygame surface on which the environment is displayed
         """
 
-        if isinstance(agent, DiscreteRobustMCTSAgent):
+        if isinstance(agent, DiscreteRobustPlannerAgent):
             DiscreteRobustMCTSGraphics.display(agent, agent_surface)
         elif isinstance(agent, MCTSAgent):
             MCTSGraphics.display(agent, agent_surface)
@@ -34,9 +34,7 @@ class AgentGraphics(object):
             DQNGraphics.display(agent, agent_surface)
         elif isinstance(agent, ValueIterationAgent):
             ValueIterationGraphics.display(agent, agent_surface)
-        elif isinstance(agent, OneStepRobustMCTS):
-            OneStepRobustMCTSGraphics.display(agent, agent_surface)
-        elif isinstance(agent, IntervalRobustMCTS):
+        elif isinstance(agent, IntervalRobustPlannerAgent):
             IntervalRobustMCTSGraphics.display(agent, agent_surface, sim_surface)
         elif isinstance(agent, DeterministicPlannerAgent) or isinstance(agent, OLOPAgent):
             TreeGraphics.display(agent, agent_surface)

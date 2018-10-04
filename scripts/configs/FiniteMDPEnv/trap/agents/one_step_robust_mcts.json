@@ -1,8 +1,0 @@
-{
-    "__class__": "<class 'rl_agents.agents.tree_search.robust_mcts.OneStepRobustMCTS'>",
-    "agents":
-    [
-        "configs/FiniteMDPEnv/trap/agents/mcts_1.json",
-        "configs/FiniteMDPEnv/trap/agents/mcts_2.json"
-    ]
-}

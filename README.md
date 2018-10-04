@@ -138,7 +138,7 @@ References:
 * [Efficient Selectivity and Backup Operators in Monte-Carlo Tree Search](https://hal.inria.fr/inria-00116992/document), Coulom R., 2006.
 * [Bandit based Monte-Carlo Planning](http://ggp.stanford.edu/readings/uct.pdf), Kocsis L., Szepesvári C., 2006.
 
-### [Robust Monte Carlo Tree Search](rl_agents/agents/tree_search/robust_mcts.py)
+### [Robust Monte Carlo Tree Search](rl_agents/agents/tree_search/robust.py)
 
 In this variant, a list of environment modifiers (called preprocessors) is provided in the agent configuration to generate several possible environment, and the corresponding robust state-action value is approximately computed by tree-search so as to maximize the worst-case total reward.
 

@@ -1,13 +1,12 @@
 {
     "environments": [
         "configs/FiniteMDPEnv/trap/env_1.json",
-        "configs/FiniteMDPEnv/trap/env_2.json",
+        "configs/FiniteMDPEnv/trap/env_2.json"
     ],
     "agents": [
         "configs/FiniteMDPEnv/trap/agents/value_iteration.json",
         "configs/FiniteMDPEnv/trap/agents/mcts_1.json",
         "configs/FiniteMDPEnv/trap/agents/mcts_2.json",
-        "configs/FiniteMDPEnv/trap/agents/one_step_robust_mcts.json",
         "configs/FiniteMDPEnv/trap/agents/discrete_robust_mcts.json",
         "configs/FiniteMDPEnv/trap/agents/robust_value_iteration.json"
     ]

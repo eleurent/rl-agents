@@ -17,7 +17,7 @@ class MaxNode(object):
 
         self.children = {}
         MaxNode.created += 1
-        print(MaxNode.created, 'Max nodes')
+        print("New max node ! total: ", MaxNode.created)
         for action in state.get_actions():
             self.children[action] = AvgNode(state, action, self.gamma, self.delta, self.alpha, self.eta, self.K)
 
@@ -57,7 +57,7 @@ class AvgNode(object):
         self.r = 0
 
         AvgNode.created += 1
-        print(AvgNode.created, 'Avg nodes')
+        print("New avg node ! total: ", AvgNode.created)
 
     def run(self, m, epsilon):
         if epsilon >= 1/(1-self.gamma):
@@ -155,7 +155,7 @@ class DummyState(object):
 
 def test():
     s0 = DummyState(0)
-    tb = TrailBlazer(s0, gamma=0.9, delta=0.9, epsilon=0.1)
+    tb = TrailBlazer(s0, gamma=0.9, delta=0.1, epsilon=1.0)
     print(tb.run())
 
 
