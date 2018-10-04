@@ -99,7 +99,7 @@ class MCTSGraphics(TreeGraphics):
         surface.blit(text, (origin[0] + 1, origin[1] + 1))
 
 
-class DiscreteRobustMCTSGraphics(TreeGraphics):
+class DiscreteRobustPlannerGraphics(TreeGraphics):
     @classmethod
     def draw_node(cls, node, surface, origin, size, config):
         cmap = cm.jet_r
@@ -121,7 +121,7 @@ class DiscreteRobustMCTSGraphics(TreeGraphics):
         surface.blit(text, (origin[0] + 1, origin[1] + 1))
 
 
-class IntervalRobustMCTSGraphics(object):
+class IntervalRobustPlannerGraphics(object):
     """
         Graphical visualization of the IntervalRobustPlannerAgent interval observer.
     """

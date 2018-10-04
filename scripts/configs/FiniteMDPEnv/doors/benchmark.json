@@ -6,6 +6,6 @@
         "configs/FiniteMDPEnv/doors/agents/value_iteration.json",
         "configs/FiniteMDPEnv/doors/agents/mcts.json",
         "configs/FiniteMDPEnv/doors/agents/robust_value_iteration.json",
-        "configs/FiniteMDPEnv/doors/agents/discrete_robust_mcts.json"
+        "configs/FiniteMDPEnv/doors/agents/discrete_robust_planner.json"
     ]
 }

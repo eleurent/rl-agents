@@ -7,7 +7,7 @@
         "configs/FiniteMDPEnv/trap/agents/value_iteration.json",
         "configs/FiniteMDPEnv/trap/agents/mcts_1.json",
         "configs/FiniteMDPEnv/trap/agents/mcts_2.json",
-        "configs/FiniteMDPEnv/trap/agents/discrete_robust_mcts.json",
+        "configs/FiniteMDPEnv/trap/agents/discrete_robust_planner.json",
         "configs/FiniteMDPEnv/trap/agents/robust_value_iteration.json"
     ]
 }

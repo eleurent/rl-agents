@@ -1,5 +1,5 @@
 {
-    "__class__": "<class 'rl_agents.agents.tree_search.robust_mcts.MCTSAgent'>",
+    "__class__": "<class 'rl_agents.agents.tree_search.robust.MCTSAgent'>",
     "iterations": 10000,
     "temperature": 500,
     "step_strategy": "subtree",

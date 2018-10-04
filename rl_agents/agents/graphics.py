@@ -5,8 +5,8 @@ from rl_agents.agents.dqn.graphics import DQNGraphics
 from rl_agents.agents.dynamic_programming.graphics import ValueIterationGraphics
 from rl_agents.agents.dynamic_programming.value_iteration import ValueIterationAgent
 from rl_agents.agents.tree_search.deterministic import DeterministicPlannerAgent
-from rl_agents.agents.tree_search.graphics import TreeGraphics, MCTSGraphics, DiscreteRobustMCTSGraphics, \
-    IntervalRobustMCTSGraphics
+from rl_agents.agents.tree_search.graphics import TreeGraphics, MCTSGraphics, DiscreteRobustPlannerGraphics, \
+    IntervalRobustPlannerGraphics
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 from rl_agents.agents.tree_search.olop import OLOPAgent
 from rl_agents.agents.tree_search.robust import DiscreteRobustPlannerAgent, IntervalRobustPlannerAgent
@@ -27,7 +27,7 @@ class AgentGraphics(object):
         """
 
         if isinstance(agent, DiscreteRobustPlannerAgent):
-            DiscreteRobustMCTSGraphics.display(agent, agent_surface)
+            DiscreteRobustPlannerGraphics.display(agent, agent_surface)
         elif isinstance(agent, MCTSAgent):
             MCTSGraphics.display(agent, agent_surface)
         elif isinstance(agent, AbstractDQNAgent):
@@ -35,6 +35,6 @@ class AgentGraphics(object):
         elif isinstance(agent, ValueIterationAgent):
             ValueIterationGraphics.display(agent, agent_surface)
         elif isinstance(agent, IntervalRobustPlannerAgent):
-            IntervalRobustMCTSGraphics.display(agent, agent_surface, sim_surface)
+            IntervalRobustPlannerGraphics.display(agent, agent_surface, sim_surface)
         elif isinstance(agent, DeterministicPlannerAgent) or isinstance(agent, OLOPAgent):
             TreeGraphics.display(agent, agent_surface)

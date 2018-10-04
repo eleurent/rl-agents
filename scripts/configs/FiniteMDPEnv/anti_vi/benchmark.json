@@ -5,6 +5,6 @@
     ],
     "agents": [
         "configs/FiniteMDPEnv/anti_vi/agents/robust_value_iteration.json",
-        "configs/FiniteMDPEnv/anti_vi/agents/discrete_robust_mcts.json"
+        "configs/FiniteMDPEnv/anti_vi/agents/discrete_robust_planner.json"
     ]
 }
