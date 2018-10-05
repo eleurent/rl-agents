@@ -17,40 +17,40 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
     """
        An implementation of Open Loop Optimistic Planning.
     """
-    def make_root(self):
-        return DeterministicNode(None, planner=self)
+    def __init__(self, config=None):
+        super(OptimisticDeterministicPlanner, self).__init__(config)
+        self.leaves = None
 
-    def run(self, leaves):
+    def make_root(self):
+        root = DeterministicNode(None, planner=self)
+        self.leaves = [root]
+        return root
+
+    def run(self):
         """
             Run an OptimisticDeterministicPlanner episode
-        :param leaves: search tree leaves
         """
-        leaf_to_expand = max(leaves, key=lambda n: n.value_upper_bound)
-        leaf_to_expand.expand(leaves)
+        leaf_to_expand = max(self.leaves, key=lambda n: n.value_upper_bound)
+        leaf_to_expand.expand(self.leaves)
+
         self.root.backup_values()
 
     def plan(self, state, observation):
         self.root.state = state
-        leaves = [self.root]
         for _ in np.arange(self.config["budget"] // state.action_space.n):
-            self.run(leaves)
+            self.run()
 
         return self.get_plan()
 
-    def step(self, action):
-        """
-            Update the tree when the agent performs an action
-
-        :param action: the chosen action from the root node
-        """
-        if self.config["step_strategy"] == "reset":
-            self.step_by_reset()
-        else:
-            gym.logger.warn("Unknown step strategy: {}".format(self.config["step_strategy"]))
-            self.step_by_reset()
-
-    def step_by_reset(self):
-        self.root = DeterministicNode(None, planner=self)
+    def step_by_subtree(self, action):
+        super(OptimisticDeterministicPlanner, self).step_by_subtree(action)
+        if not self.root.children:
+            self.leaves = [self.root]
+        #  v0 = r0 + g r1 + g^2 r2 +... and v1 = r1 + g r2 + ... = (v0-r0)/g
+        for leaf in self.leaves:
+            leaf.value = (leaf.value - self.root.reward) / self.config["gamma"]
+            leaf.value_upper_bound = (leaf.value_upper_bound - self.root.reward) / self.config["gamma"]
+        self.root.backup_values()
 
 
 class DeterministicNode(Node):
@@ -58,6 +58,7 @@ class DeterministicNode(Node):
         super(DeterministicNode, self).__init__(parent, planner)
         self.state = state
         self.depth = depth
+        self.reward = 0
         self.value_upper_bound = 0
         self.count = 1  # every node is explored exactly once
         self.done = False
@@ -92,6 +93,7 @@ class DeterministicNode(Node):
         if not 0 <= reward <= 1:
             raise ValueError("This planner assumes that all rewards are normalized in [0, 1]")
         gamma = self.planner.config["gamma"]
+        self.reward = reward
         self.value = self.parent.value + (gamma ** (self.depth - 1)) * reward
         self.value_upper_bound = self.value
         self.done = done
