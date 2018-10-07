@@ -76,13 +76,13 @@ class TreeGraphics(object):
     def draw_node(cls, node, surface, origin, size, config):
         cmap = cm.jet_r
         norm = mpl.colors.Normalize(vmin=0, vmax=config["gamma"] / (1 - config["gamma"]))
-        color = cmap(norm(node.value), bytes=True)
+        color = cmap(norm(node.get_value()), bytes=True)
         pygame.draw.rect(surface, color, (origin[0], origin[1], size[0], size[1]), 0)
 
     @classmethod
     def display_text(cls, node, surface, origin, config):
         font = pygame.font.Font(None, 13)
-        text = "{:.2f} / {}".format(node.value, node.count)
+        text = "{:.2f} / {}".format(node.get_value(), node.count)
         text = font.render(text,
                            1, (10, 10, 10), (255, 255, 255))
         surface.blit(text, (origin[0] + 1, origin[1] + 1))
@@ -101,6 +101,25 @@ class MCTSGraphics(TreeGraphics):
 
 class DiscreteRobustPlannerGraphics(TreeGraphics):
     @classmethod
+    def display(cls, agent, agent_surface, sim_surface):
+        horizon = 2
+        for v in range(3):
+            for destination in ["exr", "sxr"]:
+                robust_env = preprocess_env(agent.env, agent.config["env_preprocessors"])
+                robust_env.road.vehicles[1 + v].plan_route_to(destination)
+                for action in agent.sub_agent.planner.get_plan()[:horizon]:
+                    robust_env.step(action)
+                for vehicle in robust_env.road.vehicles:
+                    if not hasattr(vehicle, 'observer_trajectory'):
+                        continue
+                    min_traj = [o.position[0] for o in vehicle.observer_trajectory]
+                    max_traj = [o.position[1] for o in vehicle.observer_trajectory]
+                    uncertainty_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA, 32)
+                    cls.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface, cls.MODEL_TRAJ_COLOR)
+                    sim_surface.blit(uncertainty_surface, (0, 0))
+            TreeGraphics.display(agent.sub_agent, agent_surface)
+
+    @classmethod
     def draw_node(cls, node, surface, origin, size, config):
         cmap = cm.jet_r
         norm = mpl.colors.Normalize(vmin=0, vmax=config["gamma"] / (1 - config["gamma"]))
@@ -113,7 +132,7 @@ class DiscreteRobustPlannerGraphics(TreeGraphics):
     @classmethod
     def display_text(cls, node, surface, origin, config):
         font = pygame.font.Font(None, 13)
-        text = "{} / {:.2f} / {}".format('-'.join(['{:.1f}'.format(i) for i in node.value]),
+        text = "{} / {:.2f} / {}".format('-'.join(['{:.1f}'.format(i) for i in node.get_value()]),
                                          node.selection_strategy(config["temperature"]), node.count)
         text += " / {:.2f}".format(node.prior)
         text = font.render(text,
@@ -143,9 +162,9 @@ class IntervalRobustPlannerGraphics(object):
             max_traj = [o.position[1] for o in vehicle.observer_trajectory]
             uncertainty_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA, 32)
             cls.display_uncertainty(min_traj, max_traj, uncertainty_surface, sim_surface, cls.UNCERTAINTY_TIME_COLORMAP)
-            cls.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface, cls.MODEL_TRAJ_COLOR)
+            # cls.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface, cls.MODEL_TRAJ_COLOR)
             sim_surface.blit(uncertainty_surface, (0, 0))
-        TreeGraphics.display(agent.sub_agent, agent_surface)
+            TreeGraphics.display(agent.sub_agent, agent_surface)
 
     @classmethod
     def display_trajectory(cls, trajectory, surface, sim_surface, color):

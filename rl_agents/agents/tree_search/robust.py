@@ -2,10 +2,11 @@ import numpy as np
 
 from rl_agents.agents.abstract import AbstractAgent
 from rl_agents.agents.common import load_agent, preprocess_env
-from rl_agents.agents.tree_search.mcts import MCTSAgent, MCTS, MCTSNode
+from agents.tree_search.deterministic import DeterministicPlannerAgent, OptimisticDeterministicPlanner, \
+    DeterministicNode
 
 
-class DiscreteRobustPlannerAgent(MCTSAgent):
+class DiscreteRobustPlannerAgent(DeterministicPlannerAgent):
     def __init__(self,
                  env,
                  config=None):
@@ -13,16 +14,16 @@ class DiscreteRobustPlannerAgent(MCTSAgent):
         super(DiscreteRobustPlannerAgent, self).__init__(env, config)
 
     def make_planner(self):
-        return RobustMCTS(self.planner.prior_policy, self.planner.rollout_policy, self.config)
+        return DiscreteRobustPlanner(self.config)
 
     @classmethod
     def default_config(cls):
         config = super(DiscreteRobustPlannerAgent, cls).default_config()
-        config.update(dict(envs_preprocessors=[]))
+        config.update(dict(models=[]))
         return config
 
     def plan(self, observation):
-        envs = [preprocess_env(self.__env, preprocessors) for preprocessors in self.config["envs_preprocessors"]]
+        envs = [preprocess_env(self.__env, preprocessors) for preprocessors in self.config["models"]]
         self.env = JointEnv(envs)
         return super(DiscreteRobustPlannerAgent, self).plan(observation)
 
@@ -46,14 +47,19 @@ class JointEnv(object):
                                   for s in self.joint_state]))
 
 
-class RobustMCTS(MCTS):
+class DiscreteRobustPlanner(OptimisticDeterministicPlanner):
     def make_root(self):
-        self.root = RobustMCTSNode(parent=None, mcts=self)
+        root = RobustNode(parent=None, planner=self)
+        self.leaves = [root]
+        return root
 
 
-class RobustMCTSNode(MCTSNode):
+class RobustNode(DeterministicNode):
     def get_value(self):
         return np.min(self.value)
+
+    def get_value_upper_bound(self):
+        return np.min(self.value_upper_bound)
 
 
 class IntervalRobustPlannerAgent(AbstractAgent):

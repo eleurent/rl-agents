@@ -26,15 +26,15 @@ class AgentGraphics(object):
         :param sim_surface: the pygame surface on which the environment is displayed
         """
 
-        if isinstance(agent, DiscreteRobustPlannerAgent):
-            DiscreteRobustPlannerGraphics.display(agent, agent_surface)
-        elif isinstance(agent, MCTSAgent):
-            MCTSGraphics.display(agent, agent_surface)
-        elif isinstance(agent, AbstractDQNAgent):
+        if isinstance(agent, AbstractDQNAgent):
             DQNGraphics.display(agent, agent_surface)
         elif isinstance(agent, ValueIterationAgent):
             ValueIterationGraphics.display(agent, agent_surface)
+        elif isinstance(agent, MCTSAgent):
+            MCTSGraphics.display(agent, agent_surface)
         elif isinstance(agent, IntervalRobustPlannerAgent):
             IntervalRobustPlannerGraphics.display(agent, agent_surface, sim_surface)
-        elif isinstance(agent, DeterministicPlannerAgent) or isinstance(agent, OLOPAgent):
+        elif isinstance(agent, DeterministicPlannerAgent) \
+                or isinstance(agent, OLOPAgent) \
+                or isinstance(agent, DiscreteRobustPlannerAgent):
             TreeGraphics.display(agent, agent_surface)
