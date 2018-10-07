@@ -1,11 +1,12 @@
 {
     "environments": [
-        "configs/RoundaboutEnv/env_route_0.json",
-        "configs/RoundaboutEnv/env_route_1.json"
+        "configs/RoundaboutEnv/env.json"
     ],
     "agents": [
         "configs/RoundaboutEnv/agents/DeterministicPlannerAgent/baseline.json",
-        "configs/RoundaboutEnv/agents/DeterministicPlannerAgent/assume_route_0.json",
-        "configs/RoundaboutEnv/agents/DeterministicPlannerAgent/assume_route_1.json"
+        "configs/RoundaboutEnv/agents/DeterministicPlannerAgent/assume_random_route.json",
+        "configs/RoundaboutEnv/agents/DiscreteRobustPlannerAgent/routes.json",
+        "configs/RoundaboutEnv/agents/DeterministicPlannerAgent/assume_random_behaviour.json",
+        "configs/RoundaboutEnv/agents/IntervalRobustPlannerAgent/behaviours.json"
     ]
 }

@@ -2,8 +2,7 @@
     "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
     "env_preprocessors": [
         {
-            "method":"set_route_at_intersection",
-            "args": 0
+            "method":"randomize_behaviour"
         }
     ],
     "budget": 50
