@@ -7,11 +7,18 @@ A collection of Reinforcement Learning agents
 * [Installation](#installation)
 * [Usage](#usage)
 * [Agents](#agents)
-  * [Value Iteration](#value-iteration)
-  * [Robust Value Iteration](#robust-value-iteration)
-  * [DQN](#dqn)
-  * [Monte-Carlo Tree Search](#monte-carlo-tree-search)
-  * [Robust Monte-Carlo Tree Search](#robust-monte-carlo-tree-search)
+  * Planning
+    * [Value Iteration](#value-iteration)
+    * [Monte-Carlo Tree Search](#monte-carlo-tree-search)
+    * [Deterministic Optimistic Planning](#deterministic-optimistic-planning)
+    * [Open Loop Optimistic Planning](#open-loop-optimistic-planning)
+    * [Trailblazer](#trailblazer)
+  * Robust planning
+    * [Robust Value Iteration](#robust-value-iteration)
+    * [Discrete Robust Optimistic Planning](#discrete-robust-optimistic-planning)
+    * [Interval-based Robust Planning](#interval-based-robust-planning)
+  * Value-based
+    * [DQN](#dqn)
 
 # Installation
 
@@ -106,17 +113,55 @@ A benchmark configuration files contains a list of environment configurations an
 
 The following agents are currently implemented:
 
-## [Value Iteration](rl_agents/agents/dynamics_programming/value_iteration.py)
+## Planning
+
+### [Value Iteration](rl_agents/agents/dynamics_programming/value_iteration.py)
 
 Perform a Value Iteration to compute the state-action value, and acts greedily with respect to it.
 
 Only compatible with [finite-mdp](https://github.com/eleurent/finite-mdp) environments, or environments that handle an `env.to_finite_mdp()` conversion method.
 
+### [Monte-Carlo Tree Search](rl_agents/agents/tree_search/mcts.py)
+
+Otherwise known as Upper Confidence Trees (UCT). A world transition model is leveraged for trajectory search. A search tree is expanded by efficient random sampling so as to focus the search around the most promising moves.
+
+References:
+* [Efficient Selectivity and Backup Operators in Monte-Carlo Tree Search](https://hal.inria.fr/inria-00116992/document), Coulom R., 2006.
+* [Bandit based Monte-Carlo Planning](http://ggp.stanford.edu/readings/uct.pdf), Kocsis L., Szepesvári C., 2006.
+
+### [Deterministic Optimistic Planning](rl_agents/agents/tree_search/deterministic.py)
+
+Reference:
+* [Optimistic Planning for Deterministic Systems](https://hal.inria.fr/hal-00830182), Hren J., Munos R., 2008.
+
+### [Open Loop Optimistic Planning](rl_agents/agents/tree_search/olop.py)
+
+Reference:
+* [Open Loop Optimistic Planning](http://sbubeck.com/COLT10_BM.pdf), Bubeck S., Munos R., 2010.
+
+### [Trailblazer](rl_agents/agents/tree_search/trailblazer.py)
+
+Reference:
+* [Blazing the trails before beating the path: Sample-efficient Monte-Carlo planning](http://researchers.lille.inria.fr/~valko/hp/serve.php?what=publications/grill2016blazing.pdf), Grill J. B., Valko M., Munos R., 2017.
+
+## Robust planning
+
 ### [Robust Value Iteration](rl_agents/agents/dynamics_programming/robust_value_iteration.py)
 
-In this variant, a list of possible [finite-mdp] models is provided in the agent configuration, and the corresponding robust state-action value is computed so as to maximize the worst-case total reward.
+A list of possible [finite-mdp](https://github.com/eleurent/finite-mdp) models is provided in the agent configuration. The MDP ambiguity set is constrained to be rectangular: different models can be selected at every transition.The corresponding robust state-action value is computed so as to maximize the worst-case total reward.
 
-## [DQN](rl_agents/agents/dqn)
+### [Discrete Robust Optimistic Planning](rl_agents/agents/tree_search/robust.py)
+
+The MDP ambiguity set is assumed to be finite, and is constructed from a list of modifiers to the true environment. 
+The corresponding robust value is approximately computed by [Deterministic Optimistic Planning](#deterministic-optimistic-planning) so as to maximize the worst-case total reward.
+
+### [Interval-based Robust Planning]((rl_agents/agents/tree_search/robust.py))
+
+TODO
+
+## Value-based
+
+### [DQN](rl_agents/agents/dqn)
 
 A neural-network model is used to estimate the state-action value function and produce a greedy optimal policy.
 
@@ -129,18 +174,4 @@ References:
 * [Playing Atari with Deep Reinforcement Learning](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf), Mnih V. et al, 2013
 * [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461), van Hasselt H. et al, 2015.
 * [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581), Wang Z. et al, 2015.
-
-## [Monte-Carlo Tree Search](rl_agents/agents/tree_search/mcts.py)
-
-A world transition model is leveraged for trajectory search. A search tree is expanded by efficient random sampling so as to focus the search around the most promising moves.
-
-References:
-* [Efficient Selectivity and Backup Operators in Monte-Carlo Tree Search](https://hal.inria.fr/inria-00116992/document), Coulom R., 2006.
-* [Bandit based Monte-Carlo Planning](http://ggp.stanford.edu/readings/uct.pdf), Kocsis L., Szepesvári C., 2006.
-
-### [Robust Monte Carlo Tree Search](rl_agents/agents/tree_search/robust.py)
-
-In this variant, a list of environment modifiers (called preprocessors) is provided in the agent configuration to generate several possible environment, and the corresponding robust state-action value is approximately computed by tree-search so as to maximize the worst-case total reward.
-
-
 
