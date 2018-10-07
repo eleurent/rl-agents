@@ -95,4 +95,5 @@ class RunAnalyzer(object):
         for directory, manifest in runs.items():
             statistics = stats.describe(manifest[field][self.episodes_range[0]:self.episodes_range[1]])
             std = np.sqrt(statistics.variance) if not np.isnan(statistics.variance) else 0
-            print(directory, '{:.2f} +/- {:.2f}'.format(statistics.mean, std))
+            print(directory, '\t mean +/- std = {:.2f} +/- {:.2f} \t [min, max] = [{:.2f}, {:.2f}]'.format(
+                statistics.mean, std, statistics.minmax[0], statistics.minmax[1]))
