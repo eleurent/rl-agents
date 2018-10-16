@@ -150,6 +150,11 @@ Reference:
 
 A list of possible [finite-mdp](https://github.com/eleurent/finite-mdp) models is provided in the agent configuration. The MDP ambiguity set is constrained to be rectangular: different models can be selected at every transition.The corresponding robust state-action value is computed so as to maximize the worst-case total reward.
 
+References:
+* [Robust Control of Markov Decision Processes with Uncertain Transition Matrices](https://people.eecs.berkeley.edu/~elghaoui/pdffiles/rmdp_erl.pdf), Nilim A., El Ghaoui L., 2005.
+* [Robust Dynamic Programming](http://www.corc.ieor.columbia.edu/reports/techreports/tr-2002-07.pdf), Iyengar G., 2005.
+* [Robust Markov Decision Processes](http://www.optimization-online.org/DB_FILE/2010/05/2610.pdf), Wiesemann W. et al, 2012.
+
 ### [Discrete Robust Optimistic Planning](rl_agents/agents/tree_search/robust.py)
 
 The MDP ambiguity set is assumed to be finite, and is constructed from a list of modifiers to the true environment. 
