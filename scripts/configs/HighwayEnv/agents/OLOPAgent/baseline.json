@@ -3,5 +3,5 @@
     "env_preprocessors": [{"method":"simplify"}],
     "gamma": 0.7,
     "budget": 200,
-    "max_depth": 3
+    "max_depth": 4
 }

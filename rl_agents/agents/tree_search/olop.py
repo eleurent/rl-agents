@@ -24,7 +24,10 @@ class OLOP(AbstractPlanner):
         super(OLOP, self).__init__(config)
 
     def make_root(self):
-        root, self.leaves = self.build_tree(self.env.action_space.n)
+        root = OLOPNode(parent=None, planner=self)
+        self.leaves = [root]
+        if "horizon" not in self.config:
+            self.allocate_budget()
         return root
 
     @staticmethod
@@ -39,19 +42,6 @@ class OLOP(AbstractPlanner):
                 break
         else:
             raise ValueError("Could not split budget {} with gamma {}".format(self.config["budget"], self.config["gamma"]))
-
-    def build_tree(self, branching_factor):
-        root = OLOPNode(parent=None, planner=self)
-        leaves = [root]
-        if "horizon" not in self.config:
-            self.allocate_budget()
-        for _ in range(self.config["horizon"]):
-            next_leaves = []
-            for leaf in leaves:
-                leaf.expand(branching_factor)
-                next_leaves += leaf.children.values()
-            leaves = next_leaves
-        return root, leaves
 
     def run(self, state):
         """
@@ -74,9 +64,10 @@ class OLOP(AbstractPlanner):
         for action in best_sequence:
             observation, reward, done, _ = state.step(action)
             terminal = terminal or done
-            reward
             node = node.children[action]
-            node.update(reward, done, self.config["episodes"])
+            node.update(reward, done)
+        if len(best_sequence) < self.config["horizon"]:
+            node.expand(state, self.leaves)
 
     def compute_u_values(self, node, path):
         """
@@ -143,14 +134,30 @@ class OLOPNode(Node):
         counts = Node.all_argmax([self.children[a].count for a in actions])
         return actions[max(counts, key=(lambda i: self.children[actions[i]].get_value()))]
 
-    def update(self, reward, done, episodes, upper_bound="kullback-leibler"):
+    def update(self, reward, done, upper_bound="kullback-leibler"):
         if not 0 <= reward <= 1:
             raise ValueError("This planner assumes that all rewards are normalized in [0, 1]")
         self.cumulative_reward += reward
         self.count += 1
         if upper_bound == "hoeffding":
-            self.mu_ucb = hoeffding_upper_bound(self.cumulative_reward, self.count, episodes)
+            self.mu_ucb = hoeffding_upper_bound(self.cumulative_reward, self.count, self.planner.config["episodes"])
         if upper_bound == "kullback-leibler":
-            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, episodes)
+            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, self.planner.config["episodes"])
         if done and OLOPNode.STOP_ON_ANY_TERMINAL_STATE:
             self.done = True
+
+    def expand(self, state, leaves):
+        if state is None:
+            raise Exception("The state should be set before expanding a node")
+        try:
+            actions = state.get_available_actions()
+        except AttributeError:
+            actions = range(state.action_space.n)
+        for action in actions:
+            self.children[action] = type(self)(self,
+                                               self.planner)
+            _, reward, done, _ = safe_deepcopy_env(state).step(action)
+            self.children[action].update(reward, done)
+
+        leaves.remove(self)
+        leaves.extend(self.children.values())
