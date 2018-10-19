@@ -10,7 +10,7 @@ class DiscreteRobustPlannerAgent(DeterministicPlannerAgent):
     def __init__(self,
                  env,
                  config=None):
-        self.__env = env
+        self.true_env = env
         super(DiscreteRobustPlannerAgent, self).__init__(env, config)
 
     def make_planner(self):
@@ -23,7 +23,7 @@ class DiscreteRobustPlannerAgent(DeterministicPlannerAgent):
         return config
 
     def plan(self, observation):
-        envs = [preprocess_env(self.__env, preprocessors) for preprocessors in self.config["models"]]
+        envs = [preprocess_env(self.true_env, preprocessors) for preprocessors in self.config["models"]]
         self.env = JointEnv(envs)
         return super(DiscreteRobustPlannerAgent, self).plan(observation)
 
