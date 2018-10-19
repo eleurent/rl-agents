@@ -3,6 +3,7 @@ import numpy as np
 
 from rl_agents.agents.common import safe_deepcopy_env
 from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
+from rl_agents.agents.utils import bernoulli_kullback_leibler, hoeffding_upper_bound, kl_upper_bound
 
 
 class OLOPAgent(AbstractTreeSearchAgent):
@@ -23,7 +24,10 @@ class OLOP(AbstractPlanner):
         super(OLOP, self).__init__(config)
 
     def make_root(self):
-        root, self.leaves = self.build_tree(self.env.action_space.n)
+        root = OLOPNode(parent=None, planner=self)
+        self.leaves = [root]
+        if "horizon" not in self.config:
+            self.allocate_budget()
         return root
 
     @staticmethod
@@ -38,19 +42,6 @@ class OLOP(AbstractPlanner):
                 break
         else:
             raise ValueError("Could not split budget {} with gamma {}".format(self.config["budget"], self.config["gamma"]))
-
-    def build_tree(self, branching_factor):
-        root = OLOPNode(parent=None, planner=self)
-        leaves = [root]
-        if "horizon" not in self.config:
-            self.allocate_budget()
-        for _ in range(self.config["horizon"]):
-            next_leaves = []
-            for leaf in leaves:
-                leaf.expand(branching_factor)
-                next_leaves += leaf.children.values()
-            leaves = next_leaves
-        return root, leaves
 
     def run(self, state):
         """
@@ -73,9 +64,10 @@ class OLOP(AbstractPlanner):
         for action in best_sequence:
             observation, reward, done, _ = state.step(action)
             terminal = terminal or done
-            reward = reward if not terminal else 0
             node = node.children[action]
-            node.update(reward, self.config["episodes"])
+            node.update(reward, done)
+        if len(best_sequence) < self.config["horizon"]:
+            node.expand(state, self.leaves)
 
     def compute_u_values(self, node, path):
         """
@@ -89,7 +81,7 @@ class OLOP(AbstractPlanner):
         :return: the path from the root to the node, and the node value.
         """
         # Upper bound of the reward-to-go after this node
-        node.value = self.config["gamma"] ** (len(path) + 1) / (1 - self.config["gamma"])
+        node.value = self.config["gamma"] ** (len(path) + 1) / (1 - self.config["gamma"]) if not node.done else 0
         node_t = node
         for t in np.arange(len(path), 0, -1):  # from current node up to the root
             node.value += self.config["gamma"]**t * node_t.mu_ucb  # upper bound of the node mean reward
@@ -122,6 +114,8 @@ class OLOP(AbstractPlanner):
 
 
 class OLOPNode(Node):
+    STOP_ON_ANY_TERMINAL_STATE = True
+
     def __init__(self, parent, planner):
         super(OLOPNode, self).__init__(parent, planner)
 
@@ -131,15 +125,39 @@ class OLOPNode(Node):
         self.mu_ucb = np.infty
         """ Upper bound of the node mean reward. """
 
+        self.done = False
+        """ Is this node a terminal node, for all random realizations (!)"""
+
     def selection_rule(self):
         # Tie best counts by best value
         actions = list(self.children.keys())
         counts = Node.all_argmax([self.children[a].count for a in actions])
         return actions[max(counts, key=(lambda i: self.children[actions[i]].get_value()))]
 
-    def update(self, reward, episodes):
+    def update(self, reward, done, upper_bound="kullback-leibler"):
         if not 0 <= reward <= 1:
             raise ValueError("This planner assumes that all rewards are normalized in [0, 1]")
         self.cumulative_reward += reward
         self.count += 1
-        self.mu_ucb = self.cumulative_reward / self.count + np.sqrt(2 * np.log(episodes) / self.count)
+        if upper_bound == "hoeffding":
+            self.mu_ucb = hoeffding_upper_bound(self.cumulative_reward, self.count, self.planner.config["episodes"])
+        if upper_bound == "kullback-leibler":
+            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, self.planner.config["episodes"])
+        if done and OLOPNode.STOP_ON_ANY_TERMINAL_STATE:
+            self.done = True
+
+    def expand(self, state, leaves):
+        if state is None:
+            raise Exception("The state should be set before expanding a node")
+        try:
+            actions = state.get_available_actions()
+        except AttributeError:
+            actions = range(state.action_space.n)
+        for action in actions:
+            self.children[action] = type(self)(self,
+                                               self.planner)
+            _, reward, done, _ = safe_deepcopy_env(state).step(action)
+            self.children[action].update(reward, done)
+
+        leaves.remove(self)
+        leaves.extend(self.children.values())
