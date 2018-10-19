@@ -103,21 +103,20 @@ class DiscreteRobustPlannerGraphics(TreeGraphics):
     @classmethod
     def display(cls, agent, agent_surface, sim_surface):
         horizon = 2
-        for v in range(3):
-            for destination in ["exr", "sxr"]:
-                robust_env = preprocess_env(agent.env, agent.config["env_preprocessors"])
-                robust_env.road.vehicles[1 + v].plan_route_to(destination)
-                for action in agent.sub_agent.planner.get_plan()[:horizon]:
-                    robust_env.step(action)
-                for vehicle in robust_env.road.vehicles:
-                    if not hasattr(vehicle, 'observer_trajectory'):
-                        continue
-                    min_traj = [o.position[0] for o in vehicle.observer_trajectory]
-                    max_traj = [o.position[1] for o in vehicle.observer_trajectory]
-                    uncertainty_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA, 32)
-                    cls.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface, cls.MODEL_TRAJ_COLOR)
-                    sim_surface.blit(uncertainty_surface, (0, 0))
-            TreeGraphics.display(agent.sub_agent, agent_surface)
+        plan = agent.planner.get_plan()
+        for env in [preprocess_env(agent.true_env, preprocessors) for preprocessors in agent.config["models"]]:
+            for vehicle in env.road.vehicles:
+                vehicle.trajectory = []
+            for action in plan[:horizon] + (horizon - len(plan)) * [1]:
+                env.step(action)
+            for vehicle in env.road.vehicles:
+                if vehicle is env.vehicle:
+                    continue
+                uncertainty_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA, 32)
+                IntervalRobustPlannerGraphics.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface,
+                                                                 IntervalRobustPlannerGraphics.MODEL_TRAJ_COLOR)
+                sim_surface.blit(uncertainty_surface, (0, 0))
+        TreeGraphics.display(agent, agent_surface)
 
     @classmethod
     def draw_node(cls, node, surface, origin, size, config):
@@ -128,16 +127,6 @@ class DiscreteRobustPlannerGraphics(TreeGraphics):
             v = node.value[i] if n > 1 else node.value
             color = cmap(norm(v), bytes=True)
             pygame.draw.rect(surface, color, (origin[0] + i / n * size[0], origin[1], size[0] / n, size[1]), 0)
-
-    @classmethod
-    def display_text(cls, node, surface, origin, config):
-        font = pygame.font.Font(None, 13)
-        text = "{} / {:.2f} / {}".format('-'.join(['{:.1f}'.format(i) for i in node.get_value()]),
-                                         node.selection_strategy(config["temperature"]), node.count)
-        text += " / {:.2f}".format(node.prior)
-        text = font.render(text,
-                           1, (10, 10, 10), (255, 255, 255))
-        surface.blit(text, (origin[0] + 1, origin[1] + 1))
 
 
 class IntervalRobustPlannerGraphics(object):
@@ -168,6 +157,7 @@ class IntervalRobustPlannerGraphics(object):
 
     @classmethod
     def display_trajectory(cls, trajectory, surface, sim_surface, color):
+        color = (color[0], color[1], color[2], cls.TRANSPARENCY)
         for i in range(len(trajectory)-1):
             pygame.draw.line(surface, color,
                              (sim_surface.vec2pix(trajectory[i].position)),

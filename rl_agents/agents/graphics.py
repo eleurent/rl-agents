@@ -34,7 +34,8 @@ class AgentGraphics(object):
             MCTSGraphics.display(agent, agent_surface)
         elif isinstance(agent, IntervalRobustPlannerAgent):
             IntervalRobustPlannerGraphics.display(agent, agent_surface, sim_surface)
+        elif isinstance(agent, DiscreteRobustPlannerAgent):
+            DiscreteRobustPlannerGraphics.display(agent, agent_surface, sim_surface)
         elif isinstance(agent, DeterministicPlannerAgent) \
-                or isinstance(agent, OLOPAgent) \
-                or isinstance(agent, DiscreteRobustPlannerAgent):
+                or isinstance(agent, OLOPAgent):
             TreeGraphics.display(agent, agent_surface)
