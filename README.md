@@ -121,28 +121,27 @@ Perform a Value Iteration to compute the state-action value, and acts greedily w
 
 Only compatible with [finite-mdp](https://github.com/eleurent/finite-mdp) environments, or environments that handle an `env.to_finite_mdp()` conversion method.
 
+Reference: [Dynamic Programming](https://press.princeton.edu/titles/9234.html), Bellman R., Princeton University Press (1957).
+
 ### [Monte-Carlo Tree Search](rl_agents/agents/tree_search/mcts.py)
 
-Otherwise known as Upper Confidence Trees (UCT). A world transition model is leveraged for trajectory search. A search tree is expanded by efficient random sampling so as to focus the search around the most promising moves.
+Implemented as Upper Confidence Trees (UCT). A world transition model is leveraged for trajectory search. A search tree is expanded though a selection rule tailored to focus the search around the most promising moves, and leaves are evaluated by sampling.
 
 References:
 * [Efficient Selectivity and Backup Operators in Monte-Carlo Tree Search](https://hal.inria.fr/inria-00116992/document), Coulom R., 2006.
-* [Bandit based Monte-Carlo Planning](http://ggp.stanford.edu/readings/uct.pdf), Kocsis L., Szepesvári C., 2006.
+* [Bandit based Monte-Carlo Planning](http://ggp.stanford.edu/readings/uct.pdf), Kocsis L., Szepesvári C. (2006).
 
 ### [Deterministic Optimistic Planning](rl_agents/agents/tree_search/deterministic.py)
 
-Reference:
-* [Optimistic Planning for Deterministic Systems](https://hal.inria.fr/hal-00830182), Hren J., Munos R., 2008.
+Reference: [Optimistic Planning for Deterministic Systems](https://hal.inria.fr/hal-00830182), Hren J., Munos R. (2008).
 
 ### [Open Loop Optimistic Planning](rl_agents/agents/tree_search/olop.py)
 
-Reference:
-* [Open Loop Optimistic Planning](http://sbubeck.com/COLT10_BM.pdf), Bubeck S., Munos R., 2010.
+Reference: [Open Loop Optimistic Planning](http://sbubeck.com/COLT10_BM.pdf), Bubeck S., Munos R. (2010).
 
 ### [Trailblazer](rl_agents/agents/tree_search/trailblazer.py)
 
-Reference:
-* [Blazing the trails before beating the path: Sample-efficient Monte-Carlo planning](http://researchers.lille.inria.fr/~valko/hp/serve.php?what=publications/grill2016blazing.pdf), Grill J. B., Valko M., Munos R., 2017.
+Reference: [Blazing the trails before beating the path: Sample-efficient Monte-Carlo planning](http://researchers.lille.inria.fr/~valko/hp/serve.php?what=publications/grill2016blazing.pdf), Grill J. B., Valko M., Munos R. (2017).
 
 ## Robust planning
 
@@ -151,13 +150,13 @@ Reference:
 A list of possible [finite-mdp](https://github.com/eleurent/finite-mdp) models is provided in the agent configuration. The MDP ambiguity set is constrained to be rectangular: different models can be selected at every transition.The corresponding robust state-action value is computed so as to maximize the worst-case total reward.
 
 References:
-* [Robust Control of Markov Decision Processes with Uncertain Transition Matrices](https://people.eecs.berkeley.edu/~elghaoui/pdffiles/rmdp_erl.pdf), Nilim A., El Ghaoui L., 2005.
-* [Robust Dynamic Programming](http://www.corc.ieor.columbia.edu/reports/techreports/tr-2002-07.pdf), Iyengar G., 2005.
-* [Robust Markov Decision Processes](http://www.optimization-online.org/DB_FILE/2010/05/2610.pdf), Wiesemann W. et al, 2012.
+* [Robust Control of Markov Decision Processes with Uncertain Transition Matrices](https://people.eecs.berkeley.edu/~elghaoui/pdffiles/rmdp_erl.pdf), Nilim A., El Ghaoui L. (2005).
+* [Robust Dynamic Programming](http://www.corc.ieor.columbia.edu/reports/techreports/tr-2002-07.pdf), Iyengar G. (2005).
+* [Robust Markov Decision Processes](http://www.optimization-online.org/DB_FILE/2010/05/2610.pdf), Wiesemann W. et al. (2012).
 
 ### [Discrete Robust Optimistic Planning](rl_agents/agents/tree_search/robust.py)
 
-The MDP ambiguity set is assumed to be finite, and is constructed from a list of modifiers to the true environment. 
+The MDP ambiguity set is assumed to be finite, and is constructed from a list of modifiers to the true environment.
 The corresponding robust value is approximately computed by [Deterministic Optimistic Planning](#deterministic-optimistic-planning) so as to maximize the worst-case total reward.
 
 ### [Interval-based Robust Planning]((rl_agents/agents/tree_search/robust.py))
@@ -176,7 +175,7 @@ Implemented variants:
 * N-step targets
 
 References:
-* [Playing Atari with Deep Reinforcement Learning](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf), Mnih V. et al, 2013
-* [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461), van Hasselt H. et al, 2015.
-* [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581), Wang Z. et al, 2015.
+* [Playing Atari with Deep Reinforcement Learning](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf), Mnih V. et al (2013).
+* [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461), van Hasselt H. et al. (2015).
+* [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581), Wang Z. et al. (2015).
 
