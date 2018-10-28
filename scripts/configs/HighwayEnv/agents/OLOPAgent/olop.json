@@ -1,0 +1,9 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+    "env_preprocessors": [{"method":"simplify"}],
+    "gamma": 0.7,
+    "budget": 500,
+    "max_depth": 4,
+    "upper_bound": "hoeffding",
+    "lazy_tree_construction": false
+}
