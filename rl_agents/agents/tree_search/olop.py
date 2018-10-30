@@ -102,6 +102,8 @@ class OLOP(AbstractPlanner):
                 node.expand(state, self.leaves, update_children=False)
             node = node.children[action]
             node.update(reward, done)
+            if done:
+                break
 
     def compute_u_values(self, node, path):
         """
