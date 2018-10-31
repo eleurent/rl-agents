@@ -1,0 +1,8 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+    "gamma": 0.5,
+    "budget": 50,
+    "max_depth": 2,
+    "upper_bound": "kullback-leibler",
+    "lazy_tree_construction": true
+}
