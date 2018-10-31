@@ -89,8 +89,8 @@ class OLOP(AbstractPlanner):
 
         if self.config["lazy_tree_construction"]:
             # If the sequence length is shorter than the horizon, all continuations have the same upper-bounds.
-            # Pick one continuation arbitrarily. Here, pad with the sequence [1, ...., 1].
-            best_sequence = best_sequence[:self.config["horizon"]] + [1]*(self.config["horizon"] - len(best_sequence))
+            # Pick one continuation arbitrarily. Here, pad with the sequence [0, ..., 0].
+            best_sequence = best_sequence[:self.config["horizon"]] + [0]*(self.config["horizon"] - len(best_sequence))
 
         # Execute sequence, expand tree if needed, collect rewards and update upper confidence bounds.
         node = self.root
@@ -98,8 +98,10 @@ class OLOP(AbstractPlanner):
         for action in best_sequence:
             observation, reward, done, _ = state.step(action)
             terminal = terminal or done
-            if action not in node.children:
+            if not node.children:
                 node.expand(state, self.leaves, update_children=False)
+            if action not in node.children:  # Default action may not be available
+                action = node.children.keys()[0]  # Pick first available action
             node = node.children[action]
             node.update(reward, done)
             if done:
