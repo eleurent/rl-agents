@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from rl_agents.agents.common import load_environment, agent_factory
 from rl_agents.trainer.evaluation import Evaluation
 
-gamma = 0.7
+gamma = 0.8
 K = 3
 
 
@@ -30,6 +30,7 @@ def allocate(budget):
 
 
 def plot_budget(budget, episodes, horizon):
+    plt.figure()
     plt.subplot(311)
     plt.plot(budget, episodes)
     plt.title('M')
@@ -50,7 +51,7 @@ def agent_configs():
             "gamma": gamma,
             "max_depth": 2,
             "upper_bound": "hoeffding",
-            "lazy_tree_construction": False
+            "lazy_tree_construction": True
         },
         "kl-olop": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -81,19 +82,20 @@ def evaluate(agent_config):
 
 
 def main():
-    n = np.arange(50, 1000, 20)
-    # M, L = allocate(n)
-    # plot_budget(n, M, L)
+    n = np.arange(50, 1000, 25)
+    M, L = allocate(n)
 
     agents = agent_configs()
     rewards = np.zeros((n.size, len(agents)))
     for i in range(n.size):
+        print("Budget:", i+1, "/", n.size)
         for j in range(len(agents.keys())):
             config = list(agents.values())[j]
             config["budget"] = int(n[i])
             rewards[i, j] = evaluate(config)
     plt.plot(n, rewards)
     plt.legend(agents.keys())
+    plot_budget(n, M, L)
     plt.show()
 
 

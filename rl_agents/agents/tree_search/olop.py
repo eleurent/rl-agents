@@ -154,7 +154,7 @@ class OLOP(AbstractPlanner):
 
 
 class OLOPNode(Node):
-    STOP_ON_ANY_TERMINAL_STATE = True
+    STOP_ON_ANY_TERMINAL_STATE = False
 
     def __init__(self, parent, planner):
         super(OLOPNode, self).__init__(parent, planner)
