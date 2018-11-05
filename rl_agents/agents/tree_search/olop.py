@@ -94,17 +94,15 @@ class OLOP(AbstractPlanner):
 
         # Execute sequence, expand tree if needed, collect rewards and update upper confidence bounds.
         node = self.root
-        terminal = False
         for action in best_sequence:
             observation, reward, done, _ = state.step(action)
-            terminal = terminal or done
             if not node.children:
                 self.leaves = node.expand(state, self.leaves, update_children=True)
             if action not in node.children:  # Default action may not be available
                 action = node.children.keys()[0]  # Pick first available action
             node = node.children[action]
             node.update(reward, done)
-            if done:
+            if node.done:
                 break
 
     def compute_u_values(self, node, path):
