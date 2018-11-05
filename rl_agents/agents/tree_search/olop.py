@@ -99,7 +99,7 @@ class OLOP(AbstractPlanner):
             observation, reward, done, _ = state.step(action)
             terminal = terminal or done
             if not node.children:
-                node.expand(state, self.leaves, update_children=False)
+                self.leaves = node.expand(state, self.leaves, update_children=True)
             if action not in node.children:  # Default action may not be available
                 action = node.children.keys()[0]  # Pick first available action
             node = node.children[action]
@@ -205,5 +205,6 @@ class OLOPNode(Node):
                 _, reward, done, _ = safe_deepcopy_env(state).step(action)
                 self.children[action].update(reward, done)
 
-        leaves.remove(self)
-        leaves.extend(self.children.values())
+        idx = leaves.index(self)
+        leaves = leaves[:idx] + list(self.children.values()) + leaves[idx+1:]
+        return leaves
