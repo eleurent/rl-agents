@@ -19,7 +19,7 @@ def allocate(budget):
         horizon = np.zeros(budget.shape)
         for i in range(budget.size):
             episodes[i], horizon[i] = allocate(budget[i])
-            return episodes, horizon
+        return episodes, horizon
     else:
         for episodes in range(1, budget):
             if episodes * olop_horizon(episodes, gamma) > budget:
