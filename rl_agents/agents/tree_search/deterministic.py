@@ -31,7 +31,8 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
             Run an OptimisticDeterministicPlanner episode
         """
         leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
-        leaf_to_expand.expand(self.leaves)
+        if not leaf_to_expand.done:
+            leaf_to_expand.expand(self.leaves)
 
         self.root.backup_values()
 
