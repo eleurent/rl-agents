@@ -26,8 +26,16 @@ class OLOP(AbstractPlanner):
     @classmethod
     def default_config(cls):
         cfg = super(OLOP, cls).default_config()
-        cfg.update({"upper_bound": "hoeffding",
-                    "lazy_tree_construction": False})
+        cfg.update(
+            {
+                "upper_bound":
+                {
+                    "type": "hoeffding",
+                    "time": "global"
+                },
+                "lazy_tree_construction": False
+            }
+        )
         return cfg
 
     def make_root(self):
@@ -81,6 +89,7 @@ class OLOP(AbstractPlanner):
         :param state: the initial environment state
         """
         # Compute B-values
+        list(Node.breadth_first_search(self.root, operator=self.compute_ucbs, condition=None))
         list(Node.breadth_first_search(self.root, operator=self.compute_u_values, condition=None))
         sequences_upper_bounds = list(map(OLOP.sharpen_b_values, self.leaves))
 
@@ -105,12 +114,23 @@ class OLOP(AbstractPlanner):
             if node.done:
                 break
 
+    def compute_ucbs(self, node, path):
+        """
+            Update the nodes mean reward UCB.
+
+            This should only be needed for upper-bounds that depend on global times.
+            Bounds with only local time dependency can be computed when updating sampled nodes, without requiring
+            a global update of the rest of the tree.
+        """
+        if self.config["upper_bound"]["time"] == "local":
+            node.compute_ucb()
+
     def compute_u_values(self, node, path):
         """
-            Compute the upper bound value of the action sequence at a given node.
+            Compute the upper bound of the value of the action sequence at a given node.
 
-            It represents the maximum admissible reward over trajectories that start with this particular sequence.
-            It is computed by summing upper bounds of intermediate rewards along the sequence, and an upper bound
+            It represents the maximum admissible mean reward over trajectories that start with this particular sequence.
+            It is computed by summing upper bounds of intermediate mean rewards along the sequence, and an upper bound
             of the remaining rewards over possible continuations of the sequence.
         :param node: a node in the look-ahead tree
         :param path: the path from the root to the node
@@ -145,9 +165,9 @@ class OLOP(AbstractPlanner):
             return min_value
 
     def plan(self, state, observation):
-        for i in range(self.config['episodes']):
-            if (i+1) % 10 == 0:
-                logger.debug('{} / {}'.format(i+1, self.config['episodes']))
+        for self.episode in range(self.config['episodes']):
+            if (self.episode+1) % 10 == 0:
+                logger.debug('{} / {}'.format(self.episode+1, self.config['episodes']))
             self.run(safe_deepcopy_env(state))
 
         return self.get_plan()
@@ -182,12 +202,25 @@ class OLOPNode(Node):
             raise ValueError("This planner assumes that all rewards are normalized in [0, 1]")
         self.cumulative_reward += reward
         self.count += 1
-        if self.planner.config["upper_bound"] == "hoeffding":
-            self.mu_ucb = hoeffding_upper_bound(self.cumulative_reward, self.count, self.planner.config["episodes"])
-        elif self.planner.config["upper_bound"] == "kullback-leibler":
-            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, self.planner.config["episodes"])
+        self.compute_ucb()
+
         if done and OLOPNode.STOP_ON_ANY_TERMINAL_STATE:
             self.done = True
+
+    def compute_ucb(self):
+        if self.planner.config["upper_bound"]["time"] == "local":
+            time = self.planner.episode + 1
+        elif self.planner.config["upper_bound"]["time"] == "global":
+            time = self.planner.config["episodes"]
+        else:
+            logger.error("Unknown upper-bound time reference")
+
+        if self.planner.config["upper_bound"]["type"] == "hoeffding":
+            self.mu_ucb = hoeffding_upper_bound(self.cumulative_reward, self.count, time)
+        elif self.planner.config["upper_bound"]["type"] == "kullback-leibler":
+            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, time)
+        else:
+            logger.error("Unknown upper-bound type")
 
     def expand(self, state, leaves, update_children=False):
         if state is None:
