@@ -64,8 +64,8 @@ class ValueIterationAgent(AbstractAgent):
     @staticmethod
     def is_finite_mdp(env):
         try:
-            finite_mdp = __import__("finite_mdp.envs.finite_mdp")
-            if isinstance(env, finite_mdp.envs.finite_mdp.FiniteMDPEnv):
+            finite_mdp = __import__("finite_mdp.envs.finite_mdp_env")
+            if isinstance(env, finite_mdp.envs.finite_mdp_env.FiniteMDPEnv):
                 return True
         except (ModuleNotFoundError, TypeError):
             return False
