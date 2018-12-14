@@ -2,16 +2,16 @@
     "__class__": "<class 'rl_agents.agents.dqn.pytorch.DQNAgent'>",
     "model": {
         "type": "DuelingNetwork",
-        "layers": [512, 512]
+        "layers": [256, 256]
     },
-    "gamma": 0.9,
-    "n_steps": 3,
+    "gamma": 0.8,
+    "n_steps": 1,
     "batch_size": 128,
-    "memory_capacity": 300000,
-    "target_update": 3000,
+    "memory_capacity": 150000,
+    "target_update": 1500,
     "exploration": {
         "method": "EpsilonGreedy",
-        "tau": 300000,
+        "tau": 150000,
         "temperature": 1.0,
         "final_temperature": 0.1
     }
