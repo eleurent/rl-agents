@@ -19,19 +19,20 @@ class MaxNode(object):
 
     def run(self, m, epsilon):
         candidates = self.children.values()
-        count = 2
-        U = np.inf
+        L = 1
+        U = 1/(1-self.gamma)
         mu = []
-        print("Called max node [depth={},s={}] with m={}, e={}".format(self.depth, self.state.mdp.state, m, epsilon))
 
         while len(candidates) > 1 and U >= (1 - self.eta)*epsilon:
-            sqr = (np.log(self.K*count/(self.delta*epsilon)) +
-                   self.gamma / (self.eta - self.gamma) + self.alpha + 1) / count
+            sqr = (np.log(self.K*L/(self.delta*epsilon)) +
+                   self.gamma / (self.eta - self.gamma) + self.alpha + 1) / L
             U = 2/(1-self.gamma)*np.sqrt(sqr)
-            mu = [(b, b.run(count, U*self.eta/(1-self.eta))) for b in candidates]
+            if self.depth == 0:
+                print("U={} / {}".format(U, (1 - self.eta)*epsilon))
+            mu = [(b, b.run(L, U*self.eta/(1-self.eta))) for b in candidates]
             mu_sup = max(mu, key=lambda c: c[1])[1]
             candidates = [c[0] for c in mu if c[1] + 2*U/(1-self.eta) >= mu_sup - 2*U/(1-self.eta)]
-            count += 1
+            L += 1
 
         if len(candidates) > 1:
             return max(mu, key=lambda c: c[1])[1]
@@ -44,6 +45,8 @@ class MaxNode(object):
 
 
 class AvgNode(object):
+    oracle_calls = 1
+
     def __init__(self, state, action, gamma, delta, alpha, eta, K, depth):
         self.state = state
         self.action = action
@@ -60,14 +63,14 @@ class AvgNode(object):
     def run(self, m, epsilon):
         if epsilon >= 1/(1-self.gamma):
             return 0
-        print("Called average node [depth={}, s={}, a={}] with m={}, e={}".format(self.depth, self.state.mdp.state, self.action, m, epsilon))
-        if len(self.sampled_nodes) > m:
+        if len(self.sampled_nodes) >= m:
             active_nodes = self.sampled_nodes[:m]
         else:
             while len(self.sampled_nodes) < m:
                 new_state = copy.deepcopy(self.state)
                 _, new_reward, _, _ = new_state.step(self.action)
                 self.sampled_nodes.append(MaxNode(new_state, self.gamma, self.delta, self.alpha, self.eta, self.depth + 1))
+                AvgNode.oracle_calls += 1
                 self.r += new_reward
             active_nodes = self.sampled_nodes
         # At this point, |active_nodes| == m
@@ -131,7 +134,7 @@ def test():
     })
     env.reset()
 
-    tb = TrailBlazer(env, gamma=0.5, delta=0.1, epsilon=1.0)
+    tb = TrailBlazer(env, gamma=0.5, delta=0.1, epsilon=4.0)
     print(tb.run())
 
 
