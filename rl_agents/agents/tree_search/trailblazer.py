@@ -4,28 +4,26 @@ import copy
 
 
 class MaxNode(object):
-
-    created = 0
-
-    def __init__(self, state, gamma, delta, alpha, eta):
+    def __init__(self, state, gamma, delta, alpha, eta, depth=0):
         self.state = state
         self.gamma = gamma
         self.delta = delta
         self.alpha = alpha
         self.eta = eta
         self.K = state.action_space.n
+        self.depth = depth
 
         self.children = {}
-        MaxNode.created += 1
-        print("New max node ! total: ", MaxNode.created)
         for action in range(state.action_space.n):
-            self.children[action] = AvgNode(state, action, self.gamma, self.delta, self.alpha, self.eta, self.K)
+            self.children[action] = AvgNode(state, action, self.gamma, self.delta, self.alpha, self.eta, self.K, self.depth + 1)
 
     def run(self, m, epsilon):
         candidates = self.children.values()
-        count = 1
+        count = 2
         U = np.inf
         mu = []
+        print("Called max node [depth={},s={}] with m={}, e={}".format(self.depth, self.state.mdp.state, m, epsilon))
+
         while len(candidates) > 1 and U >= (1 - self.eta)*epsilon:
             sqr = (np.log(self.K*count/(self.delta*epsilon)) +
                    self.gamma / (self.eta - self.gamma) + self.alpha + 1) / count
@@ -40,11 +38,13 @@ class MaxNode(object):
         else:
             return candidates[0].run(m, self.eta*epsilon)
 
+    def __eq__(self, other):
+        # TODO: generic comparison for list.index()
+        return self.state.mdp.state == other.state.mdp.state
+
 
 class AvgNode(object):
-    created = 0
-
-    def __init__(self, state, action, gamma, delta, alpha, eta, K):
+    def __init__(self, state, action, gamma, delta, alpha, eta, K, depth):
         self.state = state
         self.action = action
         self.gamma = gamma
@@ -52,37 +52,26 @@ class AvgNode(object):
         self.alpha = alpha
         self.eta = eta
         self.K = K
+        self.depth = depth
 
         self.sampled_nodes = []
         self.r = 0
 
-        AvgNode.created += 1
-        print("New avg node ! total: ", AvgNode.created)
-
     def run(self, m, epsilon):
         if epsilon >= 1/(1-self.gamma):
             return 0
+        print("Called average node [depth={}, s={}, a={}] with m={}, e={}".format(self.depth, self.state.mdp.state, self.action, m, epsilon))
         if len(self.sampled_nodes) > m:
             active_nodes = self.sampled_nodes[:m]
         else:
             while len(self.sampled_nodes) < m:
                 new_state = copy.deepcopy(self.state)
-                new_reward = new_state.step(self.action)
-                # print('sample {}/{}'.format(len(self.sampled_nodes), m))
-                already_sampled = False
-                for node in self.sampled_nodes:
-                    if node.state == new_state:
-                        self.sampled_nodes.append(node)
-                        already_sampled = True
-                        break
-                if not already_sampled:
-                    self.sampled_nodes.append(
-                        MaxNode(new_state, self.gamma, self.delta, self.alpha, self.eta))
-
+                _, new_reward, _, _ = new_state.step(self.action)
+                self.sampled_nodes.append(MaxNode(new_state, self.gamma, self.delta, self.alpha, self.eta, self.depth + 1))
                 self.r += new_reward
-
             active_nodes = self.sampled_nodes
         # At this point, |active_nodes| == m
+
         uniques = []
         counts = []
         for s in active_nodes:
@@ -124,6 +113,7 @@ class TrailBlazer(object):
     def run(self):
         return self.root.run(self.m, self.epsilon/2)
 
+
 def test():
     import finite_mdp
     import gym
@@ -131,17 +121,17 @@ def test():
     env.configure({
         "mode": "deterministic",
         "transition": [[1, 2],
-                       [0, 3],
+                       [1, 1],
                        [2, 2],
                        [3, 3]],
-        "reward": [[0, 1],
-                   [0, -1],
+        "reward": [[0.5, 1],
+                   [0, 0],
                    [0, 0],
                    [0, 0]]
     })
     env.reset()
 
-    tb = TrailBlazer(env, gamma=0.9, delta=0.1, epsilon=1.0)
+    tb = TrailBlazer(env, gamma=0.5, delta=0.1, epsilon=1.0)
     print(tb.run())
 
 
