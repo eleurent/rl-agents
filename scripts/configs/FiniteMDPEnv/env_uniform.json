@@ -1,0 +1,7 @@
+{
+    "id": "finite-mdp-v0",
+    "import_module": "finite_mdp",
+    "mode": "uniform",
+    "num_states": 100,
+    "num_actions": 3
+}

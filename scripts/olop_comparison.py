@@ -95,7 +95,7 @@ def main():
     n = np.arange(30, 61, 10)
     M, L = allocate(n)
 
-    environment_config = 'configs/FiniteMDPEnv/env_random.json'
+    environment_config = 'configs/FiniteMDPEnv/env_uniform.json'
     agents = agent_configs()
     returns = np.zeros((n.size, len(agents)))
     for i in range(n.size):
