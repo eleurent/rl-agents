@@ -64,7 +64,6 @@ class Evaluation(object):
         if recover:
             self.load_agent_model(recover)
 
-        self.agent_viewer = None
         if display_agent:
             try:
                 # Render the agent within the environment viewer, if supported
@@ -72,9 +71,7 @@ class Evaluation(object):
                 self.env.unwrapped.viewer.set_agent_display(
                     lambda agent_surface, sim_surface: AgentGraphics.display(self.agent, agent_surface, sim_surface))
             except AttributeError:
-                # The environment viewer doesn't support agent rendering, create a separate agent viewer
-                # self.agent_viewer = AgentViewer(self.agent)
-                pass
+                logger.info("The environment viewer doesn't support agent rendering.")
         self.reward_viewer = None
         if display_rewards:
             self.reward_viewer = RewardViewer()
@@ -133,9 +130,6 @@ class Evaluation(object):
             self.env.unwrapped.viewer.predict_trajectory(actions)
         except AttributeError:
             pass
-
-        if self.agent_viewer and self.monitor.is_episode_selected():
-            self.agent_viewer.render()
 
         # Step the environment
         previous_observation, action = self.observation, actions[0]
