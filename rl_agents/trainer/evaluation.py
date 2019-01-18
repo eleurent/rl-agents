@@ -127,7 +127,7 @@ class Evaluation(object):
 
         # Forward the actions to the environment viewer
         try:
-            self.env.unwrapped.viewer.predict_trajectory(actions)
+            self.env.unwrapped.viewer.set_agent_action_sequence(actions)
         except AttributeError:
             pass
 
