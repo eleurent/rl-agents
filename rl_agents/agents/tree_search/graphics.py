@@ -21,6 +21,8 @@ class TreeGraphics(object):
         :param agent: the agent to be displayed
         :param surface: the pygame surface on which the agent is displayed
         """
+        if not surface:
+            return
         cell_size = (surface.get_width() // (agent.planner.config['max_depth'] + 1), surface.get_height())
         pygame.draw.rect(surface, cls.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
         cls.display_node(agent.planner.root, agent.env.action_space, surface, (0, 0), cell_size,
@@ -142,7 +144,8 @@ class IntervalRobustPlannerGraphics(object):
     def display(cls, agent, agent_surface, sim_surface):
         horizon = 2
         robust_env = preprocess_env(agent.env, agent.config["env_preprocessors"])
-        for action in agent.sub_agent.planner.get_plan()[:horizon]:
+        plan = agent.sub_agent.planner.get_plan()
+        for action in plan[:horizon] + (horizon - len(plan)) * [1]:
             robust_env.step(action)
         for vehicle in robust_env.road.vehicles:
             if not hasattr(vehicle, 'observer_trajectory'):
@@ -153,7 +156,8 @@ class IntervalRobustPlannerGraphics(object):
             cls.display_uncertainty(min_traj, max_traj, uncertainty_surface, sim_surface, cls.UNCERTAINTY_TIME_COLORMAP)
             # cls.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface, cls.MODEL_TRAJ_COLOR)
             sim_surface.blit(uncertainty_surface, (0, 0))
-            TreeGraphics.display(agent.sub_agent, agent_surface)
+            if agent_surface:
+                TreeGraphics.display(agent.sub_agent, agent_surface)
 
     @classmethod
     def display_trajectory(cls, trajectory, surface, sim_surface, color):
@@ -162,7 +166,7 @@ class IntervalRobustPlannerGraphics(object):
             pygame.draw.line(surface, color,
                              (sim_surface.vec2pix(trajectory[i].position)),
                              (sim_surface.vec2pix(trajectory[i+1].position)),
-                             1)
+                             2)
 
     @classmethod
     def display_box(cls, min_pos, max_pos, surface, sim_surface, color):
