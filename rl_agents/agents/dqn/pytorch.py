@@ -5,7 +5,6 @@ import torch.nn.functional as functional
 from torch.autograd import Variable
 
 from rl_agents.agents.dqn.abstract import AbstractDQNAgent
-from rl_agents.agents.utils import Transition
 
 # if gpu is to be used
 use_cuda = torch.cuda.is_available()
@@ -29,46 +28,10 @@ class DQNAgent(AbstractDQNAgent):
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=5e-4)
         self.steps = 0
 
-    def record(self, state, action, reward, next_state, done):
-        # Store the transition in memory
+    def push_to_memory(self, state, action, reward, next_state, done):
         self.memory.push(Tensor([state]), int(action), reward, Tensor([next_state]), done)
-        self.optimize_model()
 
-    def optimize_model(self):
-        if len(self.memory) < self.config["batch_size"]:
-            return
-        transitions = self.memory.sample(self.config["batch_size"])
-        batch = Transition(*zip(*transitions))
-
-        # Compute a mask of non-final states and concatenate the batch elements
-        non_final_mask = 1 - ByteTensor(batch.terminal)
-        next_states_batch = Variable(torch.cat(batch.next_state))
-        state_batch = Variable(torch.cat(batch.state))
-        action_batch = Variable(LongTensor(batch.action))
-        reward_batch = Variable(Tensor(batch.reward))
-
-        # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-        # columns of actions taken
-        state_action_values = self.policy_net(state_batch)
-        state_action_values = state_action_values.gather(1, action_batch.unsqueeze(1)).squeeze(1)
-
-        # Compute V(s_{t+1}) for all next states.
-        next_state_values = Variable(torch.zeros(self.config["batch_size"]).type(Tensor))
-        # Double Q-learning: pick best actions from policy network
-        _, best_actions = self.policy_net(next_states_batch).max(1)
-        # Double Q-learning: estimate action values from target network
-        best_values = self.target_net(next_states_batch).gather(1, best_actions.unsqueeze(1)).squeeze(1)
-        next_state_values[non_final_mask] = best_values[non_final_mask]
-
-        # Compute the expected Q values
-        expected_state_action_values = reward_batch + self.config["gamma"] * next_state_values
-        # Undo volatility (which was used to prevent unnecessary gradients)
-        expected_state_action_values = Variable(expected_state_action_values.data)
-
-        # Compute loss
-        # loss = F.smooth_l1_loss(state_action_values, expected_state_action_values)
-        loss = functional.mse_loss(state_action_values, expected_state_action_values)
-
+    def step_optimizer(self, loss):
         # Optimize the model
         self.optimizer.zero_grad()
         loss.backward()
@@ -76,10 +39,37 @@ class DQNAgent(AbstractDQNAgent):
             param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
 
-        # Update the target network
-        self.steps += 1
-        if self.steps % self.config["target_update"] == 0:
-            self.target_net.load_state_dict(self.policy_net.state_dict())
+    def compute_bellman_residual(self, batch, target_state_action_value=None):
+        if not target_state_action_value:
+            # Compute a mask of non-final states and concatenate the batch elements
+            non_final_mask = 1 - ByteTensor(batch.terminal)
+            next_states_batch = Variable(torch.cat(batch.next_state))
+            state_batch = Variable(torch.cat(batch.state))
+            action_batch = Variable(LongTensor(batch.action))
+            reward_batch = Variable(Tensor(batch.reward))
+
+            # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
+            # columns of actions taken
+            state_action_values = self.policy_net(state_batch)
+            state_action_values = state_action_values.gather(1, action_batch.unsqueeze(1)).squeeze(1)
+
+            # Compute V(s_{t+1}) for all next states.
+            next_state_values = Variable(torch.zeros(self.config["batch_size"]).type(Tensor))
+            # Double Q-learning: pick best actions from policy network
+            _, best_actions = self.policy_net(next_states_batch).max(1)
+            # Double Q-learning: estimate action values from target network
+            best_values = self.target_net(next_states_batch).gather(1, best_actions.unsqueeze(1)).squeeze(1)
+            next_state_values[non_final_mask] = best_values[non_final_mask]
+
+            # Compute the expected Q values
+            target_state_action_value = reward_batch + self.config["gamma"] * next_state_values
+            # Undo volatility (to prevent unnecessary gradients)
+            target_state_action_value = Variable(target_state_action_value.data)
+
+        # Compute loss
+        # loss = F.smooth_l1_loss(state_action_values, expected_state_action_values)
+        loss = functional.mse_loss(state_action_values, target_state_action_value)
+        return loss
 
     def get_batch_state_values(self, states):
         values, actions = self.policy_net(Variable(Tensor(states))).max(1)
@@ -96,6 +86,7 @@ class DQNAgent(AbstractDQNAgent):
     def load(self, filename):
         checkpoint = torch.load(filename)
         self.policy_net.load_state_dict(checkpoint['state_dict'])
+        self.target_net.load_state_dict(checkpoint['state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
 
 

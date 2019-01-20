@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from rl_agents.agents.abstract import AbstractStochasticAgent
 from rl_agents.agents.exploration.common import exploration_factory
-from rl_agents.agents.utils import ReplayMemory
+from rl_agents.agents.utils import ReplayMemory, Transition
 
 
 class AbstractDQNAgent(AbstractStochasticAgent, ABC):
@@ -27,21 +27,71 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
                     exploration=dict(method="EpsilonGreedy"),
                     target_update=1)
 
-    def action_distribution(self, state):
-        self.previous_state = state
-        values = self.get_state_action_values(state)
-        self.exploration_policy.update(values)
-        return self.exploration_policy.get_distribution()
+    def record(self, state, action, reward, next_state, done):
+        """
+            Record a transition by performing a Deep Q-Network iteration
+
+            - push the transition into memory
+            - sample a minibatch
+            - compute the bellman residual loss over the minibatch
+            - perform one gradient descent step
+            - slowly track the policy network with the target network
+        :param state: a state
+        :param action: an action
+        :param reward: a reward
+        :param next_state: a next state
+        :param done: whether state is terminal
+        """
+        self.push_to_memory(state, action, reward, next_state, done)
+        batch = self.sample_minibatch()
+        if batch:
+            loss = self.compute_bellman_residual(batch)
+            self.step_optimizer(loss)
+            self.update_target_network()
 
     def act(self, state):
+        """
+            Act according to the state-action value model and an exploration policy
+        :param state: current state
+        :return: an action
+        """
         self.previous_state = state
         values = self.get_state_action_values(state)
         self.exploration_policy.update(values)
         return self.exploration_policy.sample()
 
-    def eval(self):
-        self.config['exploration']['method'] = "Greedy"
-        self.exploration_policy = exploration_factory(self.config["exploration"], self.env.action_space)
+    def sample_minibatch(self):
+        if len(self.memory) < self.config["batch_size"]:
+            return None
+        transitions = self.memory.sample(self.config["batch_size"])
+        return Transition(*zip(*transitions))
+
+    def update_target_network(self):
+        self.steps += 1
+        if self.steps % self.config["target_update"] == 0:
+            self.target_net.load_state_dict(self.policy_net.state_dict())
+
+    @abstractmethod
+    def push_to_memory(self, state, action, reward, next_state, done):
+        """
+            Push a transition in the proper format into the replay memory
+        :param state: a state
+        :param action: an action
+        :param reward: a reward
+        :param next_state: a next state
+        :param done: whether state is terminal
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def compute_bellman_residual(self, batch, target_state_action_value=None):
+        """
+            Compute the Bellman Residual Loss over a batch
+        :param batch: batch of transitions
+        :param target_state_action_value: if provided, acts as a target (s,a)-value
+                                          if not, it will be computed from batch and model (Double DQN target)
+        :return: the loss over the batch
+        """
 
     @abstractmethod
     def get_batch_state_values(self, states):
@@ -83,3 +133,13 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
 
     def reset(self):
         pass
+
+    def action_distribution(self, state):
+        self.previous_state = state
+        values = self.get_state_action_values(state)
+        self.exploration_policy.update(values)
+        return self.exploration_policy.get_distribution()
+
+    def eval(self):
+        self.config['exploration']['method'] = "Greedy"
+        self.exploration_policy = exploration_factory(self.config["exploration"], self.env.action_space)
