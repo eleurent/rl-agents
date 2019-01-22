@@ -92,5 +92,5 @@ class IntervalRobustPlannerAgent(AbstractAgent):
     def load(self, filename):
         return self.sub_agent.load(filename)
 
-    def record(self, state, action, reward, next_state, done):
-        return self.sub_agent.record(state, action, reward, next_state, done)
+    def record(self, state, action, reward, next_state, done, info):
+        return self.sub_agent.record(state, action, reward, next_state, done, info)

@@ -138,7 +138,7 @@ class Evaluation(object):
         # Record the experience.
         if self.training:
             try:
-                self.agent.record(previous_observation, action, reward, self.observation, terminal)
+                self.agent.record(previous_observation, action, reward, self.observation, terminal, info)
             except NotImplementedError:
                 pass
 

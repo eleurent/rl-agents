@@ -14,7 +14,7 @@ class RandomUniformAgent(AbstractAgent):
     def act(self, state):
         return self.env.action_space.sample()
 
-    def record(self, state, action, reward, next_state, done):
+    def record(self, state, action, reward, next_state, done, info):
         pass
 
     def reset(self):

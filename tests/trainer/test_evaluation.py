@@ -27,7 +27,7 @@ class RandomAgent(AbstractAgent):
         super(RandomAgent, self).__init__()
         self.env = env
 
-    def record(self, state, action, reward, next_state, done):
+    def record(self, state, action, reward, next_state, done, info):
         pass
 
     def act(self, state):

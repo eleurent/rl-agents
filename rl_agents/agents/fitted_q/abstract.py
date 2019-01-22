@@ -17,7 +17,7 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
                     "regression_epochs": 50})
         return cfg
 
-    def record(self, state, action, reward, next_state, done):
+    def record(self, state, action, reward, next_state, done, info):
         """
             Record a transition by performing a Fitted-Q iteration
 
@@ -35,7 +35,7 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
         if not self.training:
             return
         # Store transition to memory
-        self.push_to_memory(state, action, reward, next_state, done)
+        self.memory.push(state, action, reward, next_state, done, info)
         batch = self.sample_minibatch()
         if not batch:
             return

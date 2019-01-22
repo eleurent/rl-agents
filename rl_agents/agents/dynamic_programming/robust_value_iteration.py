@@ -57,7 +57,7 @@ class RobustValueIterationAgent(ValueIterationAgent):
             raise ValueError("Unknown mode")
         return self.rewards + self.config["gamma"] * next_v
 
-    def record(self, state, action, reward, next_state, done):
+    def record(self, state, action, reward, next_state, done, info):
         pass
 
     def reset(self):

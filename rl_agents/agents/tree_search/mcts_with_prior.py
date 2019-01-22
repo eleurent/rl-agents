@@ -61,7 +61,7 @@ class MCTSWithPriorPolicyAgent(MCTSAgent):
             actions = available_actions
         return actions, probs
 
-    def record(self, state, action, reward, next_state, done):
+    def record(self, state, action, reward, next_state, done, info):
         raise NotImplementedError()
 
     def save(self, filename):

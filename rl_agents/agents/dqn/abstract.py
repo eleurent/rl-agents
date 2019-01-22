@@ -29,7 +29,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
                     exploration=dict(method="EpsilonGreedy"),
                     target_update=1)
 
-    def record(self, state, action, reward, next_state, done):
+    def record(self, state, action, reward, next_state, done, info):
         """
             Record a transition by performing a Deep Q-Network iteration
 
@@ -46,7 +46,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         """
         if not self.training:
             return
-        self.push_to_memory(state, action, reward, next_state, done)
+        self.memory.push(state, action, reward, next_state, done, info)
         batch = self.sample_minibatch()
         if batch:
             loss, _ = self.compute_bellman_residual(batch)
@@ -74,18 +74,6 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         self.steps += 1
         if self.steps % self.config["target_update"] == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
-
-    @abstractmethod
-    def push_to_memory(self, state, action, reward, next_state, done):
-        """
-            Push a transition in the proper format into the replay memory
-        :param state: a state
-        :param action: an action
-        :param reward: a reward
-        :param next_state: a next state
-        :param done: whether state is terminal
-        """
-        raise NotImplementedError()
 
     @abstractmethod
     def compute_bellman_residual(self, batch, target_state_action_value=None):

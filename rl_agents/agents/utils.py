@@ -8,7 +8,7 @@ EPSILON = 0.01
 
 
 Transition = namedtuple('Transition',
-                        ('state', 'action', 'reward', 'next_state', 'terminal'))
+                        ('state', 'action', 'reward', 'next_state', 'terminal', 'info'))
 
 
 class ReplayMemory(Configurable):
@@ -69,16 +69,16 @@ class ReplayMemory(Configurable):
         :param transitions: A list of n successive transitions
         :return: The corresponding n-step transition
         """
-        state, action, cumulated_reward, next_state, done = transitions[0]
+        state, action, cumulated_reward, next_state, done, info = transitions[0]
         discount = 1
         for transition in transitions[1:]:
             if done:
                 break
             else:
-                _, _, reward, next_state, done = transition
+                _, _, reward, next_state, done, info = transition
                 discount *= self.config['gamma']
                 cumulated_reward += discount*reward
-        return state, action, cumulated_reward, next_state, done
+        return state, action, cumulated_reward, next_state, done, info
 
     def __len__(self):
         return len(self.memory)

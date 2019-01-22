@@ -12,7 +12,7 @@ class AbstractAgent(Configurable, ABC):
         An abstract class specifying the interface of a generic agent.
     """
     @abstractmethod
-    def record(self, state, action, reward, next_state, done):
+    def record(self, state, action, reward, next_state, done, info):
         """
             Record a transition of the environment to update the agent
         :param state: s, the current state of the agent

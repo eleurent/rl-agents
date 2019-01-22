@@ -28,9 +28,6 @@ class DQNAgent(AbstractDQNAgent):
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.config["optimizer"]["lr"])
         self.steps = 0
 
-    def push_to_memory(self, state, action, reward, next_state, done):
-        self.memory.push(Tensor([state]), int(action), reward, Tensor([next_state]), done)
-
     def step_optimizer(self, loss):
         # Optimize the model
         self.optimizer.zero_grad()
@@ -42,8 +39,8 @@ class DQNAgent(AbstractDQNAgent):
     def compute_bellman_residual(self, batch, target_state_action_value=None):
         # Compute a mask of non-final states and concatenate the batch elements
         non_final_mask = 1 - ByteTensor(batch.terminal)
-        next_states_batch = Variable(torch.cat(batch.next_state))
-        state_batch = Variable(torch.cat(batch.state))
+        next_states_batch = Variable(torch.cat(tuple(Tensor([batch.next_state]))))
+        state_batch = Variable(torch.cat(tuple(Tensor([batch.state]))))
         action_batch = Variable(LongTensor(batch.action))
         reward_batch = Variable(Tensor(batch.reward))
 

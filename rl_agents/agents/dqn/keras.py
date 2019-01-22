@@ -12,8 +12,8 @@ class DQNAgent(AbstractDQNAgent):
         self.model = None
         self.build_neural_net()
 
-    def record(self, state, action, reward, next_state, done):
-        self.memory.push(state, action, reward, next_state, done)
+    def record(self, state, action, reward, next_state, done, info):
+        self.memory.push(state, action, reward, next_state, done, info)
         self.optimize_model()
 
     def build_neural_net(self):

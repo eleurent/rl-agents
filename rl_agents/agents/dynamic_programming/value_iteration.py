@@ -84,7 +84,7 @@ class ValueIterationAgent(AbstractAgent):
                 break
         return states, actions
 
-    def record(self, state, action, reward, next_state, done):
+    def record(self, state, action, reward, next_state, done, info):
         pass
 
     def reset(self):

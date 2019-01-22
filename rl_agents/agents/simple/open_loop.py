@@ -34,7 +34,7 @@ class OpenLoopAgent(AbstractAgent):
     def reset(self):
         self.actions = self.config["actions"]
 
-    def record(self, state, action, reward, next_state, done):
+    def record(self, state, action, reward, next_state, done, info):
         pass
 
     def save(self, filename):
