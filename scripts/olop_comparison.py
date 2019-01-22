@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from rl_agents.agents.common import load_environment, agent_factory
 from rl_agents.trainer.evaluation import Evaluation
 
-gamma = 0.
+gamma = 0.8
 K = 3
 
 
@@ -33,13 +33,13 @@ def plot_budget(budget, episodes, horizon):
     plt.figure()
     plt.subplot(311)
     plt.plot(budget, episodes)
-    plt.title('M')
+    plt.legend(["M"])
     plt.subplot(312)
     plt.plot(budget, horizon)
-    plt.title('L')
+    plt.legend(["L"])
     plt.subplot(313)
     plt.plot(budget, horizon / K ** (horizon - 1))
-    plt.title('Computational complexity ratio')
+    plt.legend(['Computational complexity ratio'])
     plt.show()
 
 
@@ -63,14 +63,15 @@ def agent_configs():
             "max_depth": 2,
             "upper_bound": {"type": "kullback-leibler"},
             "lazy_tree_construction": True
-        },
-        "kl-olop-m": {
-            "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-            "gamma": gamma,
-            "max_depth": 2,
-            "upper_bound": {"type": "hoeffding", "time": "local"},
-            "lazy_tree_construction": True
         }
+        # ,
+        # "kl-olop-m": {
+        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+        #     "gamma": gamma,
+        #     "max_depth": 2,
+        #     "upper_bound": {"type": "hoeffding", "time": "local"},
+        #     "lazy_tree_construction": True
+        #  }
     }
     return agents
 
@@ -92,10 +93,10 @@ def evaluate(agent_config, env):
 
 
 def main():
-    n = np.arange(30, 61, 10)
+    n = np.arange(50, 500, 100)
     M, L = allocate(n)
 
-    environment_config = 'configs/FiniteMDPEnv/env_uniform.json'
+    environment_config = 'configs/FiniteMDPEnv/env_garnet.json'
     agents = agent_configs()
     returns = np.zeros((n.size, len(agents)))
     for i in range(n.size):
