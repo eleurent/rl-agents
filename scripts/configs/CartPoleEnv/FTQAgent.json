@@ -1,0 +1,9 @@
+{
+    "__class__": "<class 'rl_agents.agents.fitted_q.pytorch.FTQAgent'>",
+    "model": {"layers": [100, 100]},
+    "exploration": {"tau": 6000},
+    "batch_size": 500,
+    "gamma": 0.95,
+    "value_iteration_epochs": 30,
+    "n_steps": 3
+}
