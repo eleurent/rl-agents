@@ -15,6 +15,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
             [self.config["num_states"]] + self.config["model"]["layers"] + [self.config["num_actions"]]
         self.memory = ReplayMemory(self.config)
         self.exploration_policy = exploration_factory(self.config["exploration"], self.env.action_space)
+        self.training = True
         self.previous_state = None
 
     @classmethod
@@ -42,6 +43,8 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         :param next_state: a next state
         :param done: whether state is terminal
         """
+        if not self.training:
+            return
         self.push_to_memory(state, action, reward, next_state, done)
         batch = self.sample_minibatch()
         if batch:
@@ -141,5 +144,6 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         return self.exploration_policy.get_distribution()
 
     def eval(self):
+        self.training = False
         self.config['exploration']['method'] = "Greedy"
         self.exploration_policy = exploration_factory(self.config["exploration"], self.env.action_space)

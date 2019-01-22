@@ -6,6 +6,7 @@ Usage:
                                              [--no-display]
                                              [--seed <str>]
                                              [--analyze]
+                                             [--recover]
   experiments benchmark <benchmark> (--train|--test)
                                     [--episodes <count>]
                                     [--name-from-config]
@@ -73,6 +74,7 @@ def evaluate(environment_config, agent_config, options):
                             directory=directory,
                             num_episodes=int(options['--episodes']),
                             sim_seed=options['--seed'],
+                            recover=options['--recover'],
                             display_env=not options['--no-display'],
                             display_agent=not options['--no-display'],
                             display_rewards=not options['--no-display'])
