@@ -11,7 +11,7 @@
     "target_update": 150,
     "exploration": {
         "method": "EpsilonGreedy",
-        "tau": 15000,
+        "tau": 2000,
         "temperature": 1.0,
         "final_temperature": 0.05
     }
