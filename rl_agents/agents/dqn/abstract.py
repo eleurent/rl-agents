@@ -49,7 +49,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         self.push_to_memory(state, action, reward, next_state, done)
         batch = self.sample_minibatch()
         if batch:
-            loss = self.compute_bellman_residual(batch)
+            loss, _ = self.compute_bellman_residual(batch)
             self.step_optimizer(loss)
             self.update_target_network()
 

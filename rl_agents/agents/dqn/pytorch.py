@@ -40,21 +40,21 @@ class DQNAgent(AbstractDQNAgent):
         self.optimizer.step()
 
     def compute_bellman_residual(self, batch, target_state_action_value=None):
-        if not target_state_action_value:
-            # Compute a mask of non-final states and concatenate the batch elements
-            non_final_mask = 1 - ByteTensor(batch.terminal)
-            next_states_batch = Variable(torch.cat(batch.next_state))
-            state_batch = Variable(torch.cat(batch.state))
-            action_batch = Variable(LongTensor(batch.action))
-            reward_batch = Variable(Tensor(batch.reward))
+        # Compute a mask of non-final states and concatenate the batch elements
+        non_final_mask = 1 - ByteTensor(batch.terminal)
+        next_states_batch = Variable(torch.cat(batch.next_state))
+        state_batch = Variable(torch.cat(batch.state))
+        action_batch = Variable(LongTensor(batch.action))
+        reward_batch = Variable(Tensor(batch.reward))
 
-            # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-            # columns of actions taken
-            state_action_values = self.policy_net(state_batch)
-            state_action_values = state_action_values.gather(1, action_batch.unsqueeze(1)).squeeze(1)
+        # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
+        # columns of actions taken
+        state_action_values = self.policy_net(state_batch)
+        state_action_values = state_action_values.gather(1, action_batch.unsqueeze(1)).squeeze(1)
 
+        if target_state_action_value is None:
             # Compute V(s_{t+1}) for all next states.
-            next_state_values = Variable(torch.zeros(self.config["batch_size"]).type(Tensor))
+            next_state_values = Variable(torch.zeros(reward_batch.shape).type(Tensor))
             # Double Q-learning: pick best actions from policy network
             _, best_actions = self.policy_net(next_states_batch).max(1)
             # Double Q-learning: estimate action values from target network
@@ -67,9 +67,9 @@ class DQNAgent(AbstractDQNAgent):
             target_state_action_value = Variable(target_state_action_value.data)
 
         # Compute loss
-        # loss = F.smooth_l1_loss(state_action_values, expected_state_action_values)
+        # loss = F.smooth_l1_loss(state_action_values, target_state_action_value)
         loss = functional.mse_loss(state_action_values, target_state_action_value)
-        return loss
+        return loss, target_state_action_value
 
     def get_batch_state_values(self, states):
         values, actions = self.policy_net(Variable(Tensor(states))).max(1)
