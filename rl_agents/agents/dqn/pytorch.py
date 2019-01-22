@@ -25,7 +25,7 @@ class DQNAgent(AbstractDQNAgent):
             self.policy_net.cuda()
             self.target_net.cuda()
 
-        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=5e-4)
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.config["optimizer"]["lr"])
         self.steps = 0
 
     def push_to_memory(self, state, action, reward, next_state, done):

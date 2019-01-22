@@ -22,6 +22,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
     def default_config(cls):
         return dict(model=dict(type="DuelingNetwork",
                                layers=[100, 100]),
+                    optimizer=dict(lr=5e-4),
                     memory_capacity=50000,
                     batch_size=100,
                     gamma=0.99,
@@ -93,8 +94,9 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         :param batch: batch of transitions
         :param target_state_action_value: if provided, acts as a target (s,a)-value
                                           if not, it will be computed from batch and model (Double DQN target)
-        :return: the loss over the batch
+        :return: the loss over the batch, and the computed target
         """
+        raise NotImplementedError()
 
     @abstractmethod
     def get_batch_state_values(self, states):
