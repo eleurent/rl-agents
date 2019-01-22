@@ -5,14 +5,14 @@
         "layers": [256, 256]
     },
     "gamma": 0.8,
-    "n_steps": 1,
+    "n_steps": 3,
     "batch_size": 128,
-    "memory_capacity": 150000,
-    "target_update": 1500,
+    "memory_capacity": 15000,
+    "target_update": 150,
     "exploration": {
         "method": "EpsilonGreedy",
-        "tau": 150000,
+        "tau": 15000,
         "temperature": 1.0,
-        "final_temperature": 0.1
+        "final_temperature": 0.05
     }
 }
