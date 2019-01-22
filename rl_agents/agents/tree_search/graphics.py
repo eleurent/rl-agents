@@ -77,7 +77,7 @@ class TreeGraphics(object):
     @classmethod
     def draw_node(cls, node, surface, origin, size, config):
         cmap = cm.jet_r
-        norm = mpl.colors.Normalize(vmin=0, vmax=config["gamma"] / (1 - config["gamma"]))
+        norm = mpl.colors.Normalize(vmin=0, vmax=1 / (1 - config["gamma"]))
         color = cmap(norm(node.get_value()), bytes=True)
         pygame.draw.rect(surface, color, (origin[0], origin[1], size[0], size[1]), 0)
 

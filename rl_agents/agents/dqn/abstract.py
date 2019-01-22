@@ -57,7 +57,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         """
         self.previous_state = state
         values = self.get_state_action_values(state)
-        self.exploration_policy.update(values)
+        self.exploration_policy.update(values, time=True)
         return self.exploration_policy.sample()
 
     def sample_minibatch(self):
@@ -137,7 +137,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
     def action_distribution(self, state):
         self.previous_state = state
         values = self.get_state_action_values(state)
-        self.exploration_policy.update(values)
+        self.exploration_policy.update(values, time=False)
         return self.exploration_policy.get_distribution()
 
     def eval(self):

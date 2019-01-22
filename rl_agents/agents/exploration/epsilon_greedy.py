@@ -31,13 +31,15 @@ class EpsilonGreedy(DiscreteDistribution):
         distribution[self.optimal_action] += 1 - self.epsilon
         return distribution
 
-    def update(self, values):
+    def update(self, values, time=False):
         """
             Update the action distribution parameters
         :param values: the state-action values
+        :param time: whether to update epsilon schedule
         """
         self.optimal_action = np.argmax(values)
         self.epsilon = self.config['final_temperature'] + (
                     self.config['temperature'] - self.config['final_temperature']) * np.exp(
-            -2. * self.steps_done / self.config['tau'])
-        self.steps_done += 1
+            - self.steps_done / self.config['tau'])
+        if time:
+            self.steps_done += 1

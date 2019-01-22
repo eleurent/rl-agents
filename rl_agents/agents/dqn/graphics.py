@@ -12,8 +12,6 @@ class DQNGraphics(object):
     """
     RED = (255, 0, 0)
     BLACK = (0, 0, 0)
-    MIN_VALUE = -2
-    MAX_VALUE = 2
 
     @classmethod
     def display(cls, agent, surface, display_text=True):
@@ -33,7 +31,7 @@ class DQNGraphics(object):
         # Display node value
         for action, value in enumerate(action_values):
             cmap = cm.jet_r
-            norm = mpl.colors.Normalize(vmin=cls.MIN_VALUE, vmax=cls.MAX_VALUE)
+            norm = mpl.colors.Normalize(vmin=0, vmax=1/(1-agent.config["gamma"]))
             color = cmap(norm(value), bytes=True)
             pygame.draw.rect(surface, color, (cell_size[0]*action, 0, cell_size[0], cell_size[1]), 0)
 

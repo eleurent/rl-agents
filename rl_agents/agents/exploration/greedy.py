@@ -21,5 +21,5 @@ class Greedy(DiscreteDistribution):
         optimal_action = np.argmax(self.values)
         return {action: 1 if action == optimal_action else 0 for action in range(self.action_space.n)}
 
-    def update(self, values):
+    def update(self, values, time=False):
         self.values = values
