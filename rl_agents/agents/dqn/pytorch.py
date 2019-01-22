@@ -89,22 +89,28 @@ class DQNAgent(AbstractDQNAgent):
         self.target_net.load_state_dict(checkpoint['state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
 
+    def initialize_model(self):
+        self.policy_net.reset()
+
 
 class FCNetwork(nn.Module):
     def __init__(self, config):
         super(FCNetwork, self).__init__()
         self.lin1 = nn.Linear(config["all_layers"][0], config["all_layers"][1])
-        self.d1 = nn.Dropout(p=0.2)
         self.lin2 = nn.Linear(config["all_layers"][1], config["all_layers"][2])
-        self.d2 = nn.Dropout(p=0.2)
         self.lin3 = nn.Linear(config["all_layers"][2], config["all_layers"][3])
 
     def forward(self, x):
-        x = functional.tanh(self.lin1(x))
-        # x = self.d1(x)
-        x = functional.tanh(self.lin2(x))
-        # x = self.d2(x)
+        x = torch.tanh(self.lin1(x))
+        x = torch.tanh(self.lin2(x))
         return self.lin3(x)
+
+    def reset(self):
+        self.apply(self._init_weights)
+
+    def _init_weights(self, m):
+        if hasattr(m, 'weight'):
+            torch.nn.init.xavier_uniform_(m.weight.data)
 
 
 class DuelingNetwork(nn.Module):
@@ -117,8 +123,8 @@ class DuelingNetwork(nn.Module):
         self.value = nn.Linear(config["all_layers"][2], 1)
 
     def forward(self, x):
-        x = functional.tanh(self.lin1(x))
-        x = functional.tanh(self.lin2(x))
+        x = torch.tanh(self.lin1(x))
+        x = torch.tanh(self.lin2(x))
         advantage = self.advantage(x)
         value = self.value(x).expand(-1,  self.config["all_layers"][3])
         return value + advantage - advantage.mean(1).unsqueeze(1).expand(-1,  self.config["all_layers"][3])
