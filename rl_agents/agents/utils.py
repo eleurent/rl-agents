@@ -31,6 +31,9 @@ class ReplayMemory(Configurable):
         """Saves a transition."""
         if len(self.memory) < self.capacity:
             self.memory.append(None)
+            self.position = len(self.memory) - 1
+        elif len(self.memory) > self.capacity:
+            self.memory = self.memory[:self.capacity]
         # Faster than append and pop
         self.memory[self.position] = Transition(*args)
         self.position = (self.position + 1) % self.capacity
@@ -79,6 +82,9 @@ class ReplayMemory(Configurable):
 
     def __len__(self):
         return len(self.memory)
+
+    def is_full(self):
+        return len(self.memory) == self.capacity
 
 
 def constrain(x, a, b):
