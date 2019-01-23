@@ -13,6 +13,7 @@ Usage:
                                     [--no-display]
                                     [--seed <str>]
                                     [--analyze]
+                                    [--recover]
                                     [--processes <count>]
   experiments -h | --help
 
@@ -23,6 +24,7 @@ Options:
   --no-display         Disable environment, agent, and rewards rendering.
   --name-from-config   Name the output folder from the corresponding config files
   --processes <count>  Number of running processes [default: 4].
+  --recover            Load model from latest checkpoint.
   --seed <str>         Seed the environments and agents.
   --train              Train the agent.
   --test               Test the agent.
