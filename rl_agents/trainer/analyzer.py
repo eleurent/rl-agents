@@ -1,3 +1,4 @@
+import itertools
 import os
 import numpy as np
 import pandas as pd
@@ -5,6 +6,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 import seaborn as sns
 from rl_agents.trainer.monitor import MonitorV2
+from matplotlib.patches import Ellipse
 
 sns.set()
 
@@ -30,15 +32,17 @@ class RunAnalyzer(object):
         self.describe_all(runs, field='episode_lengths', title='lengths')
         self.histogram_all(runs, field='episode_constraints', title='constraints', preprocess=lambda c: [sum(e) for e in c])
         self.describe_all(runs, field='episode_constraints', title='constraints', preprocess=lambda c: [sum(e) for e in c])
+        self.compare(runs)
         plt.show()
 
-    def compare(self, runs_directories_a, runs_directories_b):
-        runs_a = {self.suffix(directory): MonitorV2.load_results(directory) for directory in runs_directories_a}
-        runs_b = {self.suffix(directory): MonitorV2.load_results(directory) for directory in runs_directories_b}
-        f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-        self.plot_all(runs_a, field='episode_rewards', title='rewards', axes=ax1)
-        self.plot_all(runs_b, field='episode_rewards', title='rewards', axes=ax2)
-        plt.show()
+    def compare(self, runs):
+        if len(runs) < 2:
+            return
+        constraints = lambda run: [sum(episode) for episode in run["episode_constraints"]]
+        self.plot_all_confidence_ellipse(runs,
+                                         constraints,
+                                         "episode_rewards",
+                                         ["constraints", "rewards"])
 
     def histogram_all(self, runs, field, title, axes=None, preprocess=None):
         dirs = [directory for directory in runs.keys() if field in runs[directory]]
@@ -117,3 +121,37 @@ class RunAnalyzer(object):
             std = np.sqrt(statistics.variance) if not np.isnan(statistics.variance) else 0
             print(directory, '\t mean +/- std = {:.2f} +/- {:.2f} \t [min, max] = [{:.2f}, {:.2f}]'.format(
                 statistics.mean, std, statistics.minmax[0], statistics.minmax[1]))
+
+    def plot_all_confidence_ellipse(self, runs, field_x, field_y, labels, axes=None):
+        if isinstance(field_x, str):
+            field = field_x
+            field_x = lambda d: d[field]
+        if isinstance(field_y, str):
+            field = field_y
+            field_y = lambda d: d[field]
+        for directory, content in list(runs.items()):
+            axes = self.plot_confidence_ellipse(x=field_x(content)[self.episodes_range[0]:self.episodes_range[1]],
+                                                y=field_y(content)[self.episodes_range[0]:self.episodes_range[1]],
+                                                axes=axes,
+                                                labels=labels,
+                                                title=directory)
+        # plt.legend(list(runs.keys()))
+        axes.autoscale(True)
+        return axes
+
+    def plot_confidence_ellipse(self, x, y, axes, labels, title, sigma=2):
+        if not axes:
+            fig = plt.figure()
+            axes = fig.add_subplot(111)
+            axes.set_title(r'Confidence ellipses at ${}\sigma$'.format(sigma))
+            axes.set_xlabel(labels[0])
+            axes.set_ylabel(labels[1])
+        lambda_, v = np.linalg.eig(np.cov(x, y) / len(x))
+        lambda_ = np.sqrt(lambda_)
+        ellipse = Ellipse(xy=(np.mean(x), np.mean(y)),
+                          width=lambda_[0] * sigma, height=lambda_[1] * sigma,
+                          angle=np.rad2deg(np.arccos(v[0, 0])), alpha=0.4)
+        axes.add_patch(ellipse)
+        plt.scatter(np.mean(x), np.mean(y))
+        axes.annotate(title, (np.mean(x), np.mean(y)))
+        return axes
