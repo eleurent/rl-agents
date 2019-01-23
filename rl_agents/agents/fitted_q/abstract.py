@@ -2,7 +2,7 @@ from abc import ABC
 
 from gym import logger
 
-from agents.utils import Transition
+from rl_agents.agents.utils import Transition
 from rl_agents.agents.dqn.abstract import AbstractDQNAgent
 
 

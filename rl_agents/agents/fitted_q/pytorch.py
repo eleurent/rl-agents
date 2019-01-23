@@ -2,8 +2,8 @@ import pickle
 
 from gym import logger
 
-from agents.dqn.pytorch import DQNAgent
-from agents.fitted_q.abstract import AbstractFTQAgent
+from rl_agents.agents.dqn.pytorch import DQNAgent
+from rl_agents.agents.fitted_q.abstract import AbstractFTQAgent
 
 
 class FTQAgent(AbstractFTQAgent, DQNAgent):
