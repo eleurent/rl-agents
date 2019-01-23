@@ -150,30 +150,34 @@ class StatsRecorderV2(StatsRecorder):
         super(StatsRecorderV2, self).__init__(directory, file_prefix, autoreset, env_id)
 
         # Rewards
-        self.reward_history = []
+        self.rewards_ = []
+        self.episode_rewards_ = []
 
-        # Value
-        self.episode_values = []
+        # Constraints
+        self.constraints = []
+        self.episode_constraints = []
 
         # Seed
         self.seed = None  # Set by the monitor when seeding the wrapped env
         self.episode_seeds = []
 
     def after_reset(self, observation):
-        self.reward_history = []
+        self.rewards_ = []
+        self.constraints = []
         super(StatsRecorderV2, self).after_reset(observation)
 
     def after_step(self, observation, reward, done, info):
         # Aggregate rewards history
-        self.reward_history.append(reward)
+        self.rewards_.append(reward)
+        if info and "constraint" in info:
+            self.constraints.append(info["constraint"])
 
         super(StatsRecorderV2, self).after_step(observation, reward, done, info)
 
     def save_complete(self):
         if self.steps is not None:
-            rewards = np.array(self.reward_history)
-            value = np.sum(rewards*self.gamma**np.arange(rewards.size))
-            self.episode_values.append(value)
+            self.episode_rewards_.append(self.rewards_)
+            self.episode_constraints.append(self.constraints)
             self.episode_seeds.append(self.seed)
             super(StatsRecorderV2, self).save_complete()
 
@@ -187,7 +191,8 @@ class StatsRecorderV2(StatsRecorder):
                 'timestamps': self.timestamps,
                 'episode_lengths': self.episode_lengths,
                 'episode_rewards': self.episode_rewards,
-                'episode_values': self.episode_values,
+                'episode_rewards_': self.episode_rewards_,
+                'episode_constraints': self.episode_constraints,
                 'episode_seeds': self.episode_seeds,
                 'episode_types': self.episode_types,
             }, f, default=json_encode_np)
