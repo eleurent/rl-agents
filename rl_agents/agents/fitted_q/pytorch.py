@@ -1,5 +1,4 @@
 import pickle
-
 from gym import logger
 
 from rl_agents.agents.dqn.pytorch import DQNAgent

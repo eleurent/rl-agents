@@ -1,5 +1,5 @@
+import numpy as np
 from abc import ABC
-
 from gym import logger
 
 from rl_agents.agents.utils import Transition
@@ -14,7 +14,8 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
     def default_config(cls):
         cfg = super(AbstractFTQAgent, cls).default_config()
         cfg.update({"value_iteration_epochs": "from-gamma",
-                    "regression_epochs": 50})
+                    "regression_epochs": 50,
+                    "constraint_penalty": 0})
         return cfg
 
     def record(self, state, action, reward, next_state, done, info):
@@ -31,6 +32,7 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
         :param reward: a reward
         :param next_state: a next state
         :param done: whether state is terminal
+        :param info: information about the environment
         """
         if not self.training:
             return
@@ -39,8 +41,10 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
         batch = self.sample_minibatch()
         if not batch:
             return
+        batch = self._add_constraint_penalty(batch)
         # Optimize model on batch
         value_iteration_epochs = self.config["value_iteration_epochs"] or int(3 / (1 - self.config["gamma"]))
+        self.initialize_model()
         for epoch in range(value_iteration_epochs):
             self.update_target_network()
             delta, target = self.compute_bellman_residual(batch)
@@ -70,4 +74,14 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
         else:
             return None
 
+    def _add_constraint_penalty(self, batch):
+        """
+            If a constraint penalty is specified, modify the batch rewards to include this penalty
+        :param batch: a batch of transitions
+        :return: the modified batch
+        """
+        if self.config["constraint_penalty"] and "constraint" in batch.info[0]:
+            batch = batch._replace(reward=tuple(np.array(batch.reward) + self.config["constraint_penalty"] *
+                                                np.array([info["constraint"] for info in batch.info])))
+        return batch
 

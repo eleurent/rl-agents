@@ -1,0 +1,14 @@
+{
+    "environments": ["configs/HighwayEnv/env_easy_constraint.json"],
+    "agents": [
+        "configs/HighwayEnv/agents/FTQAgent/baseline.json",
+        "configs/HighwayEnv/agents/FTQAgent/lambda_1.json",
+        "configs/HighwayEnv/agents/FTQAgent/lambda_2.json",
+        "configs/HighwayEnv/agents/FTQAgent/lambda_5.json",
+        "configs/HighwayEnv/agents/FTQAgent/lambda_10.json",
+        "configs/HighwayEnv/agents/FTQAgent/lambda_20.json",
+        "configs/HighwayEnv/agents/FTQAgent/lambda_50.json",
+        "configs/HighwayEnv/agents/FTQAgent/lambda_100.json",
+        "configs/HighwayEnv/agents/FTQAgent/lambda_200.json"
+    ]
+}
