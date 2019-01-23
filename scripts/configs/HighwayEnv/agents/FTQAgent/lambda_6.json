@@ -1,0 +1,23 @@
+{
+    "__class__": "<class 'rl_agents.agents.fitted_q.pytorch.FTQAgent'>",
+    "model":
+    {
+        "type": "FCNetwork",
+        "layers": [256, 256]
+    },
+    "optimizer":
+    {
+        "lr": 1e-2
+    },
+    "exploration":
+    {
+        "method": "EpsilonGreedy",
+        "tau": 2000
+    },
+    "batch_size": 1000,
+    "memory_capacity": 10000,
+    "gamma": 0.8,
+    "value_iteration_epochs": null,
+    "regression_epochs": 400,
+    "constraint_penalty": -6.0
+}
