@@ -17,7 +17,7 @@ def test_cartpole():
         assert action is not None
 
         next_state, reward, done, info = env.step(action)
-        agent.record(state, action, reward, next_state, done)
+        agent.record(state, action, reward, next_state, done, info)
 
         if done:
             state = env.reset()
