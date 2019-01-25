@@ -1,3 +1,7 @@
+from collections import OrderedDict
+from itertools import product
+from multiprocessing.pool import Pool
+
 import gym
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,7 +10,7 @@ from rl_agents.agents.common import load_environment, agent_factory
 from rl_agents.trainer.evaluation import Evaluation
 
 gamma = 0.8
-K = 3
+K = 5
 
 
 def olop_horizon(episodes, gamma):
@@ -21,6 +25,7 @@ def allocate(budget):
             episodes[i], horizon[i] = allocate(budget[i])
         return episodes, horizon
     else:
+        budget = np.asscalar(budget)
         for episodes in range(1, budget):
             if episodes * olop_horizon(episodes, gamma) > budget:
                 episodes -= 1
@@ -73,15 +78,20 @@ def agent_configs():
         #     "lazy_tree_construction": True
         #  }
     }
-    return agents
+    return OrderedDict(agents)
 
 
-def evaluate(agent_config, env):
+def evaluate(env_config, agent_config, budget):
+    env = load_environment(env_config)
+    agent_config["budget"] = int(budget)
+    agent_config["iterations"] = int(env.config["max_steps"])
+
     gym.logger.set_level(gym.logger.DISABLED)
     agent = agent_factory(env, agent_config)
     evaluation = Evaluation(env,
                             agent,
                             directory=None,
+                            training=False,
                             num_episodes=1,
                             display_env=False,
                             display_agent=False,
@@ -89,31 +99,29 @@ def evaluate(agent_config, env):
     evaluation.monitor.stats_recorder.gamma = gamma
     evaluation.test()
     evaluation.close()
-    return evaluation.monitor.stats_recorder.episode_values[0]
+
+    rewards = np.array(evaluation.monitor.stats_recorder.episode_rewards_)
+    value = np.sum(rewards * gamma ** np.arange(rewards.size))
+    return value
 
 
 def main():
-    n = np.arange(50, 500, 100)
+    n = np.arange(50, 300, 100)
     M, L = allocate(n)
 
-    environment_config = 'configs/FiniteMDPEnv/env_garnet.json'
+    envs = ['configs/FiniteMDPEnv/env_garnet.json']
     agents = agent_configs()
-    returns = np.zeros((n.size, len(agents)))
-    for i in range(n.size):
-        # Environment creation
-        env = load_environment(environment_config)
-        print("Budget:", i+1, "/", n.size)
-        for j in range(len(agents.keys())):
-            env.reset()
-            config = list(agents.values())[j]
-            config["budget"] = int(n[i])
-            config["iterations"] = int(env.config["max_steps"])
-            returns[i, j] += evaluate(config, env)
-    plt.figure()
-    plt.plot(n, returns)
-    plt.legend(agents.keys())
-    plot_budget(n, M, L)
-    plt.show()
+    experiments = product(envs, agents.values(), n)
+
+    with Pool(processes=4) as pool:
+        values = pool.starmap(evaluate, experiments)
+
+    print(values)
+    # plt.figure()
+    # plt.plot(n, values)
+    # plt.legend(agents.keys())
+    # plot_budget(n, M, L)
+    # plt.show()
 
 
 if __name__ == "__main__":
