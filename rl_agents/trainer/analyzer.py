@@ -123,15 +123,14 @@ class RunAnalyzer(object):
                 statistics.mean, std, statistics.minmax[0], statistics.minmax[1]))
 
     def plot_all_confidence_ellipse(self, runs, field_x, field_y, labels, axes=None):
+        x, y = field_x, field_y
         if isinstance(field_x, str):
-            field = field_x
-            field_x = lambda d: d[field]
+            x = lambda d: d[field_x]
         if isinstance(field_y, str):
-            field = field_y
-            field_y = lambda d: d[field]
+            y = lambda d: d[field_y]
         for directory, content in list(runs.items()):
-            axes = self.plot_confidence_ellipse(x=field_x(content)[self.episodes_range[0]:self.episodes_range[1]],
-                                                y=field_y(content)[self.episodes_range[0]:self.episodes_range[1]],
+            axes = self.plot_confidence_ellipse(x=x(content)[self.episodes_range[0]:self.episodes_range[1]],
+                                                y=y(content)[self.episodes_range[0]:self.episodes_range[1]],
                                                 axes=axes,
                                                 labels=labels,
                                                 title=directory)
