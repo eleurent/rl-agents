@@ -55,10 +55,11 @@ class Evaluation(object):
         self.close_env = close_env
 
         self.directory = directory or self.default_directory
+        self.display_env = display_env
         self.monitor = MonitorV2(env,
                                  self.directory,
                                  add_subdirectory=(directory is None),
-                                 video_callable=(None if display_env else False))
+                                 video_callable=(None if self.display_env else False))
         self.write_metadata()
 
         if recover:
@@ -85,7 +86,8 @@ class Evaluation(object):
     def test(self, model_path=True):
         self.training = False
         self.load_agent_model(model_path)
-        self.monitor.video_callable = MonitorV2.always_call_video
+        if self.display_env:
+            self.monitor.video_callable = MonitorV2.always_call_video
         try:
             self.agent.eval()
         except AttributeError:

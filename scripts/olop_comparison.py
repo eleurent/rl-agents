@@ -1,3 +1,4 @@
+import os
 from collections import OrderedDict
 from itertools import product
 from multiprocessing.pool import Pool
@@ -5,6 +6,7 @@ from multiprocessing.pool import Pool
 import gym
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from rl_agents.agents.common import load_environment, agent_factory
 from rl_agents.trainer.evaluation import Evaluation
@@ -25,7 +27,7 @@ def allocate(budget):
             episodes[i], horizon[i] = allocate(budget[i])
         return episodes, horizon
     else:
-        budget = np.asscalar(budget)
+        budget = np.array(budget).item()
         for episodes in range(1, budget):
             if episodes * olop_horizon(episodes, gamma) > budget:
                 episodes -= 1
@@ -83,14 +85,18 @@ def agent_configs():
 
 def evaluate(env_config, agent_config, budget):
     env = load_environment(env_config)
+    name, agent_config = agent_config
     agent_config["budget"] = int(budget)
     agent_config["iterations"] = int(env.config["max_steps"])
 
+    print("Evaluating {} with budget {}".format(name, budget))
     gym.logger.set_level(gym.logger.DISABLED)
     agent = agent_factory(env, agent_config)
     evaluation = Evaluation(env,
                             agent,
-                            directory=None,
+                            directory=os.path.join(Evaluation.OUTPUT_FOLDER,
+                                                   "olop_comparison",
+                                                   "{}_{}".format(name, budget)),
                             training=False,
                             num_episodes=1,
                             display_env=False,
@@ -106,22 +112,25 @@ def evaluate(env_config, agent_config, budget):
 
 
 def main():
-    n = np.arange(50, 300, 100)
+    n = np.arange(50, 1000, 50)
     M, L = allocate(n)
 
     envs = ['configs/FiniteMDPEnv/env_garnet.json']
     agents = agent_configs()
-    experiments = product(envs, agents.values(), n)
+    experiments = list(product(envs, agents.items(), n))
 
     with Pool(processes=4) as pool:
-        values = pool.starmap(evaluate, experiments)
+        results = pool.starmap(evaluate, experiments)
 
-    print(values)
+    values = pd.DataFrame()
+    for experiment, value in zip(experiments, results):
+        _, agent, budget = experiment
+        values.at[budget, agent[0]] = value
+
     # plt.figure()
-    # plt.plot(n, values)
-    # plt.legend(agents.keys())
+    values.plot()
     # plot_budget(n, M, L)
-    # plt.show()
+    plt.show()
 
 
 if __name__ == "__main__":
