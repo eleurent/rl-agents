@@ -111,31 +111,24 @@ class MonitorV2(Monitor):
 
         env_info = collapse_env_infos(env_infos, training_dir)
 
-        # If only one stats file is present, there is no need to merge and all fields are included
-        if len(stats_files) == 1:
-            with open(stats_files[0]) as f:
+        # If several stats files are found, merge lists together and randomly pick single values
+        all_contents = {}
+        for file in stats_files:
+            with open(file) as f:
                 content = json.load(f)
                 content.update(
                     {'manifests': manifests,
                      'env_info': env_info,
                      'videos': videos})
-                return content
-        else:
-            data_sources, initial_reset_timestamps, timestamps, episode_lengths, episode_rewards, \
-                episode_types, initial_reset_timestamp = merge_stats_files(stats_files)
-
-            return {
-                'manifests': manifests,
-                'env_info': env_info,
-                'data_sources': data_sources,
-                'timestamps': timestamps,
-                'episode_lengths': episode_lengths,
-                'episode_rewards': episode_rewards,
-                'episode_types': episode_types,
-                'initial_reset_timestamps': initial_reset_timestamps,
-                'initial_reset_timestamp': initial_reset_timestamp,
-                'videos': videos,
-            }
+                if not all_contents:
+                    all_contents.update(content)
+                else:
+                    for key, value in content.items():
+                        if isinstance(value, list):
+                            all_contents[key].extend(value)
+                        else:
+                            all_contents[key] = value
+        return all_contents
 
     def run_directory(self, directory):
         return os.path.join(directory, '{}_{}'.format(self.RUN_PREFIX,
