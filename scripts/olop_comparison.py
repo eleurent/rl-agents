@@ -112,7 +112,7 @@ def evaluate(env_config, agent_config, budget):
 
 
 def main():
-    n = np.arange(50, 1000, 50)
+    n = np.arange(5, 50, 5)**2
     M, L = allocate(n)
 
     envs = ['configs/FiniteMDPEnv/env_garnet.json']
@@ -130,6 +130,7 @@ def main():
     # plt.figure()
     values.plot()
     # plot_budget(n, M, L)
+    plt.savefig(os.path.join(Evaluation.OUTPUT_FOLDER, "olop.png"))
     plt.show()
 
 
