@@ -1,9 +1,11 @@
 import copy
+import itertools
 
 import numpy as np
 from gym import spaces
 import matplotlib.pyplot as plt
-
+import seaborn as sns
+sns.set()
 from rl_agents.agents.common import agent_factory
 
 
@@ -62,21 +64,33 @@ def get_trajs(node, env):
     return trajs
 
 
-def evaluate():
+def evaluate(agent_name, budget=1000):
+    print("Evaluating", agent_name)
     env = DynamicsEnv()
     env.x = np.array([[-1], [0]])
 
-    agent_config = agents["kl-olop"]
-    agent_config["budget"] = 20000
+    agent_config = agents[agent_name]
+    agent_config["budget"] = budget
     agent = agent_factory(env, agent_config)
     a = agent.act(env.x)
-    print(agent.planner.root.children[0].count, agent.planner.root.children[1].count)
-    trajs = get_trajs(agent.planner.root, env)
-    for traj in trajs:
-        x, y = zip(*traj)
-        plt.plot(x, y, color='k', linestyle='dotted', linewidth=0.5)
+    ratio = agent.planner.root.children[1].count / agent.planner.root.children[0].count
+    print("ratio", ratio)
+    return get_trajs(agent.planner.root, env)
+
+
+def compare():
+    trajs = {}
+    for agent in agents.keys():
+        trajs[agent] = evaluate(agent)
+
+    palette = itertools.cycle(sns.color_palette())
+    for agent, agent_trajs in trajs.items():
+        color = next(palette)
+        for traj in agent_trajs:
+            x, y = zip(*traj)
+            plt.plot(x, y, color=color, linestyle='dotted', linewidth=0.5)
     plt.show()
 
 
 if __name__ == "__main__":
-    evaluate()
+    compare()
