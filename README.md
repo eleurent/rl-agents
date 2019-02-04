@@ -146,7 +146,7 @@ Reference: [Blazing the trails before beating the path: Sample-efficient Monte-C
 
 ## Robust planning
 
-### [Robust Value Iteration](rl_agents/agents/dynamics_programming/robust_value_iteration.py)
+### [Robust Value Iteration](rl_agents/agents/dynamic_programming/robust_value_iteration.py)
 
 A list of possible [finite-mdp](https://github.com/eleurent/finite-mdp) models is provided in the agent configuration. The MDP ambiguity set is constrained to be rectangular: different models can be selected at every transition.The corresponding robust state-action value is computed so as to maximize the worst-case total reward.
 
@@ -160,7 +160,7 @@ References:
 The MDP ambiguity set is assumed to be finite, and is constructed from a list of modifiers to the true environment.
 The corresponding robust value is approximately computed by [Deterministic Optimistic Planning](#deterministic-optimistic-planning) so as to maximize the worst-case total reward.
 
-### [Interval-based Robust Planning]((rl_agents/agents/tree_search/robust.py))
+### [Interval-based Robust Planning](rl_agents/agents/tree_search/robust.py)
 
 TODO
 
