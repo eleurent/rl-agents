@@ -19,6 +19,7 @@ A collection of Reinforcement Learning agents
     * [Interval-based Robust Planning](#interval-based-robust-planning)
   * Value-based
     * [DQN](#dqn)
+    * [Fitted-Q](#fitted-q)
 
 # Installation
 
@@ -179,3 +180,9 @@ References:
 * [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461), van Hasselt H. et al. (2015).
 * [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581), Wang Z. et al. (2015).
 
+### [Fitted-Q](rl_agents/agents/fitted_q)
+
+A Q-function model is trained by performing each step of Value Iteration as a supervised learning procedure applied to a batch
+of transitions covering most of the state-action space.
+
+Reference: [Tree-Based Batch Mode Reinforcement Learning](http://www.jmlr.org/papers/volume6/ernst05a/ernst05a.pdf), Ernst D. et al (2005).
