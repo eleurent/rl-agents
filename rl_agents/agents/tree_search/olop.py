@@ -33,7 +33,8 @@ class OLOP(AbstractPlanner):
                     "type": "hoeffding",
                     "time": "global"
                 },
-                "lazy_tree_construction": False
+                "lazy_tree_construction": True,
+                "continuation_type": "zeros"
             }
         )
         return cfg
@@ -96,10 +97,15 @@ class OLOP(AbstractPlanner):
         # Pick best sequence of actions
         best_sequence = list(self.leaves[np.argmax(sequences_upper_bounds)].path())
 
-        if self.config["lazy_tree_construction"]:
-            # If the sequence length is shorter than the horizon, all continuations have the same upper-bounds.
-            # Pick one continuation arbitrarily. Here, pad with the sequence [0, ..., 0].
+        # If the sequence length is shorter than the horizon (which can happen with lazy tree construction),
+        # all continuations have the same upper-bounds. Pick one continuation arbitrarily.
+        if self.config["continuation_type"] == "zeros":
+            # Here, pad with the sequence [0, ..., 0].
             best_sequence = best_sequence[:self.config["horizon"]] + [0]*(self.config["horizon"] - len(best_sequence))
+        elif self.config["continuation_type"] == "uniform":
+            best_sequence = best_sequence[:self.config["horizon"]]\
+                            + np.random.choice(range(state.action_space.n),
+                                               self.config["horizon"] - len(best_sequence)).tolist()
 
         # Execute sequence, expand tree if needed, collect rewards and update upper confidence bounds.
         node = self.root
@@ -108,7 +114,7 @@ class OLOP(AbstractPlanner):
             if not node.children:
                 self.leaves = node.expand(state, self.leaves, update_children=True)
             if action not in node.children:  # Default action may not be available
-                action = node.children.keys()[0]  # Pick first available action
+                action = node.children.keys()[0]  # Pick first available action instead
             node = node.children[action]
             node.update(reward, done)
             if node.done:

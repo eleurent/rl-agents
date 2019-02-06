@@ -35,13 +35,15 @@ agents = {
         "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         "gamma": gamma,
         "upper_bound": {"type": "hoeffding"},
-        "lazy_tree_construction": True
+        "lazy_tree_construction": True,
+        "continuation_type": "uniform"
     },
     "kl-olop": {
         "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         "gamma": gamma,
         "upper_bound": {"type": "kullback-leibler"},
-        "lazy_tree_construction": True
+        "lazy_tree_construction": True,
+        "continuation_type": "uniform"
     },
     "deterministic": {
         "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
@@ -64,7 +66,7 @@ def get_trajs(node, env):
     return trajs
 
 
-def evaluate(agent_name, budget=1000):
+def evaluate(agent_name, budget=10000):
     print("Evaluating", agent_name)
     env = DynamicsEnv()
     env.x = np.array([[-1], [0]])
