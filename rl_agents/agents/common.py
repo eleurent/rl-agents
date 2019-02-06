@@ -80,7 +80,10 @@ def preprocess_env(env, preprocessor_configs):
     """
     for preprocessor_config in preprocessor_configs:
         if "method" in preprocessor_config:
-            preprocessor = getattr(env, preprocessor_config["method"])
+            try:
+                preprocessor = getattr(env, preprocessor_config["method"])
+            except AttributeError:
+                preprocessor = getattr(env.unwrapped, preprocessor_config["method"])
             if "args" in preprocessor_config:
                 env = preprocessor(preprocessor_config["args"])
             else:
