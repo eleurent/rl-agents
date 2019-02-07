@@ -37,16 +37,17 @@ def load_agent(agent_path, env):
     return agent_factory(env, agent_config)
 
 
-def load_environment(env_path):
+def load_environment(env_config):
     """
         Load an environment from a configuration file.
 
-    :param env_path: the path to the environment configuration file
+    :param env_config: the configuration, or path to the environment configuration file
     :return: the environment
     """
     # Load the environment config from file
-    with open(env_path) as f:
-        env_config = json.loads(f.read())
+    if not isinstance(env_config, dict):
+        with open(env_config) as f:
+            env_config = json.loads(f.read())
 
     # Make the environment
     if "import_module" in env_config:
