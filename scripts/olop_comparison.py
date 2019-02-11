@@ -1,4 +1,20 @@
-import os
+"""Usage: olop_comparison.py [options]
+
+Compare performances of several planners on random MDPs
+
+Options:
+  -h --help
+  --generate <true or false>  Generate new data [default: True].
+  --show <true_or_false>      Plot results [default: True].
+  --data_path <path>          Specify output data file path [default: ./out/olop_data.xlsx].
+  --plot_path <path>          Specify figure data file path [default: ./out/olop_plot.png].
+  --budgets <start,end,N>     Computational budgets available to planners, in logspace [default: 0,4,200].
+  --samples <n>               Number of evaluations of each configuration [default: 20].
+  --range <start:end>         Range of budgets to be plotted.
+"""
+from ast import literal_eval
+
+from docopt import docopt
 from collections import OrderedDict
 from itertools import product
 from multiprocessing.pool import Pool
@@ -10,12 +26,10 @@ import pandas as pd
 import seaborn as sns
 
 from rl_agents.agents.common import load_environment, agent_factory
-from rl_agents.trainer.evaluation import Evaluation
 
 gamma = 0.8
 K = 5
-DATA_PATH = os.path.join(Evaluation.OUTPUT_FOLDER, "olop_data.xlsx")
-FIGURE_PATH = os.path.join(Evaluation.OUTPUT_FOLDER, "olop_plot.png")
+SEED_MAX = 10000
 
 
 def olop_horizon(episodes, gamma):
@@ -55,6 +69,9 @@ def plot_budget(budget, episodes, horizon):
 
 def agent_configs():
     agents = {
+        "random": {
+            "__class__": "<class 'rl_agents.agents.simple.random.RandomUniformAgent'>"
+        },
         "olop": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
             "gamma": gamma,
@@ -103,73 +120,41 @@ def evaluate(env_config, agent_config, budget, seed):
 def append_df_to_excel(filename, df, sheet_name='Sheet1', startrow=None,
                        truncate_sheet=False,
                        **to_excel_kwargs):
-    """
-    Append a DataFrame [df] to existing Excel file [filename]
-    into [sheet_name] Sheet.
-    If [filename] doesn't exist, then this function will create it.
-
-    Parameters:
-      filename : File path or existing ExcelWriter
-                 (Example: '/path/to/file.xlsx')
-      df : dataframe to save to workbook
-      sheet_name : Name of sheet which will contain DataFrame.
-                   (default: 'Sheet1')
-      startrow : upper left cell row to dump data frame.
-                 Per default (startrow=None) calculate the last row
-                 in the existing DF and write to the next row...
-      truncate_sheet : truncate (remove and recreate) [sheet_name]
-                       before writing DataFrame to Excel file
-      to_excel_kwargs : arguments which will be passed to `DataFrame.to_excel()`
-                        [can be dictionary]
-
-    Returns: None
-    """
     from openpyxl import load_workbook
-
     import pandas as pd
-
-    # ignore [engine] parameter if it was passed
     if 'engine' in to_excel_kwargs:
         to_excel_kwargs.pop('engine')
-
     writer = pd.ExcelWriter(filename, engine='openpyxl')
-
     try:
-        # try to open an existing workbook
         writer.book = load_workbook(filename)
-
-        # get the last row in the existing Excel sheet
-        # if it was not specified explicitly
         if startrow is None and sheet_name in writer.book.sheetnames:
             startrow = writer.book[sheet_name].max_row
-
-        # truncate sheet
         if truncate_sheet and sheet_name in writer.book.sheetnames:
-            # index of [sheet_name] sheet
             idx = writer.book.sheetnames.index(sheet_name)
-            # remove [sheet_name]
             writer.book.remove(writer.book.worksheets[idx])
-            # create an empty sheet [sheet_name] using old index
             writer.book.create_sheet(sheet_name, idx)
-
-        # copy existing sheets
         writer.sheets = {ws.title: ws for ws in writer.book.worksheets}
         to_excel_kwargs["header"] = None
     except FileNotFoundError:
-        # file does not exist yet, we will create it
         pass
-
     if startrow is None:
         startrow = 0
-
-    # write out the new sheet
     df.to_excel(writer, sheet_name, startrow=startrow, **to_excel_kwargs)
-    # save the workbook
     writer.save()
     print("Saving dataframe to {}".format(filename))
 
 
-def store_results(experiments, results):
+def prepare_experiments(budgets, samples):
+    budgets = literal_eval(budgets)
+    budgets = np.logspace(*budgets)
+    envs = ['configs/FiniteMDPEnv/env_garnet.json']
+    agents = agent_configs()
+    seeds = np.random.randint(0, SEED_MAX, samples, dtype=int).tolist()
+    experiments = list(product(envs, agents.items(), budgets, seeds))
+    return experiments
+
+
+def store_results(experiments, results, path=None):
     print("Finished! Exporting dataframe...")
     df = pd.DataFrame(columns=['agent', 'budget', 'value', 'optimal_value', 'seed'])
     for experiment, result in zip(experiments, results):
@@ -182,34 +167,33 @@ def store_results(experiments, results):
                         "optimal_value": optimal_value},
                        ignore_index=True)
     df["regret"] = df["optimal_value"] - df["value"]
-    append_df_to_excel(DATA_PATH, df, index=False)
+    if path:
+        append_df_to_excel(path, df, index=False)
     return df
 
 
-def plot_all(df=None):
-    if not df:
-        print("Loading dataframe from {}".format(DATA_PATH))
-        df = pd.read_excel(DATA_PATH)
+def plot_all(data_path, plot_path, range):
+    print("Loading dataframe from {}".format(data_path))
+    df = pd.read_excel(data_path)
     fig, ax = plt.subplots()
+    ax.set(yscale="log")
+    if range:
+        start, end = range.split(':')
+        df = df[df["budget"].between(int(start), int(end))]
     sns.lineplot(x="budget", y="regret", ax=ax, hue="agent", data=df, markers=True)
-    plt.savefig(FIGURE_PATH)
-    # plt.show()
+    plt.savefig(plot_path)
 
 
-def main():
-    n = np.arange(5, 50, 5)**2
-    M, L = allocate(n)
-
-    envs = ['configs/FiniteMDPEnv/env_garnet.json']
-    agents = agent_configs()
-    seeds = np.random.randint(0, 1000, 5, dtype=int).tolist()
-    experiments = list(product(envs, agents.items(), n, seeds))
-
-    with Pool(processes=4) as pool:
-        results = pool.starmap(evaluate, experiments)
-    store_results(experiments, results)
-    plot_all()
+def main(args):
+    if args["--generate"] == "True":
+        experiments = prepare_experiments(args["--budgets"], int(args['--samples']))
+        with Pool(processes=4) as pool:
+            results = pool.starmap(evaluate, experiments)
+        store_results(experiments, results, path=args["--data_path"])
+    if args["--show"] == "True":
+        plot_all(args["--data_path"], args["--plot_path"], args["--range"])
 
 
 if __name__ == "__main__":
-    main()
+    arguments = docopt(__doc__)
+    main(arguments)
