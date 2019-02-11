@@ -2,6 +2,7 @@ import pygame
 import matplotlib as mpl
 import matplotlib.cm as cm
 import numpy as np
+import matplotlib.pyplot as plt
 
 from rl_agents.agents.common import preprocess_env
 
@@ -197,3 +198,26 @@ class IntervalRobustPlannerGraphics(object):
                             p.append(p[0])
                             p = list(map(sim_surface.vec2pix, p))
                             pygame.draw.polygon(surface, color, p, 0)
+
+
+class TreePlot(object):
+    def __init__(self, planner, max_depth=4):
+        self.planner = planner
+        self.actions = planner.env.action_space.n
+        self.max_depth = max_depth
+
+    def plot(self, filename):
+        fig, ax = plt.subplots()
+        self._plot_node(self.planner.root, [0, 0], ax)
+        plt.savefig(filename)
+
+    def _plot_node(self, node, pos, ax, depth=0):
+        if depth > self.max_depth:
+            return
+        for a in range(self.actions):
+            if a in node.children:
+                child = node.children[a]
+                d = 1 / self.actions**depth
+                pos_child = [pos[0] - d/2 + a/(self.actions - 1)*d, pos[1]+1/self.max_depth]
+                ax.plot([pos[0], pos_child[0]], [pos[1], pos_child[1]], '--k')
+                self._plot_node(child, pos_child, ax, depth+1)

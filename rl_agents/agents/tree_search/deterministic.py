@@ -10,15 +10,16 @@ class DeterministicPlannerAgent(AbstractTreeSearchAgent):
         An agent that performs optimistic planning in deterministic MDPs.
     """
     def make_planner(self):
-        return OptimisticDeterministicPlanner(self.config)
+        return OptimisticDeterministicPlanner(self.env, self.config)
 
 
 class OptimisticDeterministicPlanner(AbstractPlanner):
     """
        An implementation of Open Loop Optimistic Planning.
     """
-    def __init__(self, config=None):
+    def __init__(self, env, config=None):
         super(OptimisticDeterministicPlanner, self).__init__(config)
+        self.env = env
         self.leaves = None
 
     def make_root(self):
@@ -34,7 +35,7 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
         if not leaf_to_expand.done:
             leaf_to_expand.expand(self.leaves)
 
-        self.root.backup_values()
+        leaf_to_expand.backup_to_root()
 
     def plan(self, state, observation):
         self.root.state = state
@@ -61,7 +62,7 @@ class DeterministicNode(Node):
         self.depth = depth
         self.reward = 0
         self.value_upper_bound = 0
-        self.count = 1  # every node is explored exactly once
+        self.count = 1
         self.done = False
 
     def selection_rule(self):
@@ -104,6 +105,14 @@ class DeterministicNode(Node):
             self.value = np.amax([b[0] for b in backup_children])
             self.value_upper_bound = np.amax([b[1] for b in backup_children])
         return self.get_value(), self.get_value_upper_bound()
+
+    def backup_to_root(self):
+        if self.parent:
+            values = [(child.value, child.value_upper_bound) for child in self.parent.children.values()]
+            self.parent.value = np.amax([b[0] for b in values])
+            self.value_upper_bound = np.amax([b[1] for b in values])
+            self.parent.backup_to_root()
+            self.count += 1
 
     def get_value_upper_bound(self):
         return self.value_upper_bound

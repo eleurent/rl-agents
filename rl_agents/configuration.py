@@ -69,7 +69,7 @@ class Serializable(dict):
         for (key, value) in dictionary.items():
             if key in self.__dict__:
                 if isinstance(value, Serializable):
-                    self.__dict__[key].from_dict(dictionary)
+                    self.__dict__[key].from_config(dictionary)
                 else:
                     self.__dict__[key] = value
 

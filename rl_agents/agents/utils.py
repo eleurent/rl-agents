@@ -149,7 +149,7 @@ def hoeffding_upper_bound(_sum, count, time):
     return _sum / count + np.sqrt(2 * np.log(time) / count)
 
 
-def kl_upper_bound(_sum, count, time, eps=1e-2):
+def kl_upper_bound(_sum, count, time, eps=1e-2, c=4):
     """
         Upper Confidence Bound of the empirical mean built on the Kullback-Leibler divergence.
 
@@ -161,7 +161,7 @@ def kl_upper_bound(_sum, count, time, eps=1e-2):
     :param eps: Absolute accuracy of the Netwon Iteration
     """
     mu = _sum/count
-    max_div = np.log(time)/count
+    max_div = c*np.log(time)/count
 
     # Solve KL(mu, q) = max_div
     q = mu

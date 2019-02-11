@@ -1,15 +1,23 @@
 import copy
-import itertools
 
+import gym
+import highway_env
+from pathlib import Path
+import itertools
 import numpy as np
 from gym import spaces
 import matplotlib.pyplot as plt
 import seaborn as sns
-sns.set()
+
+from rl_agents.agents.tree_search.graphics import TreePlot
 from rl_agents.agents.common import agent_factory
+
+sns.set()
+out = Path("out")
 
 
 class DynamicsEnv:
+
     def __init__(self):
         dt = 0.1
         self.x = np.random.random((2, 1))
@@ -54,6 +62,8 @@ agents = {
 
 def get_trajs(node, env):
     trajs = []
+    if not isinstance(env, DynamicsEnv):
+        return trajs
     if node.children:
         for action, child in node.children.items():
             state = copy.deepcopy(env)
@@ -66,16 +76,24 @@ def get_trajs(node, env):
     return trajs
 
 
-def evaluate(agent_name, budget=10000):
+def evaluate(agent_name, budget=500):
     print("Evaluating", agent_name)
-    env = DynamicsEnv()
+    # env = DynamicsEnv()
+    env = gym.make("highway-v0")
+    env.seed(0)
+    env.reset()
     env.x = np.array([[-1], [0]])
 
     agent_config = agents[agent_name]
     agent_config["budget"] = budget
     agent = agent_factory(env, agent_config)
     a = agent.act(env.x)
+
     ratio = agent.planner.root.children[1].count / agent.planner.root.children[0].count
+
+    graphics = TreePlot(agent.planner, max_depth=100)
+    graphics.plot(out / "{}.png".format(agent_name))
+    plt.show()
     print("ratio", ratio)
     return get_trajs(agent.planner.root, env)
 
@@ -91,6 +109,7 @@ def compare():
         for traj in agent_trajs:
             x, y = zip(*traj)
             plt.plot(x, y, color=color, linestyle='dotted', linewidth=0.5)
+    plt.savefig(out / "trajectories.png")
     plt.show()
 
 
