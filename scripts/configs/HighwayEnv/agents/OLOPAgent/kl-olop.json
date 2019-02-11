@@ -4,6 +4,6 @@
     "gamma": 0.7,
     "budget": 500,
     "max_depth": 4,
-    "upper_bound": "kullback-leibler",
+    "upper_bound": {"type": "kullback-leibler"},
     "lazy_tree_construction": true
 }
