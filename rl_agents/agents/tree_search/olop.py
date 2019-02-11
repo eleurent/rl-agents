@@ -73,6 +73,8 @@ class OLOP(AbstractPlanner):
         """
             Allocate the computational budget into M episodes of fixed horizon L.
         """
+        if self.config["budget"] < self.env.action_space.n:
+            self.config["budget"] = self.env.action_space.n
         for episodes in range(1, self.config["budget"]):
             if episodes * OLOP.horizon(episodes, self.config["gamma"]) > self.config["budget"]:
                 self.config["episodes"] = episodes - 1
