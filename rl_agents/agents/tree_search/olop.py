@@ -114,7 +114,7 @@ class OLOP(AbstractPlanner):
             if not node.children:
                 self.leaves = node.expand(state, self.leaves, update_children=True)
             if action not in node.children:  # Default action may not be available
-                action = node.children.keys()[0]  # Pick first available action instead
+                action = list(node.children.keys())[0]  # Pick first available action instead
             node = node.children[action]
             node.update(reward, done)
             if node.done:
