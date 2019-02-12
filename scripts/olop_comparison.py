@@ -205,10 +205,9 @@ def main(args):
     if args["--generate"] == "True":
         experiments = prepare_experiments(args["--budgets"], int(args['--samples']))
         writer = append_df_to_excel(args["--data_path"])
-        p = Pool(processes=int(args["--processes"]))
-        print(int(args["--processes"]), "processes")
-        for result in p.imap(evaluate, experiments):
-            append_df_to_excel(writer=writer, df=result, index=False)
+        with Pool(processes=int(args["--processes"])) as p:
+            for result in p.imap(evaluate, experiments):
+                append_df_to_excel(writer=writer, df=result, index=False)
     if args["--show"] == "True":
         plot_all(args["--data_path"], args["--plot_path"], args["--range"])
 
