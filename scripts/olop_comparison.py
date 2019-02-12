@@ -8,7 +8,7 @@ Options:
   --show <true_or_false>      Plot results [default: True].
   --data_path <path>          Specify output data file path [default: ./out/olop_data.xlsx].
   --plot_path <path>          Specify figure data file path [default: ./out/olop_plot.png].
-  --budgets <start,end,N>     Computational budgets available to planners, in logspace [default: 1,4,100].
+  --budgets <start,end,N>     Computational budgets available to planners, in logspace [default: 1,3,100].
   --samples <n>               Number of evaluations of each configuration [default: 5].
   --processes <p>             Number of processes [default: 4]
   --range <start:end>         Range of budgets to be plotted.
