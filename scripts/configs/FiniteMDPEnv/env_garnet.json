@@ -5,7 +5,7 @@
     "num_states": 200,
     "num_actions": 5,
     "num_transitions": 1,
-    "reward_sparsity": 0.2,
-    "max_steps": 10,
+    "reward_sparsity": 0.5,
+    "max_steps": 20,
     "seed": 2020
 }

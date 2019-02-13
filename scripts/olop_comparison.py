@@ -24,7 +24,6 @@ import gym
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from openpyxl import load_workbook
 import seaborn as sns
 
 from rl_agents.agents.common import load_environment, agent_factory
@@ -120,7 +119,7 @@ def evaluate(experiment):
     result = (values[action],  np.amax(values))
     df = to_dataframe(experiment, result)
     with open(path, 'a') as f:
-        df.to_csv(f, sep=',', encoding='utf-8', header=f.tell() == 0, index=False, line_terminator="")
+        df.to_csv(f, sep=',', encoding='utf-8', header=f.tell() == 0, index=False)
 
 
 def prepare_experiments(budgets, samples, path):
