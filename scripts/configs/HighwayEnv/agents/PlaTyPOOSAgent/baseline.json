@@ -1,0 +1,7 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.platypoos.PlaTyPOOSAgent'>",
+    "env_preprocessors": [{"method":"simplify"}],
+    "gamma": 0.9,
+    "budget": 2500,
+    "max_depth": 4
+}
