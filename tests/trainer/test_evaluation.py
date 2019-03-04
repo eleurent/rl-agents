@@ -15,7 +15,9 @@ def test_evaluation(tmpdir):
                             display_agent=False,
                             display_rewards=False)
     evaluation.train()
+    evaluation.close()
     artifacts = tmpdir.listdir()
+    print(artifacts)
     assert any(['manifest' in file.basename for file in artifacts])
     assert any(['metadata' in file.basename for file in artifacts])
     assert any(['stats' in file.basename for file in artifacts])
