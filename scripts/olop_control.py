@@ -5,19 +5,18 @@ import highway_env
 from pathlib import Path
 import itertools
 import numpy as np
-from gym import spaces
+from gym import spaces, Env
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 from rl_agents.agents.tree_search.graphics import TreePlot
-from rl_agents.agents.common import agent_factory
+from rl_agents.agents.common import agent_factory, load_environment
 
 sns.set()
-out = Path("out")
+out = Path("out/olop")
 
 
-class DynamicsEnv:
-
+class DynamicsEnv(Env):
     def __init__(self):
         dt = 0.1
         self.x = np.random.random((2, 1))
@@ -34,28 +33,65 @@ class DynamicsEnv:
         return max(1 - self.x[0, 0]**2, 0)
 
     def reset(self):
-        self.x = np.random.rand((2, 1))
+        # self.x = np.random.random((2, 1))
+        self.x = np.array([[-1], [0]])
 
+    def simplify(self):
+        return self
+
+    def seed(self, seed):
+        pass
+
+
+env_zero_one = {
+    "id": "finite-mdp-v0",
+    "import_module": "finite_mdp",
+    "mode": "deterministic",
+    "transition": [[0, 0]],
+    "reward": [[0, 0.7]],
+    "terminal": [0,
+                 0]
+}
 
 gamma = 0.9
 agents = {
     "olop": {
         "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         "gamma": gamma,
-        "upper_bound": {"type": "hoeffding"},
+        "upper_bound": {
+            "type": "hoeffding",
+            "c": 4
+        },
         "lazy_tree_construction": True,
-        "continuation_type": "uniform"
+        "continuation_type": "uniform",
+        "env_preprocessors": [{"method": "simplify"}]
     },
-    "kl-olop": {
+    "kl-olop-2": {
         "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         "gamma": gamma,
-        "upper_bound": {"type": "kullback-leibler"},
+        "upper_bound": {
+            "type": "kullback-leibler",
+            "c": 2
+        },
         "lazy_tree_construction": True,
-        "continuation_type": "uniform"
+        "continuation_type": "uniform",
+        "env_preprocessors": [{"method": "simplify"}]
+    },
+    "kl-olop-1": {
+        "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+        "gamma": gamma,
+        "upper_bound": {
+            "type": "kullback-leibler",
+            "c": 1
+        },
+        "lazy_tree_construction": True,
+        "continuation_type": "uniform",
+        "env_preprocessors": [{"method": "simplify"}]
     },
     "deterministic": {
         "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
-        "gamma": gamma
+        "gamma": gamma,
+        "env_preprocessors": [{"method": "simplify"}]
     }
 }
 
@@ -76,32 +112,33 @@ def get_trajs(node, env):
     return trajs
 
 
-def evaluate(agent_name, budget=500):
+def evaluate(env, agent_name, budget=1000, seed=None):
     print("Evaluating", agent_name)
-    # env = DynamicsEnv()
-    env = gym.make("highway-v0")
-    env.seed(0)
-    env.reset()
-    env.x = np.array([[-1], [0]])
-
     agent_config = agents[agent_name]
     agent_config["budget"] = budget
     agent = agent_factory(env, agent_config)
-    a = agent.act(env.x)
-
-    ratio = agent.planner.root.children[1].count / agent.planner.root.children[0].count
-
-    graphics = TreePlot(agent.planner, max_depth=100)
-    graphics.plot(out / "{}.png".format(agent_name))
-    plt.show()
-    print("ratio", ratio)
-    return get_trajs(agent.planner.root, env)
+    if seed is not None:
+        agent.seed(seed)
+    agent.act(env)
+    return agent
 
 
-def compare():
+def compare_trees(env, seed=0):
+    for agent_name in agents.keys():
+        env.seed(seed)
+        env.reset()
+        agent = evaluate(env, agent_name, seed=seed)
+        TreePlot(agent.planner, max_depth=100).plot(out / "{}.svg".format(agent_name), title=agent_name)
+        plt.show()
+
+
+def compare_trajs(env, seed=0):
     trajs = {}
-    for agent in agents.keys():
-        trajs[agent] = evaluate(agent)
+    for agent_name in agents.keys():
+        env.seed(seed)
+        env.reset()
+        agent = evaluate(env, agent_name, seed=seed)
+        trajs[agent_name] = get_trajs(agent.planner.root, env)
 
     palette = itertools.cycle(sns.color_palette())
     for agent, agent_trajs in trajs.items():
@@ -114,4 +151,9 @@ def compare():
 
 
 if __name__ == "__main__":
-    compare()
+    gym.logger.set_level(gym.logger.DEBUG)
+
+    # env = DynamicsEnv()
+    # env = gym.make("highway-v0")
+    env = load_environment(env_zero_one)
+    compare_trees(env, seed=5)

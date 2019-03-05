@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from rl_agents.agents.common import preprocess_env
+from rl_agents.utils import remap, constrain
 
 
 class TreeGraphics(object):
@@ -205,11 +206,16 @@ class TreePlot(object):
         self.planner = planner
         self.actions = planner.env.action_space.n
         self.max_depth = max_depth
+        self.total_count = sum(c.count for c in self.planner.root.children.values())
 
-    def plot(self, filename):
+    def plot(self, filename, title=None):
         fig, ax = plt.subplots()
         self._plot_node(self.planner.root, [0, 0], ax)
-        plt.savefig(filename)
+        ax.xaxis.set_ticklabels([])
+        ax.yaxis.set_ticklabels([])
+        if title:
+            plt.title(title)
+        plt.savefig(filename, dpi=300, figsize=(10, 10))
 
     def _plot_node(self, node, pos, ax, depth=0):
         if depth > self.max_depth:
@@ -217,7 +223,10 @@ class TreePlot(object):
         for a in range(self.actions):
             if a in node.children:
                 child = node.children[a]
+                if not child.count:
+                    continue
                 d = 1 / self.actions**depth
-                pos_child = [pos[0] - d/2 + a/(self.actions - 1)*d, pos[1]+1/self.max_depth]
-                ax.plot([pos[0], pos_child[0]], [pos[1], pos_child[1]], '--k')
+                pos_child = [pos[0] - d/2 + a/(self.actions - 1)*d, pos[1] - 1/self.max_depth]
+                width = constrain(remap(child.count, (1, self.total_count), (0.5, 3)), 0.5, 3)
+                ax.plot([pos[0], pos_child[0]], [pos[1], pos_child[1]], 'k', linewidth=width)
                 self._plot_node(child, pos_child, ax, depth+1)
