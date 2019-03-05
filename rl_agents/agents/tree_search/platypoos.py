@@ -26,8 +26,9 @@ class PlaTyPOOS(AbstractPlanner):
         self.openings = 0
 
         if "horizon" not in self.config:
-            self.config["horizon"] = int(np.floor(self.config["budget"] /
-                                                  (2 * (np.log2(self.config["budget"]) + 1)**2)))
+            expansion_budget = self.config["budget"] / env.action_space.n
+            self.config["horizon"] = int(np.floor(expansion_budget /
+                                                  (2 * (np.log2(expansion_budget) + 1)**2)))
 
     def make_root(self):
         return PlaTyPOOSNode(parent=None, planner=self, state=None)
@@ -102,7 +103,7 @@ class PlaTyPOOS(AbstractPlanner):
         for h in range(1, self.config["horizon"]):
             current_layer = self.explore(h, current_layer)
         self.cross_validate()
-        logger.info("Budget used: {}".format(self.openings))
+        logger.info("Total number of openings: {}".format(self.openings))
         return self.get_plan()
 
 

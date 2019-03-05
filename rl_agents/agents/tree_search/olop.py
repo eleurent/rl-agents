@@ -175,7 +175,7 @@ class OLOP(AbstractPlanner):
 
     def plan(self, state, observation):
         for self.episode in range(self.config['episodes']):
-            if (self.episode+1) % 10 == 0:
+            if (self.episode+1) % max(self.config['episodes'] // 10, 1) == 0:
                 logger.debug('{} / {}'.format(self.episode+1, self.config['episodes']))
             self.run(safe_deepcopy_env(state))
 
