@@ -14,10 +14,9 @@ def test_evaluation(tmpdir):
                             display_env=False,
                             display_agent=False,
                             display_rewards=False)
+    evaluation.monitor._monitor = True  # TODO: dirty fix until merge of https://github.com/openai/gym/pull/1362
     evaluation.train()
-    evaluation.close()
     artifacts = tmpdir.listdir()
-    print(artifacts)
     assert any(['manifest' in file.basename for file in artifacts])
     assert any(['metadata' in file.basename for file in artifacts])
     assert any(['stats' in file.basename for file in artifacts])
