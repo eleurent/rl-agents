@@ -181,7 +181,7 @@ class PlaTyPOOSNode(Node):
             Or raise ValueError if the best candidate is not a descendant of this node
         :return: the action to perform in this node
         """
-        candidate = max(self.candidates.values(), key=attrgetter("value"))
+        candidate = max(self.planner.candidates.values(), key=attrgetter("value"))
         while candidate.parent and candidate.parent is not self:
             candidate = candidate.parent
         if not candidate.parent:
