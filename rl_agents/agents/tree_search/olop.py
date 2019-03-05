@@ -31,7 +31,8 @@ class OLOP(AbstractPlanner):
                 "upper_bound":
                 {
                     "type": "hoeffding",
-                    "time": "global"
+                    "time": "global",
+                    "c": 4
                 },
                 "lazy_tree_construction": True,
                 "continuation_type": "zeros"
@@ -224,9 +225,11 @@ class OLOPNode(Node):
             logger.error("Unknown upper-bound time reference")
 
         if self.planner.config["upper_bound"]["type"] == "hoeffding":
-            self.mu_ucb = hoeffding_upper_bound(self.cumulative_reward, self.count, time)
+            self.mu_ucb = hoeffding_upper_bound(self.cumulative_reward, self.count, time,
+                                                c=self.planner.config["upper_bound"]["c"])
         elif self.planner.config["upper_bound"]["type"] == "kullback-leibler":
-            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, time)
+            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, time,
+                                         c=self.planner.config["upper_bound"]["c"])
         else:
             logger.error("Unknown upper-bound type")
 
