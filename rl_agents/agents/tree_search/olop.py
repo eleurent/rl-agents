@@ -107,17 +107,17 @@ class OLOP(AbstractPlanner):
             best_sequence = best_sequence[:self.config["horizon"]] + [0]*(self.config["horizon"] - len(best_sequence))
         elif self.config["continuation_type"] == "uniform":
             best_sequence = best_sequence[:self.config["horizon"]]\
-                            + np.random.choice(range(state.action_space.n),
-                                               self.config["horizon"] - len(best_sequence)).tolist()
+                            + self.np_random.choice(range(state.action_space.n),
+                                                    self.config["horizon"] - len(best_sequence)).tolist()
 
         # Execute sequence, expand tree if needed, collect rewards and update upper confidence bounds.
         node = self.root
         for action in best_sequence:
-            observation, reward, done, _ = state.step(action)
             if not node.children:
-                self.leaves = node.expand(state, self.leaves, update_children=True)
+                self.leaves = node.expand(state, self.leaves, update_children=False)
             if action not in node.children:  # Default action may not be available
                 action = list(node.children.keys())[0]  # Pick first available action instead
+            observation, reward, done, _ = state.step(action)
             node = node.children[action]
             node.update(reward, done)
             if node.done:
