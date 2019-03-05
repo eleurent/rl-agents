@@ -82,15 +82,15 @@ def preprocess_env(env, preprocessor_configs):
     for preprocessor_config in preprocessor_configs:
         if "method" in preprocessor_config:
             try:
-                preprocessor = getattr(env, preprocessor_config["method"])
-            except AttributeError:
                 preprocessor = getattr(env.unwrapped, preprocessor_config["method"])
-            if "args" in preprocessor_config:
-                env = preprocessor(preprocessor_config["args"])
-            else:
-                env = preprocessor()
+                if "args" in preprocessor_config:
+                    env = preprocessor(preprocessor_config["args"])
+                else:
+                    env = preprocessor()
+            except AttributeError:
+                logger.warn("The environment does not have a {} method".format(preprocessor_config["method"]))
         else:
-            logger.error("Unknown environment preprocessor", preprocessor)
+            logger.error("The method is not specified in ", preprocessor)
     return env
 
 
