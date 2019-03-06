@@ -1,4 +1,4 @@
-"""Usage: olop_comparison.py [options]
+"""Usage: planners_evaluation.py [options]
 
 Compare performances of several planners on random MDPs
 
@@ -7,7 +7,7 @@ Options:
   --generate <true or false>  Generate new data [default: True].
   --show <true_or_false>      Plot results [default: True].
   --data_path <path>          Specify output data file path [default: ./out/planners/data.csv].
-  --plot_path <path>          Specify figure data file path [default: ./out/planners/performances.png].
+  --plot_path <path>          Specify figure data file path [default: ./out/planners].
   --budgets <start,end,N>     Computational budgets available to planners, in logspace [default: 1,3,100].
   --samples <n>               Number of evaluations of each configuration [default: 10].
   --processes <p>             Number of processes [default: 4]
@@ -121,6 +121,11 @@ def agent_configs():
         "deterministic": {
             "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
             "gamma": gamma
+        },
+        "value_iteration": {
+            "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
+            "gamma": gamma,
+            "iterations": int(3 / (1 - gamma))
         }
     }
     return OrderedDict(agents)
@@ -151,8 +156,15 @@ def evaluate(experiment):
     action = agent.act(state)
 
     values = agent_factory(env, value_iteration()).state_action_value()[env.mdp.state, :]
-    result = (values[action],  np.amax(values))
-    df = to_dataframe(experiment, result)
+    result = {
+        "agent": name,
+        "budget": budget,
+        "seed": seed,
+        "action_value": values[action],
+        "value": np.amax(values),
+        "action": action
+    }
+    df = pd.DataFrame.from_records([result])
 
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -170,31 +182,31 @@ def prepare_experiments(budgets, samples, path):
     return experiments
 
 
-def to_dataframe(experiment, result):
-    seed, budget, agent, _, _ = experiment
-    value, optimal_value = result
-    df = pd.DataFrame.from_records([{"agent": agent[0],
-                                     "budget": budget,
-                                     "seed": seed,
-                                     "value": value,
-                                     "optimal_value": optimal_value}])
-    df["regret"] = df["optimal_value"] - df["value"]
-    return df
-
-
 def plot_all(data_path, plot_path, data_range):
     print("Reading data from {}".format(data_path))
     df = pd.read_csv(data_path)
     df = df[df.agent != 'agent'].apply(pd.to_numeric, errors='ignore')
+    df["regret"] = df["value"] - df["action_value"]
+    df["action"] = "a" + df["action"].astype(str)
     print("Number of seeds found: {}".format(df.seed.nunique()))
+
     fig, ax = plt.subplots()
     ax.set(xscale="log", yscale="log")
     if data_range:
         start, end = data_range.split(':')
         df = df[df["budget"].between(int(start), int(end))]
     sns.lineplot(x="budget", y="regret", ax=ax, hue="agent", data=df)
-    print("Saving plots to {}".format(plot_path))
-    plt.savefig(plot_path, bbox_inches='tight')
+    regret_path = plot_path / "regret.png"
+    plt.savefig(regret_path, bbox_inches='tight')
+    print("Saving regret plot to {}".format(regret_path))
+
+    fig, ax = plt.subplots()
+    ax.set(xscale="log")
+    sns_plot = sns.catplot(x="budget", y="action", hue="agent", ax=ax, data=df)
+    action_path = plot_path / "actions.png"
+    sns_plot.savefig(action_path)
+    plt.show()
+    print("Saving plots to {}".format(action_path))
 
 
 def main(args):
@@ -204,7 +216,7 @@ def main(args):
         with Pool(processes=int(args["--processes"])) as p:
             p.map(evaluate, experiments, chunksize=chunksize)
     if args["--show"] == "True":
-        plot_all(args["--data_path"], args["--plot_path"], args["--range"])
+        plot_all(Path(args["--data_path"]), Path(args["--plot_path"]), args["--range"])
 
 
 if __name__ == "__main__":
