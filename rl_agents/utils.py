@@ -68,6 +68,18 @@ def hoeffding_upper_bound(_sum, count, time, c=4):
     return _sum / count + np.sqrt(c * np.log(time) / (2 * count))
 
 
+def laplace_upper_bound(_sum, count, time, c=2):
+    """
+        Upper Confidence Bound of the empirical mean built on the Laplace time-uniform concentration inequality.
+
+    :param _sum: Sum of sample values
+    :param count: Number of samples
+    :param time: Allows to set the bound confidence level to time^(-c)
+    :param c: Time exponent in the confidence level
+    """
+    return _sum / count + np.sqrt((1 + 1 / count) * c * np.log(np.sqrt(count + 1) * time) / (2 * count))
+
+
 def kl_upper_bound(_sum, count, time, c=2, eps=1e-2):
     """
         Upper Confidence Bound of the empirical mean built on the Kullback-Leibler divergence.

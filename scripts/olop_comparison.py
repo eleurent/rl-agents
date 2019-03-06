@@ -83,9 +83,10 @@ def agent_configs():
                 "type": "hoeffding",
                 "c": 4
             },
-            "lazy_tree_construction": True
+            "lazy_tree_construction": True,
+            "continuation_type": "uniform"
         },
-        "kl-olop-2": {
+        "kl-olop": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
             "gamma": gamma,
             "max_depth": 10,
@@ -93,7 +94,8 @@ def agent_configs():
                 "type": "kullback-leibler",
                 "c": 2
             },
-            "lazy_tree_construction": True
+            "lazy_tree_construction": True,
+            "continuation_type": "uniform"
         },
         "kl-olop-1": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -103,7 +105,22 @@ def agent_configs():
                 "type": "kullback-leibler",
                 "c": 1
             },
-            "lazy_tree_construction": True
+            "lazy_tree_construction": True,
+            "continuation_type": "uniform"
+        },
+        "laplace": {
+            "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+            "gamma": gamma,
+            "upper_bound": {
+                "type": "laplace",
+                "c": 2
+            },
+            "lazy_tree_construction": True,
+            "continuation_type": "uniform"
+        },
+        "deterministic": {
+            "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
+            "gamma": gamma
         }
     }
     return OrderedDict(agents)

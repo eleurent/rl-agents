@@ -66,7 +66,7 @@ agents = {
         "continuation_type": "uniform",
         "env_preprocessors": [{"method": "simplify"}]
     },
-    "kl-olop-2": {
+    "kl-olop": {
         "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         "gamma": gamma,
         "upper_bound": {
@@ -83,6 +83,17 @@ agents = {
         "upper_bound": {
             "type": "kullback-leibler",
             "c": 1
+        },
+        "lazy_tree_construction": True,
+        "continuation_type": "uniform",
+        "env_preprocessors": [{"method": "simplify"}]
+    },
+    "laplace": {
+        "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+        "gamma": gamma,
+        "upper_bound": {
+            "type": "laplace",
+            "c": 2
         },
         "lazy_tree_construction": True,
         "continuation_type": "uniform",
@@ -112,7 +123,7 @@ def get_trajs(node, env):
     return trajs
 
 
-def evaluate(env, agent_name, budget=1000, seed=None):
+def evaluate(env, agent_name, budget=2000, seed=None):
     print("Evaluating", agent_name)
     agent_config = agents[agent_name]
     agent_config["budget"] = budget
