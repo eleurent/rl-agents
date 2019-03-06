@@ -1,7 +1,9 @@
 import json
 import os
+import numpy as np
 
 from gym import logger
+from tensorboardX import SummaryWriter
 
 from rl_agents.configuration import serialize
 from rl_agents.trainer.graphics import RewardViewer
@@ -60,6 +62,7 @@ class Evaluation(object):
                                  self.directory,
                                  add_subdirectory=(directory is None),
                                  video_callable=(None if self.display_env else False))
+        self.writer = SummaryWriter(self.monitor.directory)
         self.write_metadata()
 
         if recover:
@@ -101,11 +104,11 @@ class Evaluation(object):
             terminal = False
             self.seed()
             self.reset()
-            total_reward = 0
+            rewards = []
             while not terminal:
                 # Step until a terminal step is reached
                 reward, terminal = self.step()
-                total_reward += reward
+                rewards.append(reward)
 
                 # Catch interruptions
                 try:
@@ -115,7 +118,8 @@ class Evaluation(object):
                     pass
 
             # End of episode
-            self.after_all_episodes(episode, total_reward)
+            rewards = np.array(rewards)
+            self.after_all_episodes(episode, rewards)
             self.after_some_episodes(episode)
 
     def step(self):
@@ -172,10 +176,13 @@ class Evaluation(object):
         except NotImplementedError:
             pass
 
-    def after_all_episodes(self, episode, total_reward):
-        if self.reward_viewer:
-            self.reward_viewer.update(total_reward)
-        logger.info("Episode {} score: {}".format(episode, total_reward))
+    def after_all_episodes(self, episode, rewards):
+        gamma = self.agent.config.get("gamma", 1)
+        self.writer.add_scalar('episode/length', len(rewards), episode)
+        self.writer.add_scalar('episode/total_reward', sum(rewards), episode)
+        self.writer.add_scalar('episode/return', sum(r*gamma**t for t, r in enumerate(rewards)), episode)
+        self.writer.add_histogram('episode/rewards', rewards, episode)
+        logger.info("Episode {} score: {}".format(episode, sum(rewards)))
 
     def after_some_episodes(self, episode):
         if self.monitor.is_episode_selected():
@@ -210,5 +217,6 @@ class Evaluation(object):
         if self.training:
             self.save_agent_model(self.monitor.episode_id)
         self.monitor.close()
+        self.writer.close()
         if self.close_env:
             self.env.close()
