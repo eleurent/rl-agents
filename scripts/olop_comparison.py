@@ -59,10 +59,10 @@ def allocate(budget):
 def plot_budget(budget, episodes, horizon):
     plt.figure()
     plt.subplot(311)
-    plt.plot(budget, episodes)
+    plt.plot(budget, episodes, '+')
     plt.legend(["M"])
     plt.subplot(312)
-    plt.plot(budget, horizon)
+    plt.plot(budget, horizon, '+')
     plt.legend(["L"])
     plt.subplot(313)
     plt.plot(budget, horizon / K ** (horizon - 1))

@@ -227,6 +227,6 @@ class TreePlot(object):
                     continue
                 d = 1 / self.actions**depth
                 pos_child = [pos[0] - d/2 + a/(self.actions - 1)*d, pos[1] - 1/self.max_depth]
-                width = constrain(remap(child.count, (1, self.total_count), (0.5, 3)), 0.5, 3)
+                width = constrain(remap(child.count, (1, self.total_count), (0.5, 4)), 0.5, 4)
                 ax.plot([pos[0], pos_child[0]], [pos[1], pos_child[1]], 'k', linewidth=width)
                 self._plot_node(child, pos_child, ax, depth+1)
