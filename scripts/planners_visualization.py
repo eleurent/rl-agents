@@ -13,7 +13,7 @@ from rl_agents.agents.tree_search.graphics import TreePlot
 from rl_agents.agents.common import agent_factory, load_environment
 
 sns.set()
-out = Path("out/olop")
+out = Path("out/planners")
 
 
 class DynamicsEnv(Env):

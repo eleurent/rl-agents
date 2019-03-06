@@ -6,8 +6,8 @@ Options:
   -h --help
   --generate <true or false>  Generate new data [default: True].
   --show <true_or_false>      Plot results [default: True].
-  --data_path <path>          Specify output data file path [default: ./out/olop/data.csv].
-  --plot_path <path>          Specify figure data file path [default: ./out/olop/performances.png].
+  --data_path <path>          Specify output data file path [default: ./out/planners/data.csv].
+  --plot_path <path>          Specify figure data file path [default: ./out/planners/performances.png].
   --budgets <start,end,N>     Computational budgets available to planners, in logspace [default: 1,3,100].
   --samples <n>               Number of evaluations of each configuration [default: 10].
   --processes <p>             Number of processes [default: 4]
