@@ -128,6 +128,13 @@ def evaluate(experiment):
     print("Evaluating {} with budget {} on seed {}".format(agent_name, budget, seed))
     action = agent.act(state)
 
+    # Display tree
+    display_tree = False
+    if display_tree and hasattr(agent, "planner"):
+        from rl_agents.agents.tree_search.graphics import TreePlot
+        TreePlot(agent.planner, max_depth=100).plot(
+            path.parent / "trees" / "{}_n={}.svg".format(agent_name, budget), title=agent_name)
+
     # Get action-values
     values = agent_factory(env, value_iteration()).state_action_value()[env.mdp.state, :]
 

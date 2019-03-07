@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pygame
 import matplotlib as mpl
 import matplotlib.cm as cm
@@ -215,6 +217,8 @@ class TreePlot(object):
         ax.yaxis.set_ticklabels([])
         if title:
             plt.title(title)
+
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(filename, dpi=300, figsize=(10, 10))
 
     def _plot_node(self, node, pos, ax, depth=0):
