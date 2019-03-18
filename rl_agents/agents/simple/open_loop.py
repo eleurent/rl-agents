@@ -10,7 +10,10 @@ class OpenLoopAgent(AbstractAgent):
 
     def __init__(self, env, config=None):
         super(OpenLoopAgent, self).__init__(config)
-        self.actions = self.config["actions"]
+        self.env = env
+        self.actions = None
+        self.reset()
+        self.default_horizon = 1
 
     @classmethod
     def default_config(cls):
@@ -19,11 +22,14 @@ class OpenLoopAgent(AbstractAgent):
 
     def plan(self, state):
         if self.actions:
-            actions = copy.deepcopy(self.actions)
             self.actions.pop(0)
-            return actions
+        return self.get_plan()
+
+    def get_plan(self):
+        if self.actions:
+            return self.actions.copy()
         else:
-            return [self.config["default_action"]]
+            return [self.config["default_action"]] * self.default_horizon
 
     def act(self, state):
         return self.plan(state)[0]
@@ -32,7 +38,7 @@ class OpenLoopAgent(AbstractAgent):
         return None
 
     def reset(self):
-        self.actions = self.config["actions"]
+        self.actions = [None] + self.config["actions"]
 
     def record(self, state, action, reward, next_state, done, info):
         pass

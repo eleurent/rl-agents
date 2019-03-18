@@ -80,6 +80,9 @@ class IntervalRobustPlannerAgent(AbstractAgent):
         self.sub_agent.env = preprocess_env(self.env, self.config["env_preprocessors"])
         return self.sub_agent.plan(observation)
 
+    def get_plan(self):
+        return self.sub_agent.planner.get_plan()
+
     def reset(self):
         return self.sub_agent.reset()
 
