@@ -4,6 +4,10 @@
     "gamma": 0.7,
     "budget": 500,
     "max_depth": 4,
-    "upper_bound": {"type": "hoeffding"},
-    "lazy_tree_construction": true
+    "upper_bound": {
+        "type": "hoeffding",
+        "c": 4
+    },
+    "lazy_tree_construction": true,
+    "continuation_type": "uniform"
 }

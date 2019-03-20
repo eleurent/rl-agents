@@ -6,7 +6,7 @@
     "max_depth": 4,
     "upper_bound": {
         "type": "kullback-leibler",
-        "c": 2
+        "c": 1
     },
     "lazy_tree_construction": true,
     "continuation_type": "uniform"

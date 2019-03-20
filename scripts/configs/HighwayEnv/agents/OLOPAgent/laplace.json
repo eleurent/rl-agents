@@ -5,7 +5,7 @@
     "budget": 500,
     "max_depth": 4,
     "upper_bound": {
-        "type": "kullback-leibler",
+        "type": "laplace",
         "c": 2
     },
     "lazy_tree_construction": true,

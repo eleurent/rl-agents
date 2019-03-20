@@ -1,5 +1,6 @@
 {
     "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
     "env_preprocessors": [{"method":"simplify"}],
-    "budget": 200
+    "budget": 500,
+    "gamma": 0.7
 }
