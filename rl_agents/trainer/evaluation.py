@@ -102,7 +102,7 @@ class Evaluation(object):
         for episode in range(self.num_episodes):
             # Run episode
             terminal = False
-            self.seed()
+            self.seed(episode)
             self.reset()
             rewards = []
             while not terminal:
@@ -201,8 +201,9 @@ class Evaluation(object):
         with open(file, 'w') as f:
             json.dump(metadata, f, sort_keys=True, indent=4)
 
-    def seed(self):
-        seed = self.monitor.seed(self.sim_seed)
+    def seed(self, episode=0):
+        seed = self.sim_seed + episode if self.seed is not None else None
+        seed = self.monitor.seed(seed)
         self.agent.seed(seed[0])  # Seed the agent with the main environment seed
         return seed
 
