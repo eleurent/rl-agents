@@ -29,10 +29,17 @@ import pandas as pd
 import seaborn as sns
 
 from rl_agents.agents.common import load_environment, agent_factory
+from rl_agents.trainer.evaluation import Evaluation
 
-gamma = 0.9
-K = 5
+gamma = 0.7
 SEED_MAX = 1e9
+
+Evaluation.JOBS_DONE = 0
+
+
+def env_configs():
+    # return ['configs/CartPoleEnv/env.json']
+    return ['configs/HighwayEnv/env_medium.json']
 
 
 def agent_configs():
@@ -43,35 +50,39 @@ def agent_configs():
         "olop": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
             "gamma": gamma,
-            "max_depth": 10,
+            "max_depth": 4,
             "upper_bound": {
                 "type": "hoeffding",
                 "c": 4
             },
             "lazy_tree_construction": True,
-            "continuation_type": "uniform"
+            "continuation_type": "uniform",
+            "env_preprocessors": [{"method": "simplify"}]
         },
         "kl-olop": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
             "gamma": gamma,
-            "max_depth": 10,
+            "max_depth": 4,
             "upper_bound": {
                 "type": "kullback-leibler",
                 "c": 2
             },
             "lazy_tree_construction": True,
-            "continuation_type": "uniform"
-        },
+            "continuation_type": "uniform",
+            "env_preprocessors": [{"method": "simplify"}]
+        }
+        ,
         "kl-olop-1": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
             "gamma": gamma,
-            "max_depth": 10,
+            "max_depth": 4,
             "upper_bound": {
                 "type": "kullback-leibler",
                 "c": 1
             },
             "lazy_tree_construction": True,
-            "continuation_type": "uniform"
+            "continuation_type": "uniform",
+            "env_preprocessors": [{"method": "simplify"}]
         },
         "laplace": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -81,11 +92,13 @@ def agent_configs():
                 "c": 2
             },
             "lazy_tree_construction": True,
-            "continuation_type": "uniform"
+            "continuation_type": "uniform",
+            "env_preprocessors": [{"method": "simplify"}]
         },
         "deterministic": {
             "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
-            "gamma": gamma
+            "gamma": gamma,
+            "env_preprocessors": [{"method": "simplify"}]
         },
         "value_iteration": {
             "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
@@ -94,14 +107,6 @@ def agent_configs():
         }
     }
     return OrderedDict(agents)
-
-
-def value_iteration():
-    return {
-        "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
-        "gamma": gamma,
-        "iterations": int(3 / (1 - gamma))
-    }
 
 
 def evaluate(experiment):
@@ -113,38 +118,36 @@ def evaluate(experiment):
 
     # Make environment
     env = load_environment(env_config)
-    env.seed(seed)
-    state = env.reset()
 
     # Make agent
     agent_name, agent_config = agent_config
     agent_config["budget"] = int(budget)
-    agent_config["iterations"] = int(env.config["max_steps"])
     agent = agent_factory(env, agent_config)
-    agent.seed(seed)
 
-    # Plan
-    print("Evaluating {} with budget {} on seed {}".format(agent_name, budget, seed))
-    action = agent.act(state)
-
-    # Display tree
-    display_tree = False
-    if display_tree and hasattr(agent, "planner"):
-        from rl_agents.agents.tree_search.graphics import TreePlot
-        TreePlot(agent.planner, max_depth=100).plot(
-            path.parent / "trees" / "{}_n={}.svg".format(agent_name, budget), title=agent_name)
-
-    # Get action-values
-    values = agent_factory(env, value_iteration()).state_action_value()[env.mdp.state, :]
+    # Evaluate
+    print("Evaluating agent {} with budget {} on seed {}".format(agent_name, budget, seed))
+    evaluation = Evaluation(env,
+                            agent,
+                            directory=Path("out") / "planners" / agent_name,
+                            num_episodes=1,
+                            sim_seed=seed,
+                            display_env=False,
+                            display_agent=False,
+                            display_rewards=False)
+    evaluation.test()
+    rewards = evaluation.monitor.stats_recorder.episode_rewards_[0]
+    length = evaluation.monitor.stats_recorder.episode_lengths[0]
+    total_reward = np.sum(rewards)
+    return_ = np.sum([gamma**t * rewards[t] for t in range(len(rewards))])
 
     # Save results
     result = {
         "agent": agent_name,
         "budget": budget,
         "seed": seed,
-        "action_value": values[action],
-        "value": np.amax(values),
-        "action": action
+        "total_reward": total_reward,
+        "return": return_,
+        "length": length
     }
     df = pd.DataFrame.from_records([result])
     with open(path, 'a') as f:
@@ -159,7 +162,7 @@ def prepare_experiments(budgets, seeds, path):
     first_seed = int(seeds[0]) if len(seeds) == 2 else np.random.randint(0, SEED_MAX, dtype=int)
     seeds_count = int(seeds[-1])
     seeds = (first_seed + np.arange(seeds_count)).tolist()
-    envs = ['configs/FiniteMDPEnv/env_garnet.json']
+    envs = env_configs()
     paths = [path]
     experiments = list(product(seeds, budgets, agents.items(), envs, paths))
     return experiments
@@ -169,27 +172,17 @@ def plot_all(data_path, plot_path, data_range):
     print("Reading data from {}".format(data_path))
     df = pd.read_csv(data_path)
     df = df[~df.agent.isin(['agent'])].apply(pd.to_numeric, errors='ignore')
-    df["regret"] = df["value"] - df["action_value"]
-    df["action"] = "a" + df["action"].astype(str)
     print("Number of seeds found: {}".format(df.seed.nunique()))
 
     fig, ax = plt.subplots()
-    ax.set(xscale="log", yscale="log")
+    ax.set(xscale="log")
     if data_range:
         start, end = data_range.split(':')
         df = df[df["budget"].between(int(start), int(end))]
-    sns.lineplot(x="budget", y="regret", ax=ax, hue="agent", data=df)
-    regret_path = plot_path / "regret.png"
-    fig.savefig(regret_path, bbox_inches='tight')
-    print("Saving regret plot to {}".format(regret_path))
-
-    df = df.sort_values(by=['action'])
-    fig, ax = plt.subplots()
-    ax.set(xscale="log")
-    sns.catplot(x="budget", y="action", hue="agent", ax=ax, data=df, alpha=1)
-    action_path = plot_path / "actions.png"
-    fig.savefig(action_path, bbox_inches='tight')
-    print("Saving plots to {}".format(action_path))
+    sns.lineplot(x="budget", y="total_reward", ax=ax, hue="agent", data=df)
+    reward_path = plot_path / "total_reward.png"
+    fig.savefig(reward_path, bbox_inches='tight')
+    print("Saving reward plot to {}".format(reward_path))
 
 
 def main(args):
@@ -223,7 +216,7 @@ def allocate(budget):
         return episodes, horizon
 
 
-def plot_budget(budget, episodes, horizon):
+def plot_budget(budget, episodes, horizon, K=5):
     plt.figure()
     plt.subplot(311)
     plt.plot(budget, episodes, '+')
