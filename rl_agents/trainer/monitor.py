@@ -27,7 +27,7 @@ class MonitorV2(Monitor):
     """
     RUN_PREFIX = 'run'
 
-    def __init__(self, env, directory, add_subdirectory=True, video_callable=None, force=True, resume=False,
+    def __init__(self, env, directory, add_subdirectory=True, video_callable=None, force=False, resume=True,
                  write_upon_reset=False, uid=None, mode=None):
         if add_subdirectory:
             directory = self.run_directory(directory)
