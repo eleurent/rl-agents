@@ -113,7 +113,6 @@ def evaluate(experiment):
 
     # Make environment
     env = load_environment(env_config)
-    env.configure({"seed": seed})
     env.seed(seed)
     state = env.reset()
 
