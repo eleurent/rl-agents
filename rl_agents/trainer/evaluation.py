@@ -202,7 +202,7 @@ class Evaluation(object):
             json.dump(metadata, f, sort_keys=True, indent=4)
 
     def seed(self, episode=0):
-        seed = self.sim_seed + episode if self.seed is not None else None
+        seed = self.sim_seed + episode if self.sim_seed is not None else None
         seed = self.monitor.seed(seed)
         self.agent.seed(seed[0])  # Seed the agent with the main environment seed
         return seed
