@@ -68,7 +68,7 @@ class OLOP(AbstractPlanner):
 
     @staticmethod
     def horizon(episodes, gamma):
-        return int(np.ceil(np.log(episodes) / (2 * np.log(1 / gamma))))
+        return max(int(np.ceil(np.log(episodes) / (2 * np.log(1 / gamma)))), 1)
 
     def allocate_budget(self):
         """
@@ -78,7 +78,7 @@ class OLOP(AbstractPlanner):
             self.config["budget"] = self.env.action_space.n
         for episodes in range(1, self.config["budget"]):
             if episodes * OLOP.horizon(episodes, self.config["gamma"]) > self.config["budget"]:
-                self.config["episodes"] = episodes - 1
+                self.config["episodes"] = max(episodes - 1, 1)
                 self.config["horizon"] = OLOP.horizon(self.config["episodes"], self.config["gamma"])
                 break
         else:
