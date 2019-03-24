@@ -40,6 +40,7 @@ Evaluation.JOBS_DONE = 0
 def env_configs():
     # return ['configs/CartPoleEnv/env.json']
     return ['configs/HighwayEnv/env_medium.json']
+    # return ['configs/PuddleWorld/env.json']
 
 
 def agent_configs():
@@ -70,8 +71,7 @@ def agent_configs():
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
             "env_preprocessors": [{"method": "simplify"}]
-        }
-        ,
+        },
         "kl-olop-1": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
             "gamma": gamma,
@@ -99,12 +99,13 @@ def agent_configs():
             "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
             "gamma": gamma,
             "env_preprocessors": [{"method": "simplify"}]
-        },
-        "value_iteration": {
-            "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
-            "gamma": gamma,
-            "iterations": int(3 / (1 - gamma))
         }
+        # ,
+        # "value_iteration": {
+        #     "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
+        #     "gamma": gamma,
+        #     "iterations": int(3 / (1 - gamma))
+        # }
     }
     return OrderedDict(agents)
 
