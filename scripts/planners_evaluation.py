@@ -172,6 +172,7 @@ def plot_all(data_path, plot_path, data_range):
     print("Reading data from {}".format(data_path))
     df = pd.read_csv(data_path)
     df = df[~df.agent.isin(['agent'])].apply(pd.to_numeric, errors='ignore')
+    df = df.sort_values(by="agent")
     print("Number of seeds found: {}".format(df.seed.nunique()))
 
     fig, ax = plt.subplots()
