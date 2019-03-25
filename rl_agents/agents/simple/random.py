@@ -7,7 +7,6 @@ from rl_agents.agents.abstract import AbstractAgent
 class RandomUniformAgent(AbstractAgent):
     def __init__(self, env, config=None):
         super(RandomUniformAgent, self).__init__(config)
-        self.np_random = None
         self.seed()
         self.env = env
 
@@ -26,9 +25,7 @@ class RandomUniformAgent(AbstractAgent):
         :param seed: the seed to be used
         :return: the used seed
         """
-        self.np_random, seed = seeding.np_random(seed)
-        gym.spaces.Discrete.np_random = self.np_random
-        return [seed]
+        return self.env.action_space.seed(seed)
 
     def save(self, filename):
         raise NotImplementedError()
