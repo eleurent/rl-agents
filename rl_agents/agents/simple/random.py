@@ -7,8 +7,8 @@ from rl_agents.agents.abstract import AbstractAgent
 class RandomUniformAgent(AbstractAgent):
     def __init__(self, env, config=None):
         super(RandomUniformAgent, self).__init__(config)
-        self.seed()
         self.env = env
+        self.seed()
 
     def act(self, state):
         return self.env.action_space.sample()
