@@ -39,8 +39,8 @@ Evaluation.JOBS_DONE = 0
 
 def env_configs():
     # return ['configs/CartPoleEnv/env.json']
-    return ['configs/HighwayEnv/env_medium.json']
-    # return ['configs/PuddleWorld/env.json']
+    # return ['configs/HighwayEnv/env_medium.json']
+    return ['configs/PuddleWorld/env.json']
 
 
 def agent_configs():
