@@ -31,16 +31,14 @@ import seaborn as sns
 from rl_agents.agents.common import load_environment, agent_factory
 from rl_agents.trainer.evaluation import Evaluation
 
-gamma = 0.7
+gamma = 0.8
 SEED_MAX = 1e9
-
-Evaluation.JOBS_DONE = 0
 
 
 def env_configs():
     # return ['configs/CartPoleEnv/env.json']
     # return ['configs/HighwayEnv/env_medium.json']
-    return ['configs/PuddleWorld/env.json']
+    return ['configs/GridWorld/collect.json']
 
 
 def agent_configs():
@@ -58,7 +56,7 @@ def agent_configs():
             },
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
-            "env_preprocessors": [{"method": "simplify"}]
+            # "env_preprocessors": [{"method": "simplify"}]
         },
         "kl-olop": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -70,7 +68,7 @@ def agent_configs():
             },
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
-            "env_preprocessors": [{"method": "simplify"}]
+            # "env_preprocessors": [{"method": "simplify"}]
         },
         "kl-olop-1": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -82,7 +80,7 @@ def agent_configs():
             },
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
-            "env_preprocessors": [{"method": "simplify"}]
+            # "env_preprocessors": [{"method": "simplify"}]
         },
         "laplace": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -93,12 +91,12 @@ def agent_configs():
             },
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
-            "env_preprocessors": [{"method": "simplify"}]
+            # "env_preprocessors": [{"method": "simplify"}]
         },
         "deterministic": {
             "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
             "gamma": gamma,
-            "env_preprocessors": [{"method": "simplify"}]
+            # "env_preprocessors": [{"method": "simplify"}]
         }
         # ,
         # "value_iteration": {
