@@ -1,0 +1,4 @@
+{
+    "id": "MiniGrid-Collect-6x6-v0",
+    "import_module": "gym_minigrid"
+}
