@@ -120,8 +120,8 @@ class OLOP(AbstractPlanner):
             observation, reward, done, _ = state.step(action)
             node = node.children[action]
             node.update(reward, done)
-            if node.done:
-                break
+            # if node.done:
+            #     break
 
     def compute_ucbs(self, node, path):
         """
@@ -146,7 +146,7 @@ class OLOP(AbstractPlanner):
         :return: the path from the root to the node, and the node value.
         """
         # Upper bound of the reward-to-go after this node
-        node.value = self.config["gamma"] ** (len(path) + 1) / (1 - self.config["gamma"]) if not node.done else 0
+        node.value = self.config["gamma"] ** (len(path) + 1) / (1 - self.config["gamma"])
         node_t = node
         for t in np.arange(len(path), 0, -1):  # from current node up to the root
             node.value += self.config["gamma"]**t * node_t.mu_ucb  # upper bound of the node mean reward
@@ -183,7 +183,7 @@ class OLOP(AbstractPlanner):
 
 
 class OLOPNode(Node):
-    STOP_ON_ANY_TERMINAL_STATE = False
+    STOP_ON_ANY_TERMINAL_STATE = True
 
     def __init__(self, parent, planner):
         super(OLOPNode, self).__init__(parent, planner)
@@ -209,12 +209,16 @@ class OLOPNode(Node):
     def update(self, reward, done):
         if not 0 <= reward <= 1:
             raise ValueError("This planner assumes that all rewards are normalized in [0, 1]")
+
+        if done or (self.parent and self.parent.done) and OLOPNode.STOP_ON_ANY_TERMINAL_STATE:
+            self.done = True
+        if self.done:
+            reward = 0
         self.cumulative_reward += reward
         self.count += 1
         self.compute_ucb()
 
-        if done and OLOPNode.STOP_ON_ANY_TERMINAL_STATE:
-            self.done = True
+
 
     def compute_ucb(self):
         if self.planner.config["upper_bound"]["time"] == "local":
