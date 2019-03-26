@@ -174,17 +174,18 @@ def plot_all(data_path, plot_path, data_range):
     df = pd.read_csv(data_path)
     df = df[~df.agent.isin(['agent'])].apply(pd.to_numeric, errors='ignore')
     df = df.sort_values(by="agent")
-    print("Number of seeds found: {}".format(df.seed.nunique()))
-
-    fig, ax = plt.subplots()
-    ax.set(xscale="log")
     if data_range:
         start, end = data_range.split(':')
         df = df[df["budget"].between(int(start), int(end))]
-    sns.lineplot(x="budget", y="total_reward", ax=ax, hue="agent", data=df)
-    reward_path = plot_path / "total_reward.png"
-    fig.savefig(reward_path, bbox_inches='tight')
-    print("Saving reward plot to {}".format(reward_path))
+    print("Number of seeds found: {}".format(df.seed.nunique()))
+
+    for field in ["total_reward", "return", "length"]:
+        fig, ax = plt.subplots()
+        ax.set(xscale="log")
+        sns.lineplot(x="budget", y=field, ax=ax, hue="agent", data=df)
+        field_path = plot_path / "{}.png".format(field)
+        fig.savefig(field_path, bbox_inches='tight')
+        print("Saving {} plot to {}".format(field, field_path))
 
 
 def main(args):
