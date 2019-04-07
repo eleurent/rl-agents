@@ -2,7 +2,7 @@ import copy
 import importlib
 import json
 import gym
-from gym import logger
+from gym import logger, Wrapper, Env
 
 
 def agent_factory(environment, config):
@@ -64,7 +64,7 @@ def load_environment(env_config):
 
     # Configure the environment, if supported
     try:
-        env.configure(env_config)
+        env.unwrapped.configure(env_config)
         # Reset the environment to ensure configuration is applied
         env.reset()
     except AttributeError as e:
@@ -103,7 +103,10 @@ def safe_deepcopy_env(obj):
     memo = {id(obj): result}
     for k, v in obj.__dict__.items():
         if k not in ['viewer', 'automatic_rendering_callback', 'grid_render']:
-            setattr(result, k, copy.deepcopy(v, memo=memo))
+            if isinstance(v, Env):
+                setattr(result, k, safe_deepcopy_env(v))
+            else:
+                setattr(result, k, copy.deepcopy(v, memo=memo))
         else:
             setattr(result, k, None)
     return result
