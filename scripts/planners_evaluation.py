@@ -181,6 +181,8 @@ def plot_all(data_path, plot_path, data_range):
         fig, ax = plt.subplots()
         ax.set(xscale="log")
         sns.lineplot(x="budget", y=field, ax=ax, hue="agent", data=df)
+        field_path = plot_path / "{}.svg".format(field)
+        fig.savefig(field_path, bbox_inches='tight')
         field_path = plot_path / "{}.png".format(field)
         fig.savefig(field_path, bbox_inches='tight')
         print("Saving {} plot to {}".format(field, field_path))
