@@ -222,6 +222,7 @@ class TreePlot(object):
         ax.yaxis.set_ticklabels([])
         if title:
             plt.title(title)
+        ax.axis('off')
 
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(filename, dpi=300, figsize=(10, 10))
@@ -237,5 +238,5 @@ class TreePlot(object):
                 d = 1 / self.actions**depth
                 pos_child = [pos[0] - d/2 + a/(self.actions - 1)*d, pos[1] - 1/self.max_depth]
                 width = constrain(remap(child.count, (1, self.total_count), (0.5, 4)), 0.5, 4)
-                ax.plot([pos[0], pos_child[0]], [pos[1], pos_child[1]], 'k', linewidth=width)
+                ax.plot([pos[0], pos_child[0]], [pos[1], pos_child[1]], 'k', linewidth=width, solid_capstyle='round')
                 self._plot_node(child, pos_child, ax, depth+1)
