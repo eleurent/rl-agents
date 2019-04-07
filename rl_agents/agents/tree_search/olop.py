@@ -98,7 +98,8 @@ class OLOP(AbstractPlanner):
         sequences_upper_bounds = list(map(OLOP.sharpen_b_values, self.leaves))
 
         # Pick best sequence of actions
-        best_sequence = list(self.leaves[np.argmax(sequences_upper_bounds)].path())
+        best_leaf_index = self.np_random.choice(Node.all_argmax(sequences_upper_bounds))
+        best_sequence = list(self.leaves[best_leaf_index].path())
 
         # If the sequence length is shorter than the horizon (which can happen with lazy tree construction),
         # all continuations have the same upper-bounds. Pick one continuation arbitrarily.
