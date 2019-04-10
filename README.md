@@ -9,10 +9,11 @@ A collection of Reinforcement Learning agents
 * [Agents](#agents)
   * Planning
     * [Value Iteration](#value-iteration)
-    * [Monte-Carlo Tree Search](#monte-carlo-tree-search)
-    * [Deterministic Optimistic Planning](#deterministic-optimistic-planning)
-    * [Open Loop Optimistic Planning](#open-loop-optimistic-planning)
-    * [Trailblazer](#trailblazer)
+    * Monte-Carlo Tree Search
+      * [Upper Confidence Trees](#uct-upper-confidence-bounds-applied-to-trees)
+      * [Deterministic Optimistic Planning](#opd-optimistic-planning-for-deterministic-systems)
+      * [Open Loop Optimistic Planning](#olop-open-loop-optimistic-planning)
+      * [Trailblazer](#trailblazer)
   * Robust planning
     * [Robust Value Iteration](#robust-value-iteration)
     * [Discrete Robust Optimistic Planning](#discrete-robust-optimistic-planning)
@@ -124,23 +125,32 @@ Only compatible with [finite-mdp](https://github.com/eleurent/finite-mdp) enviro
 
 Reference: [Dynamic Programming](https://press.princeton.edu/titles/9234.html), Bellman R., Princeton University Press (1957).
 
-### [Monte-Carlo Tree Search](rl_agents/agents/tree_search/mcts.py)
+### `MCTS` Monte-Carlo Tree Search
 
-Implemented as Upper Confidence Trees (UCT). A world transition model is leveraged for trajectory search. A search tree is expanded though a selection rule tailored to focus the search around the most promising moves, and leaves are evaluated by sampling.
+A world transition model is leveraged for trajectory search. A look-ahead tree is expanded so as to explore the trajectory space and quickly focus around the most promising moves.
 
 References:
 * [Efficient Selectivity and Backup Operators in Monte-Carlo Tree Search](https://hal.inria.fr/inria-00116992/document), Coulom R., 2006.
-* [Bandit based Monte-Carlo Planning](http://ggp.stanford.edu/readings/uct.pdf), Kocsis L., Szepesvári C. (2006).
 
-### [Deterministic Optimistic Planning](rl_agents/agents/tree_search/deterministic.py)
+#### [`UCT` Upper Confidence bounds applied to Trees](rl_agents/agents/tree_search/mcts.py)
+The tree is traversed by iteratively applying an optimistic selection rule at each depth, and the value at leaves is estimated by sampling.
+Empirical evidence shows that this popular algorithms performs well in many applications, but it has been proved theoretically to achieve a much worse performance (doubly-exponential) than uniform planning in some problems.
+
+References:
+* [Bandit based Monte-Carlo Planning](http://ggp.stanford.edu/readings/uct.pdf), Kocsis L., Szepesvári C. (2006).
+* [Bandit Algorithms for Tree Search](https://hal.inria.fr/inria-00136198v2), Coquelin P-A., Munos R. (2007).
+
+#### [`OPD` Optimistic Planning for Deterministic systems](rl_agents/agents/tree_search/deterministic.py)
+This algorithm is tailored for systems with deterministic dynamics and rewards.
+It exploits the reward structure to achieve a polynomial rate on regret, and behaves efficiently in numerical experiments with dense rewards.
 
 Reference: [Optimistic Planning for Deterministic Systems](https://hal.inria.fr/hal-00830182), Hren J., Munos R. (2008).
 
-### [Open Loop Optimistic Planning](rl_agents/agents/tree_search/olop.py)
+#### [`OLOP` Open Loop Optimistic Planning](rl_agents/agents/tree_search/olop.py)
 
 Reference: [Open Loop Optimistic Planning](http://sbubeck.com/COLT10_BM.pdf), Bubeck S., Munos R. (2010).
 
-### [Trailblazer](rl_agents/agents/tree_search/trailblazer.py)
+#### [Trailblazer](rl_agents/agents/tree_search/trailblazer.py)
 
 Reference: [Blazing the trails before beating the path: Sample-efficient Monte-Carlo planning](http://researchers.lille.inria.fr/~valko/hp/serve.php?what=publications/grill2016blazing.pdf), Grill J. B., Valko M., Munos R. (2017).
 
