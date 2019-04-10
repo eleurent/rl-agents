@@ -170,9 +170,18 @@ References:
 The MDP ambiguity set is assumed to be finite, and is constructed from a list of modifiers to the true environment.
 The corresponding robust value is approximately computed by [Deterministic Optimistic Planning](#deterministic-optimistic-planning) so as to maximize the worst-case total reward.
 
+References:
+* [Approximate Robust Control of Uncertain Dynamical Systems](https://arxiv.org/abs/1903.00220), Leurent E. et al. (2018).
+
 ### [Interval-based Robust Planning](rl_agents/agents/tree_search/robust.py)
 
-TODO
+We assume that the MDP is a parametrized dynamical system, whose parameter is uncertain and lies in a continuous ambiguity set. We use interval prediction to compute the set of states that can be reached at any time _t_, given that uncertainty, and leverage it to evaluate and improve a robust policy.
+
+If the system is Linear Parameter-Varying (LPV) with polytopic uncertainty, an fast and stable interval predictor can be designed. Otherwise, sampling-based approaches can be used instead, with an increased computational load.
+
+References:
+* [Approximate Robust Control of Uncertain Dynamical Systems](https://arxiv.org/abs/1903.00220), Leurent E. et al. (2018).
+* [Interval Prediction for Continuous-Time Systems with Parametric Uncertainties](https://arxiv.org/abs/1904.04727), Leurent E. et al (2019).
 
 ## Value-based
 
