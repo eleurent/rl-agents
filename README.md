@@ -9,6 +9,7 @@ A collection of Reinforcement Learning agents
 * [Agents](#agents)
   * Planning
     * [Value Iteration](#value-iteration)
+    * [Cross-Entropy Method](#cross-entropy-method)
     * Monte-Carlo Tree Search
       * [Upper Confidence Trees](#uct-upper-confidence-bounds-applied-to-trees)
       * [Deterministic Optimistic Planning](#opd-optimistic-planning-for-deterministic-systems)
@@ -124,6 +125,14 @@ Perform a Value Iteration to compute the state-action value, and acts greedily w
 Only compatible with [finite-mdp](https://github.com/eleurent/finite-mdp) environments, or environments that handle an `env.to_finite_mdp()` conversion method.
 
 Reference: [Dynamic Programming](https://press.princeton.edu/titles/9234.html), Bellman R., Princeton University Press (1957).
+
+### [Cross-Entropy Method](rl_agents/agents/cem/cem.py)
+
+A sampling-based planning algorithm, in which sequences of actions are drawn from a prior gaussian distribution. This distribution is iteratively bootstraped by minimizing its cross-entropy to a target distribution approximated by the top-k candidates.
+
+Only compatible with continuous action spaces. The environment is used as an oracle dynamics and reward model. 
+
+Reference: [A Tutorial on the Cross-Entropy Method](web.mit.edu/6.454/www/www_fall_2003/gew/CEtutorial.pdf), De Boer P-T., Kroese D.P, Mannor S. and Rubinstein R.Y. (2005).
 
 ### `MCTS` Monte-Carlo Tree Search
 
