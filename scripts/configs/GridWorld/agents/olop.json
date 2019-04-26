@@ -1,0 +1,12 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+    "gamma": 0.8,
+    "budget": 500,
+    "max_depth": 4,
+    "upper_bound": {
+        "type": "hoeffding",
+        "c": 4
+    },
+    "lazy_tree_construction": true,
+    "continuation_type": "uniform"
+}

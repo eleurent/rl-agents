@@ -1,0 +1,4 @@
+{
+    "id": "MiniGrid-Collect-Stochastic-9x9-v0",
+    "import_module": "gym_minigrid"
+}
