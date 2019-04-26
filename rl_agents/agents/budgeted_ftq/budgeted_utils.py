@@ -15,21 +15,16 @@ OptimalPolicy = namedtuple('OptimalPolicy',
                            ('id_action_inf', 'id_action_sup', 'proba_inf', 'proba_sup', 'budget_inf', 'budget_sup'))
 
 TransitionBFTQ = namedtuple('TransitionBFTQ',
-                            ('state', 'action', 'reward', "next_state", 'constraint', 'beta', "hull_id"))
+                            ('state', 'action', 'reward', 'next_state', 'terminal', 'constraint', 'beta'))
 
 
-def compute_interest_points_NN_Qsb(Qsb, action_mask, betas, disp=False, path="tmp", id="default",
-                                   hull_options=None, clamp_Qc=None):
+def convex_hull_qsb(qsb, betas, hull_options=None, clamp_Qc=None,
+                    disp=False, path="tmp", id="default"):
     with torch.no_grad():
 
+        n_actions = qsb.shape[2] // 2
         if clamp_Qc is not None:
-            Qsb[:, len(action_mask):] = np.clip(Qsb[:, len(action_mask):],
-                                                    a_min=clamp_Qc[0],
-                                                    a_max=clamp_Qc[1])
-
-        if not type(action_mask) == type(np.zeros(1)):
-            action_mask = np.asarray(action_mask)
-        N_OK_actions = int(len(action_mask) - np.sum(action_mask))
+            qsb[:, n_actions:] = np.clip(qsb[:, n_actions:], a_min=clamp_Qc[0], a_max=clamp_Qc[1])
 
         dtype = [('Qc', 'f4'), ('Qr', 'f4'), ('beta', 'f4'), ('action', 'i4')]
 
@@ -40,43 +35,35 @@ def compute_interest_points_NN_Qsb(Qsb, action_mask, betas, disp=False, path="tm
             if not os.path.exists(path):
                 os.makedirs(path)
 
-        all_points = np.zeros((N_OK_actions * len(betas), 2))
-        all_betas = np.zeros((N_OK_actions * len(betas),))
-        all_Qs = np.zeros((N_OK_actions * len(betas),), dtype=int)
+        all_points = np.zeros((n_actions * len(betas), 2))
+        all_betas = np.zeros((n_actions * len(betas),))
+        all_Qs = np.zeros((n_actions * len(betas),), dtype=int)
         max_Qr = -np.inf
         Qc_for_max_Qr = None
         l = 0
-        x = np.zeros((N_OK_actions, len(betas)))
-        y = np.zeros((N_OK_actions, len(betas)))
+        x = np.zeros((n_actions, len(betas)))
+        y = np.zeros((n_actions, len(betas)))
         i_beta = 0
         for ibeta, beta in enumerate(betas):
-            QQ = Qsb[ibeta]
-            for i_a, mask in enumerate(action_mask):
-                i_a_ok_act = 0
-                if mask == 1:
-                    pass
-                else:
-                    Qr = QQ[i_a]
-                    Qc = QQ[i_a + len(action_mask)]
-                    x[i_a_ok_act][i_beta] = Qc
-                    y[i_a_ok_act][i_beta] = Qr
-                    if Qr > max_Qr:
-                        max_Qr = Qr
-                        Qc_for_max_Qr = Qc
-                    all_points[l] = (Qc, Qr)
-                    all_Qs[l] = i_a
-                    all_betas[l] = beta
-                    l += 1
-                    i_a_ok_act += 1
+            QQ = qsb[ibeta]
+            for i_a in range(n_actions):
+                Qr = QQ[i_a]
+                Qc = QQ[i_a + n_actions]
+                x[i_a][i_beta] = Qc
+                y[i_a][i_beta] = Qr
+                if Qr > max_Qr:
+                    max_Qr = Qr
+                    Qc_for_max_Qr = Qc
+                all_points[l] = (Qc, Qr)
+                all_Qs[l] = i_a
+                all_betas[l] = beta
+                l += 1
 
             i_beta += 1
 
         if disp:
-            for i_a in range(0, N_OK_actions):  # len(Q_as)):
-                if action_mask[i_a] == 1:
-                    pass
-                else:
-                    plt.plot(x[i_a], y[i_a], linewidth=6, alpha=0.2)
+            for i_a in range(n_actions):
+                plt.plot(x[i_a], y[i_a], linewidth=6, alpha=0.2)
         k = 0
         points = []
         betas = []
@@ -203,24 +190,21 @@ def compute_interest_points_NN_Qsb(Qsb, action_mask, betas, disp=False, path="tm
         return rez, colinearity, true_colinearity, expection  # betas, points, idxs_interest_points, Qs, colinearity
 
 
-def compute_interest_points_NN(s, Q, action_mask, betas, device, hull_options, clamp_Qc,
+def compute_interest_points_NN(s, Q, betas, device, hull_options, clamp_Qc,
                                disp=False, path=None, id="default"):
     with torch.no_grad():
         ss = s.repeat((len(betas), 1, 1))
         bb = torch.from_numpy(betas).float().unsqueeze(1).unsqueeze(1).to(device=device)
         sb = torch.cat((ss, bb), dim=2)
         Qsb = Q(sb).detach().cpu().numpy()
-    return compute_interest_points_NN_Qsb(Qsb, action_mask, betas, disp=disp, path=path, id=id,
-                                              hull_options=hull_options, clamp_Qc=clamp_Qc)
+    return convex_hull_qsb(Qsb, betas, disp=disp, path=path, id=id,
+                           hull_options=hull_options, clamp_Qc=clamp_Qc)
 
 
-def convex_hull(s, action_mask, Q, disp, betas, device, hull_options, clamp_Qc, path=None, id="default"):
-    if not type(action_mask) == type(np.zeros(1)):
-        action_mask = np.asarray(action_mask)
+def convex_hull(s, Q, disp, betas, device, hull_options, clamp_Qc, path=None, id="default"):
     hull, colinearity, true_colinearity, expection = compute_interest_points_NN(
         s=s,
         Q=Q,
-        action_mask=action_mask,
         betas=betas,
         device=device,
         disp=disp,

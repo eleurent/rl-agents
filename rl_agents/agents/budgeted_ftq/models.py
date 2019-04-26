@@ -104,7 +104,7 @@ class NetBFTQ(BaseModule):
         return x.view(x.size(0), -1)
 
 
-def loss_fonction_factory(loss_function):
+def loss_function_factory(loss_function):
     if loss_function == "l2":
         return F.mse_loss
     elif loss_function == "l1":

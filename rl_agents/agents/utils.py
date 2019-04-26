@@ -1,5 +1,6 @@
 from collections import namedtuple
 import random
+import numpy as np
 
 from rl_agents.configuration import Configurable
 
@@ -11,9 +12,10 @@ class ReplayMemory(Configurable):
     """
         Container that stores and samples transitions.
     """
-    def __init__(self, config=None):
+    def __init__(self, config=None, transition_type=Transition):
         super(ReplayMemory, self).__init__(config)
         self.capacity = int(self.config['memory_capacity'])
+        self.transition_type = transition_type
         self.memory = []
         self.position = 0
 
@@ -31,7 +33,7 @@ class ReplayMemory(Configurable):
         elif len(self.memory) > self.capacity:
             self.memory = self.memory[:self.capacity]
         # Faster than append and pop
-        self.memory[self.position] = Transition(*args)
+        self.memory[self.position] = self.transition_type(*args)
         self.position = (self.position + 1) % self.capacity
 
     def sample(self, batch_size, collapsed=True):
@@ -83,3 +85,19 @@ class ReplayMemory(Configurable):
         return len(self.memory) == self.capacity
 
 
+def near_split(x, num_bins=None, size_bins=None):
+    """
+        Split a number into several bins with near-even distribution.
+
+        You can either set the number of bins, or their size.
+        The sum of bins always equals the total.
+    :param x: number to split
+    :param num_bins: number of bins
+    :param size_bins: size of bins
+    :return: list of bin sizes
+    """
+    if num_bins:
+        quotient, remainder = divmod(x, num_bins)
+        return [quotient + 1] * remainder + [quotient] * (num_bins - remainder)
+    elif size_bins:
+        return near_split(x, num_bins=int(np.ceil(x / size_bins)))

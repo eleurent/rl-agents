@@ -10,13 +10,9 @@ from rl_agents.agents.budgeted_ftq.budgeted_utils import optimal_pia_pib, convex
 class Policy:
     __metaclass__ = abc.ABCMeta
 
-    @abc.abstractmethod
-    def reset(self):
-        pass
-
     # must return Q function (s,a) -> double
     @abc.abstractmethod
-    def execute(self, s, action_mask, info):
+    def execute(self, s, info):
         pass
 
     @classmethod
@@ -24,11 +20,31 @@ class Policy:
         return cls(**config)
 
 
+class EpsilonGreedyPolicy(Policy):
+    def __init__(self, pi_greedy, pi_random, epsilon, **kwargs):
+        self.pi_greedy = pi_greedy
+        self.pi_random = pi_random
+        self.epsilon = epsilon
+
+    def execute(self, s, info):
+        if np.random.random_sample() > self.epsilon:
+            return self.pi_greedy.execute(s, info)
+        else:
+            return self.pi_random.execute(s, info)
+
+    @classmethod
+    def from_config(cls, config):
+        config = config.copy()
+        config["pi_greedy"]["env"] = config.get("env", None)
+        config["pi_greedy"] = policy_factory(config["pi_greedy"])
+        if config["pi_random"]:
+            config["pi_random"]["env"] = config.get("env", None)
+            config["pi_random"] = policy_factory(config["pi_random"])
+        return super(EpsilonGreedyPolicy, cls).from_config(config)
+
+
 class RandomBudgetedPolicy(Policy):
     def __init__(self, **kwargs):
-        pass
-
-    def reset(self):
         pass
 
     def execute(self, s, action_mask, info):
@@ -49,7 +65,7 @@ class RandomBudgetedPolicy(Policy):
         a = actions[index]
         beta_ = budget_repartion[index]
         info["beta"] = beta_
-        return a, False, info
+        return a, info
 
 
 class PytorchBudgetedFittedPolicy(Policy):
@@ -64,13 +80,10 @@ class PytorchBudgetedFittedPolicy(Policy):
         if network_path:
             self.load_network(network_path)
 
-    def reset(self):
-        pass
-
-    def execute(self, s, action_mask, info):
-        a, beta = self.pi(s, info["beta"], action_mask)
+    def execute(self, s, info):
+        a, beta = self.pi(s, info["beta"])
         info["beta"] = beta
-        return a, False, info
+        return a, info
 
     def load_network(self, network_path):
         self.network = torch.load(network_path, map_location=self.device)
@@ -78,13 +91,10 @@ class PytorchBudgetedFittedPolicy(Policy):
     def set_network(self, network):
         self.network = copy.deepcopy(network)
 
-    def pi(self, state, beta, action_mask):
+    def pi(self, state, beta):
         with torch.no_grad():
-            if not type(action_mask) == type(np.zeros(1)):
-                action_mask = np.asarray(action_mask)
             hull = convex_hull(s=torch.tensor([state], device=self.device, dtype=torch.float32),
                                Q=self.network,
-                               action_mask=action_mask,
                                id="run_" + str(state), disp=False,
                                betas=self.betas_for_discretisation,
                                device=self.device,
