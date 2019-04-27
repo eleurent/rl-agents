@@ -51,30 +51,30 @@ class BaseModule(torch.nn.Module):
 
 
 class NetBFTQ(BaseModule):
-    def __init__(self, size_state, size_beta_encoder, intra_layers, n_actions,
+    def __init__(self, size_state, size_beta_encoder, layers, n_actions,
                  activation_type="RELU",
                  reset_type="XAVIER",
                  normalize=False,
                  beta_encoder_type="LINEAR",
                  **kwargs):
         super(NetBFTQ, self).__init__(activation_type, reset_type, normalize)
-        sizes = intra_layers + [2 * n_actions]
+        sizes = layers + [2 * n_actions]
         self.beta_encoder_type = beta_encoder_type
         self.size_state = size_state
         self.size_beta_encoder = size_beta_encoder
         self.size_action = sizes[-1] / 2
-        intra_layers = []
+        layers = []
         if size_beta_encoder > 1:
             if self.beta_encoder_type == "LINEAR":
                 self.beta_encoder = torch.nn.Linear(1, size_beta_encoder)
             self.concat_layer = torch.nn.Linear(size_state + size_beta_encoder, sizes[0])
         else:
             module = torch.nn.Linear(size_state + size_beta_encoder, sizes[0])
-            intra_layers.append(module)
+            layers.append(module)
         for i in range(0, len(sizes) - 2):
             module = torch.nn.Linear(sizes[i], sizes[i + 1])
-            intra_layers.append(module)
-        self.linears = torch.nn.ModuleList(intra_layers)
+            layers.append(module)
+        self.linears = torch.nn.ModuleList(layers)
         self.predict = torch.nn.Linear(sizes[-2], sizes[-1])
 
     def forward(self, x):

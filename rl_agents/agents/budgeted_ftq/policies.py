@@ -35,10 +35,8 @@ class EpsilonGreedyPolicy(Policy):
     @classmethod
     def from_config(cls, config):
         config = config.copy()
-        config["pi_greedy"]["env"] = config.get("env", None)
         config["pi_greedy"] = policy_factory(config["pi_greedy"])
         if config["pi_random"]:
-            config["pi_random"]["env"] = config.get("env", None)
             config["pi_random"] = policy_factory(config["pi_random"])
         return super(EpsilonGreedyPolicy, cls).from_config(config)
 
@@ -69,14 +67,13 @@ class RandomBudgetedPolicy(Policy):
 
 
 class PytorchBudgetedFittedPolicy(Policy):
-    def __init__(self, env, feature_str, network_path, betas_for_discretisation, device, hull_options, clamp_Qc=False,
+    def __init__(self, network_path, betas_for_discretisation, device, hull_options, clamp_qc=None,
                  **kwargs):
-        self.env = env
         self.betas_for_discretisation = betas_for_discretisation
         self.device = device
         self.network = None
         self.hull_options = hull_options
-        self.clamp_Qc = clamp_Qc
+        self.clamp_Qc = clamp_qc
         if network_path:
             self.load_network(network_path)
 
