@@ -11,22 +11,22 @@ from scipy.spatial.qhull import QhullError
 
 from rl_agents.agents.budgeted_ftq.convex_hull_graham import convex_hull_graham
 
-OptimalPolicy = namedtuple('OptimalPolicy',
-                           ('id_action_inf', 'id_action_sup', 'proba_inf', 'proba_sup', 'budget_inf', 'budget_sup'))
+HullPoint = namedtuple('HullPoint', ('action', 'budget', 'qr', 'qc'))
+Mixture = namedtuple('Mixture', ('inf', 'sup', "probability_sup"))
 
 TransitionBFTQ = namedtuple('TransitionBFTQ',
                             ('state', 'action', 'reward', 'next_state', 'terminal', 'constraint', 'beta'))
 
 
-def convex_hull_qsb(qsb, betas, hull_options=None, clamp_Qc=None,
-                    disp=False, path="tmp", id="default"):
+def compute_convex_hull_from_values(qsb, betas, hull_options=None, clamp_Qc=None,
+                                    disp=False, path="tmp", id="default"):
     with torch.no_grad():
 
         n_actions = qsb.shape[2] // 2
         if clamp_Qc is not None:
             qsb[:, n_actions:] = np.clip(qsb[:, n_actions:], a_min=clamp_Qc[0], a_max=clamp_Qc[1])
 
-        dtype = [('Qc', 'f4'), ('Qr', 'f4'), ('beta', 'f4'), ('action', 'i4')]
+        dtype = [('action', 'i4'), ('beta', 'f4'), ('Qr', 'f4'), ('Qc', 'f4')]
 
         if path:
             path = Path(path) / "interest_points"
@@ -97,7 +97,7 @@ def convex_hull_qsb(qsb, betas, hull_options=None, clamp_Qc=None,
             plt.grid()
 
         true_colinearity = False
-        expection = False
+        exception = False
 
         if len(points) < 3:
             colinearity = True
@@ -112,7 +112,7 @@ def convex_hull_qsb(qsb, betas, hull_options=None, clamp_Qc=None,
                     vertices = hull.vertices
                 except QhullError:
                     colinearity = True
-                    expection = True
+                    exception = True
             elif hull_options is not None and hull_options["library"] == "pure_python":
                 if not hull_options["remove_duplicated_points"]:
                     raise Exception("pure_python convexe_hull can't work without removing duplicate points")
@@ -175,19 +175,19 @@ def convex_hull_qsb(qsb, betas, hull_options=None, clamp_Qc=None,
             plt.savefig(path / "{}.png".format(id), dpi=300, bbox_inches="tight")
             plt.close()
 
-        rez = np.zeros(len(idxs_interest_points), dtype=dtype)
+        hull = np.zeros(len(idxs_interest_points), dtype=dtype)
         k = 0
         for idx in idxs_interest_points:
             Qc, Qr = points[idx]
             beta = betas[idx]
             action = Qs[idx]
-            rez[k] = np.array([(Qc, Qr, beta, action)], dtype=dtype)
+            hull[k] = np.array([(action, beta, Qr, Qc)], dtype=dtype)
             k += 1
         if colinearity:
-            rez = np.sort(rez, order="Qc")
+            hull = np.sort(hull, order="Qc")
         else:
-            rez = np.flip(rez, 0)  # normalement si ya pas colinearité c'est deja trié dans l'ordre decroissant
-        return rez, colinearity, true_colinearity, expection  # betas, points, idxs_interest_points, Qs, colinearity
+            hull = np.flip(hull, 0)  # already sorted in decreasing order
+        return hull.to_list(), colinearity, true_colinearity, exception
 
 
 def compute_interest_points_NN(s, Q, betas, device, hull_options, clamp_Qc,
@@ -197,61 +197,53 @@ def compute_interest_points_NN(s, Q, betas, device, hull_options, clamp_Qc,
         bb = torch.from_numpy(betas).float().unsqueeze(1).unsqueeze(1).to(device=device)
         sb = torch.cat((ss, bb), dim=2)
         Qsb = Q(sb).detach().cpu().numpy()
-    return convex_hull_qsb(Qsb, betas, disp=disp, path=path, id=id,
-                           hull_options=hull_options, clamp_Qc=clamp_Qc)
+    return compute_convex_hull_from_values(Qsb, betas, disp=disp, path=path, id=id,
+                                           hull_options=hull_options, clamp_Qc=clamp_Qc)
 
 
-def convex_hull(s, Q, disp, betas, device, hull_options, clamp_Qc, path=None, id="default"):
-    hull, colinearity, true_colinearity, expection = compute_interest_points_NN(
-        s=s,
-        Q=Q,
-        betas=betas,
-        device=device,
-        disp=disp,
-        path=path,
-        id=id,
-        hull_options=hull_options,
-        clamp_Qc=clamp_Qc)
-    return hull
+def optimal_mixture(hull, beta):
+    """
+        Given a hull H and a cost budget beta, find the mixture.
 
+        1. Solve: k = min{k: beta > qc with (qc, qr) = H[k]}
+        2. Pick points: inf, sup = H[k−1], H[k]
+        3. Mix with probability = (beta−qc_inf)/(qc_sup − qc_inf)
 
-def optimal_pia_pib(beta, hull, statistic):
+    :param hull: a hull of values qr,qc for different action/budgets
+    :param beta: a maximumal cost budget
+    :return: the mixture policy with maximal qr and expected cost under beta
+    """
     with torch.no_grad():
-        if len(hull) == 0:
+        if not hull:
             raise Exception("Hull is empty")
         elif len(hull) == 1:
-            Qc_inf, Qr_inf, beta_inf, action_inf = hull[0]
-            res = OptimalPolicy(action_inf, 0, 1., 0., beta_inf, 0.)
-            if beta == Qc_inf:
+            inf = HullPoint(*hull[0])
+            mixture = Mixture(inf, inf, 0)
+            if beta == inf.qc:
                 status = "exact"
-            elif beta > Qc_inf:
+            elif beta > inf.qc:
                 status = "too_much_budget"
             else:
                 status = "not_solvable"
         else:
-            Qc_inf, Qr_inf, beta_inf, action_inf = hull[0]
-            if beta < Qc_inf:
+            inf = HullPoint(*hull[0])
+            if beta < inf.qc:
                 status = "not_solvable"
-                res = OptimalPolicy(action_inf, 0, 1., 0., beta_inf, 0.)
+                mixture = Mixture(inf, inf, 0)
             else:
-                founded = False
-                for k in range(1, len(hull)):
-                    Qc_sup, Qr_sup, beta_sup, action_sup = hull[k]
-                    if Qc_inf == beta:
-                        founded = True
-                        status = "exact"  # en realité avec Qc_inf <= beta and beta < Qc_sup ca devrait marcher aussi
-                        res = OptimalPolicy(action_inf, 0, 1., 0., beta_inf, 0.)
+                for point in hull[1:]:
+                    sup = HullPoint(point)
+                    if inf.qc == beta:
+                        status = "exact"
+                        mixture = Mixture(inf, inf, 0)
                         break
-                    elif Qc_inf < beta and beta < Qc_sup:
-                        founded = True
-                        p = (beta - Qc_inf) / (Qc_sup - Qc_inf)
+                    elif inf.qc < beta < sup.qc:
                         status = "regular"
-                        res = OptimalPolicy(action_inf, action_sup, 1. - p, p, beta_inf, beta_sup)
+                        mixture = Mixture(inf, sup, (beta - inf.qc) / (sup.qc - inf.qc))
                         break
                     else:
-                        Qc_inf, Qr_inf, beta_inf, action_inf = Qc_sup, Qr_sup, beta_sup, action_sup
-                if not founded:  # we have at least Qc_sup budget
+                        inf = sup
+                else:
                     status = "too_much_budget"
-                    res = OptimalPolicy(action_inf, 0, 1., 0., beta_inf,
-                                        0.)  # action_inf = action_sup, beta_inf=beta_sup
-        return res, status
+                    mixture = Mixture(sup, sup, 1)
+    return mixture, status

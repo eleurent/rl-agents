@@ -4,7 +4,7 @@ import importlib
 import torch
 import numpy as np
 
-from rl_agents.agents.budgeted_ftq.budgeted_utils import optimal_pia_pib, convex_hull
+from rl_agents.agents.budgeted_ftq.budgeted_utils import optimal_mixture, convex_hull
 
 
 class Policy:
@@ -100,9 +100,9 @@ class PytorchBudgetedFittedPolicy(Policy):
                                device=self.device,
                                hull_options=self.hull_options,
                                clamp_Qc=self.clamp_Qc)
-            opt, _ = optimal_pia_pib(beta=beta, hull=hull, statistic={})
+            opt, _ = optimal_mixture(hull, beta)
             rand = np.random.random()
-            a = opt.id_action_inf if rand < opt.proba_inf else opt.id_action_sup
+            a = opt.action_inf if rand < opt.proba_inf else opt.action_sup
             b = opt.budget_inf if rand < opt.proba_inf else opt.budget_sup
             return a, b
 

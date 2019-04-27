@@ -76,7 +76,7 @@ class BFTQAgent(AbstractAgent):
     def fit(self):
             # Fit model
             self.bftq.reset()
-            self.bftq.fit()
+            self.bftq.run()
             network_path = self.bftq.save_policy()
 
             # Update greedy policy
