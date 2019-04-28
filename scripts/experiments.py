@@ -7,6 +7,7 @@ Usage:
                                              [--seed <str>]
                                              [--analyze]
                                              [--recover]
+                                             [--verbose]
   experiments benchmark <benchmark> (--train|--test)
                                     [--episodes <count>]
                                     [--name-from-config]
@@ -14,6 +15,7 @@ Usage:
                                     [--seed <str>]
                                     [--analyze]
                                     [--recover]
+                                    [--verbose]
                                     [--processes <count>]
   experiments -h | --help
 
@@ -28,6 +30,7 @@ Options:
   --seed <str>         Seed the environments and agents.
   --train              Train the agent.
   --test               Test the agent.
+  --verbose            Set log level to debug instead of info.
 """
 import datetime
 import os
@@ -40,7 +43,7 @@ from multiprocessing.pool import Pool
 
 from rl_agents.trainer.analyzer import RunAnalyzer
 from rl_agents.trainer.evaluation import Evaluation
-from rl_agents.agents.common import load_agent, load_environment
+from rl_agents.agents.common.factory import load_agent, load_environment
 
 BENCHMARK_FILE = 'benchmark_summary'
 
@@ -61,7 +64,7 @@ def evaluate(environment_config, agent_config, options):
     :param agent_config: the path of the agent configuration file
     :param options: the evaluation options
     """
-    gym.logger.set_level(gym.logger.INFO)
+    gym.logger.set_level(gym.logger.DEBUG if options['--verbose'] else gym.logger.INFO)
     env = load_environment(environment_config)
     agent = load_agent(agent_config, env)
     if options['--name-from-config']:
