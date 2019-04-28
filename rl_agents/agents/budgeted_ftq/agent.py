@@ -94,8 +94,6 @@ class BFTQAgent(AbstractAgent):
         # Fit model
         self.bftq.reset()
         network = self.bftq.run()
-        for param in network.parameters():
-            print(param.data)
         # Update greedy policy
         self.exploration_policy.pi_greedy = PytorchBudgetedFittedPolicy(
             network,
@@ -113,8 +111,6 @@ class BFTQAgent(AbstractAgent):
             network = NetBFTQ(size_state=np.prod(self.env.observation_space.shape),
                               n_actions=self.env.action_space.n,
                               **self.config["network"])
-            for param in network.parameters():
-                print(param.data)
             self.bftq = BudgetedFittedQ(policy_network=network, config=self.config)
             self.exploration_policy = EpsilonGreedyPolicy(
                 pi_greedy=RandomBudgetedPolicy(n_actions=self.env.action_space.n, np_random=self.np_random),

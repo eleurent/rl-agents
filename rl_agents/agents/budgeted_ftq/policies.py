@@ -86,7 +86,6 @@ class PytorchBudgetedFittedPolicy(Policy):
                 clamp_qc=self.clamp_qc)
             mixture = optimal_mixture(hull, beta)
             choice = mixture.sup if self.np_random.rand() < mixture.probability_sup else mixture.inf
-            print(choice.action, choice.budget)
             return choice.action, choice.budget
 
 
