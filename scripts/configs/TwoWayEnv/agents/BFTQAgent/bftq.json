@@ -7,9 +7,10 @@
     "exploration": {
         "tau": 5000
     },
+    "device": 0,
     "regression_epochs": 1000,
     "split_batches": 4,
-    "cpu_processes": 4,
+    "cpu_processes": 20,
     "network": {
         "size_beta_encoder": 50,
         "layers": [
