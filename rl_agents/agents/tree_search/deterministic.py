@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 
-from rl_agents.agents.common import safe_deepcopy_env
+from rl_agents.agents.common.factory import safe_deepcopy_env
 from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
 
 

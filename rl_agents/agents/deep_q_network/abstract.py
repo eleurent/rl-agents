@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from rl_agents.agents.common.abstract import AbstractStochasticAgent
-from rl_agents.agents.common.exploration import exploration_factory
+from rl_agents.agents.common.exploration.common import exploration_factory
 from rl_agents.agents.common.memory import ReplayMemory, Transition
 
 

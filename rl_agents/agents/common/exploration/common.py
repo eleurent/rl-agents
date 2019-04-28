@@ -1,6 +1,6 @@
-from rl_agents.agents.common.exploration import Boltzmann
+from rl_agents.agents.common.exploration.boltzmann import Boltzmann
 from rl_agents.agents.common.exploration.epsilon_greedy import EpsilonGreedy
-from rl_agents.agents.common.exploration import Greedy
+from rl_agents.agents.common.exploration.greedy import Greedy
 
 
 def exploration_factory(exploration_config, action_space):

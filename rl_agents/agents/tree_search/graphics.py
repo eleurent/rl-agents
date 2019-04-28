@@ -6,7 +6,7 @@ import matplotlib.cm as cm
 import numpy as np
 import matplotlib.pyplot as plt
 
-from rl_agents.agents.common import preprocess_env
+from rl_agents.agents.common.factory import preprocess_env
 from rl_agents.utils import remap, constrain
 
 
