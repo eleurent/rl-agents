@@ -1,0 +1,4 @@
+{
+    "__class__": "<class 'rl_agents.agents.budgeted_ftq.agent.BFTQAgent'>",
+    "beta": 1.0
+}

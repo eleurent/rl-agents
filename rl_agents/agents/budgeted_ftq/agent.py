@@ -20,6 +20,7 @@ class BFTQAgent(AbstractAgent):
         self.bftq = None
         self.exploration_policy = None
         self.beta = 0
+        self.training = True
 
     @classmethod
     def default_config(cls):
@@ -29,6 +30,7 @@ class BFTQAgent(AbstractAgent):
             "epochs": None,
             "delta_stop": 0.,
             "memory_capacity": 10000,
+            "beta": 0,
             "betas_for_duplication": "np.arange(0, 1, 0.1)",
             "betas_for_discretisation": "np.arange(0, 1, 0.1)",
             "exploration": {
@@ -75,7 +77,7 @@ class BFTQAgent(AbstractAgent):
         minibatch_complete = self.bftq.memory and \
                              len(self.bftq.memory) // len(self.bftq.betas_for_duplication) \
                              % self.config["samples_per_batch"] == 0
-        if minibatch_complete:
+        if minibatch_complete and self.training:
             self.fit()
         return action
 
@@ -92,10 +94,6 @@ class BFTQAgent(AbstractAgent):
         """
         self.bftq.push(state, action, reward, next_state, done, info["cost"])
 
-        # At the end of an episode, pick a budget for the next one
-        if done:
-            self.beta = self.np_random.rand()
-
     def fit(self):
         logger.info("Run BFTQ on current batch")
 
@@ -108,7 +106,7 @@ class BFTQAgent(AbstractAgent):
     def reset(self):
         if not self.bftq:  # Do not reset the bftq replay memory at each episode
             if not self.np_random:
-                raise Exception("Seed the agent before reset.")
+                self.seed()
             network = NetBFTQ(size_state=np.prod(self.env.observation_space.shape),
                               n_actions=self.env.action_space.n,
                               **self.config["network"])
@@ -127,6 +125,9 @@ class BFTQAgent(AbstractAgent):
                 np_random=self.np_random
             )
 
+        # Choose the budget for the next episode
+        self.beta = self.np_random.rand() if self.training else self.config["beta"]
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         torch.manual_seed(seed & ((1 << 63) - 1))  # torch seeds are int64
@@ -136,4 +137,12 @@ class BFTQAgent(AbstractAgent):
         self.bftq.save_network(filename)
 
     def load(self, filename):
+        if not self.bftq:
+            self.reset()
         self.bftq.load_network(filename)
+
+    def eval(self):
+        self.training = False
+        self.config['exploration']['temperature'] = 0
+        self.config['exploration']['final_temperature'] = 0
+        self.exploration_policy.config = self.config["exploration"]

@@ -1,0 +1,9 @@
+{
+    "environments": [
+        "configs/TwoWayEnv/env.json"
+    ],
+    "agents": [
+        "configs/TwoWayEnv/agents/BFTQAgent/test/beta00.json",
+        "configs/TwoWayEnv/agents/BFTQAgent/test/beta10.json"
+    ]
+}
