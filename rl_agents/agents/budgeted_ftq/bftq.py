@@ -79,7 +79,7 @@ class BudgetedFittedQ(object):
             2. Fit the Qr, Qc model to the targets
         :return: delta, the Bellman residual between the model and target values
         """
-        logger.debug("[BFTQ] Epoch {}/{}".format(self.epoch + 1, self.config["epochs"] + 1))
+        logger.debug("[BFTQ] Epoch {}/{}".format(self.epoch + 1, self.config["epochs"]))
         states_betas, actions, rewards, costs, next_states, betas, terminals = self._zip_batch()
         target_r, target_c = self.compute_targets(rewards, costs, next_states, betas, terminals)
         return self._fit(states_betas, actions, target_r, target_c)
