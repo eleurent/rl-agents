@@ -3,7 +3,7 @@ import torch
 from gym import logger
 from gym.utils import seeding
 
-from rl_agents.agents.abstract import AbstractAgent
+from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.budgeted_ftq.bftq import BudgetedFittedQ
 from rl_agents.agents.budgeted_ftq.models import NetBFTQ
 from rl_agents.agents.budgeted_ftq.policies import PytorchBudgetedFittedPolicy, RandomBudgetedPolicy, \
@@ -28,20 +28,21 @@ class BFTQAgent(AbstractAgent):
             "gamma_c": 0.9,
             "epochs": None,
             "delta_stop": 0.,
+            "memory_capacity": 10000,
             "betas_for_duplication": "np.arange(0, 1, 0.1)",
             "betas_for_discretisation": "np.arange(0, 1, 0.1)",
             "optimizer": {
                 "type": "ADAM",
-                "learning_rate": 0.001,
-                "weight_decay": 0.001
+                "learning_rate": 1e-3,
+                "weight_decay": 1e-3
             },
             "loss_function": "l2",
             "loss_function_c": "l2",
-            "regression_epochs": 1000,
+            "regression_epochs": 500,
             "clamp_qc": None,
             "nn_loss_stop_condition": 0.0,
             "weights_losses": [1., 1.],
-            "split_batches": 4,
+            "split_batches": 1,
             "cpu_processes": 1,
             "samples_per_batch": 500,
             "device": "cpu",
@@ -54,12 +55,11 @@ class BFTQAgent(AbstractAgent):
             "reset_network_each_epoch": True,
             "network": {
                 "beta_encoder_type": "LINEAR",
-                "size_beta_encoder": 50,
+                "size_beta_encoder": 10,
                 "activation_type": "RELU",
                 "reset_type": "XAVIER",
                 "layers": [
-                    256,
-                    128,
+                    64,
                     64
                 ]
             }
@@ -75,16 +75,17 @@ class BFTQAgent(AbstractAgent):
     def explore(self, state):
         """
             Run the exploration policy to pick actions and budgets
-        :param state: current state
-        :return: the selected action
         """
         action, self.beta = self.exploration_policy.execute(state, self.beta)
         return action
 
     def record(self, state, action, reward, next_state, done, info):
+        """
+            Record a transition to update the BFTQ policy
+        """
         self.bftq.push(state, action, reward, next_state, done, info["cost"])
 
-        # Randomly select a budget at start of episode
+        # At the end of an episode, pick a budget for the next one
         if done:
             self.beta = self.np_random.rand()
 
@@ -98,7 +99,7 @@ class BFTQAgent(AbstractAgent):
         self.exploration_policy.pi_greedy.set_network(network)
 
     def reset(self):
-        if not self.bftq:  # Do not reset the replay memory at each episode
+        if not self.bftq:  # Do not reset the bftq replay memory at each episode
             if not self.np_random:
                 raise Exception("Seed the agent before reset.")
             network = NetBFTQ(size_state=np.prod(self.env.observation_space.shape),

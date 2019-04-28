@@ -8,7 +8,8 @@ import torch
 from rl_agents.agents.budgeted_ftq.budgeted_utils import TransitionBFTQ, compute_convex_hull_from_values, \
     optimal_mixture
 from rl_agents.agents.budgeted_ftq.models import loss_function_factory, optimizer_factory
-from rl_agents.agents.utils import ReplayMemory, near_split
+from rl_agents.agents.common.utils import near_split
+from rl_agents.agents.common.memory import ReplayMemory
 
 
 class BudgetedFittedQ(object):
@@ -27,7 +28,7 @@ class BudgetedFittedQ(object):
         self._value_network = self._value_network.to(self.device)
         self.n_actions = self._value_network.predict.out_features // 2
 
-        self.memory = ReplayMemory(transition_type=TransitionBFTQ)
+        self.memory = ReplayMemory(transition_type=TransitionBFTQ, config=self.config)
         self.optimizer = None
         self.epoch = 0
         self.reset()

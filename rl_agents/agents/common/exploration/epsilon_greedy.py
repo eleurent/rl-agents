@@ -1,7 +1,7 @@
 import numpy as np
 from gym import spaces
 
-from rl_agents.agents.exploration.abstract import DiscreteDistribution
+from rl_agents.agents.common.exploration import DiscreteDistribution
 
 
 class EpsilonGreedy(DiscreteDistribution):

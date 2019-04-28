@@ -2,7 +2,7 @@ import numpy as np
 from abc import ABC
 from gym import logger
 
-from rl_agents.agents.utils import Transition
+from rl_agents.agents.common.memory import Transition
 from rl_agents.agents.dqn.abstract import AbstractDQNAgent
 
 

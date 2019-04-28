@@ -1,5 +1,5 @@
 import numpy as np
-from rl_agents.agents.abstract import AbstractAgent
+from rl_agents.agents.common.abstract import AbstractAgent
 
 
 class LinearCommandAgent(AbstractAgent):

@@ -1,7 +1,7 @@
 import torch
 from torch.distributions import Normal
 
-from rl_agents.agents.abstract import AbstractAgent
+from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.common import safe_deepcopy_env
 
 

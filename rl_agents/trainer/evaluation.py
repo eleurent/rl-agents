@@ -7,7 +7,7 @@ from tensorboardX import SummaryWriter
 
 from rl_agents.configuration import serialize
 from rl_agents.trainer.graphics import RewardViewer
-from rl_agents.agents.graphics import AgentGraphics
+from rl_agents.agents.common.graphics import AgentGraphics
 from rl_agents.trainer.monitor import MonitorV2
 
 

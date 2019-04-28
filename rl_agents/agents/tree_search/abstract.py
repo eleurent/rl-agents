@@ -2,7 +2,7 @@ import numpy as np
 from gym import logger
 from gym.utils import seeding
 
-from rl_agents.agents.abstract import AbstractAgent
+from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.common import preprocess_env
 from rl_agents.configuration import Configurable
 

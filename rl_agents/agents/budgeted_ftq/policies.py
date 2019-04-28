@@ -5,7 +5,7 @@ import torch
 import numpy as np
 
 from rl_agents.agents.budgeted_ftq.budgeted_utils import optimal_mixture, compute_convex_hull
-from rl_agents.agents.utils import sample_simplex
+from rl_agents.agents.common.utils import sample_simplex
 
 
 class Policy:
