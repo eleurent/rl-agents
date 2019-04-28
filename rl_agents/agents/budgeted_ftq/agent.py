@@ -95,14 +95,7 @@ class BFTQAgent(AbstractAgent):
         self.bftq.reset()
         network = self.bftq.run()
         # Update greedy policy
-        self.exploration_policy.pi_greedy = PytorchBudgetedFittedPolicy(
-            network,
-            self.bftq.betas_for_discretisation,
-            self.bftq.device,
-            self.config["hull_options"],
-            self.config["clamp_qc"],
-            np_random=self.np_random
-        )
+        self.exploration_policy.pi_greedy.set_network(network)
 
     def reset(self):
         if not self.bftq:  # Do not reset the replay memory at each episode
@@ -114,7 +107,14 @@ class BFTQAgent(AbstractAgent):
             self.bftq = BudgetedFittedQ(policy_network=network, config=self.config)
             self.exploration_policy = EpsilonGreedyPolicy(
                 pi_greedy=RandomBudgetedPolicy(n_actions=self.env.action_space.n, np_random=self.np_random),
-                pi_random=RandomBudgetedPolicy(n_actions=self.env.action_space.n, np_random=self.np_random),
+                pi_random=PytorchBudgetedFittedPolicy(
+                    network,
+                    self.bftq.betas_for_discretisation,
+                    self.bftq.device,
+                    self.config["hull_options"],
+                    self.config["clamp_qc"],
+                    np_random=self.np_random
+                ),
                 epsilon=0.5,
                 np_random=self.np_random
             )
