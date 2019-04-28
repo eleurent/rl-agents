@@ -72,7 +72,9 @@ class BFTQAgent(AbstractAgent):
 
     def act(self, state):
         action = self.explore(state)
-        minibatch_complete = self.bftq.memory and len(self.bftq.memory) % self.config["samples_per_batch"] == 0
+        minibatch_complete = self.bftq.memory and \
+                             len(self.bftq.memory) // len(self.bftq.betas_for_duplication) \
+                             % self.config["samples_per_batch"] == 0
         if minibatch_complete:
             self.fit()
         return action

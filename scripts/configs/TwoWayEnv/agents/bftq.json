@@ -3,6 +3,10 @@
     "gamma": 0.8,
     "gamma_c": 0.8,
     "epochs": 15,
+    "samples_per_batch": 1000,
+    "exploration": {
+        "tau": 5000
+    },
     "regression_epochs": 1000,
     "split_batches": 4,
     "cpu_processes": 4,
