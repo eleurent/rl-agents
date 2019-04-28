@@ -1,11 +1,9 @@
-import copy
 from multiprocessing.pool import Pool
+from pathlib import Path
 
 import numpy as np
 from gym import logger
 import torch
-import torch.nn.functional as F
-from torch import tensor
 
 from rl_agents.agents.budgeted_ftq.budgeted_utils import TransitionBFTQ, compute_convex_hull_from_values, \
     optimal_mixture
@@ -18,14 +16,8 @@ class BudgetedFittedQ(object):
         self.config = config
 
         # Load configs
-        try:
-            self.betas_for_duplication = eval(self.config["betas_for_duplication"])
-        except TypeError:
-            self.betas_for_duplication = self.config["betas_for_duplication"]
-        try:
-            self.betas_for_discretisation = eval(self.config["betas_for_discretisation"])
-        except TypeError:
-            self.betas_for_discretisation = self.config["betas_for_discretisation"]
+        self.betas_for_duplication = parse(self.config["betas_for_duplication"])
+        self.betas_for_discretisation = parse(self.config["betas_for_discretisation"])
         self.loss_function = loss_function_factory(self.config["loss_function"])
         self.loss_function_c = loss_function_factory(self.config["loss_function_c"])
         self.device = self.config["device"]
@@ -46,13 +38,13 @@ class BudgetedFittedQ(object):
         """
         action = torch.tensor([[action]], dtype=torch.long)
         reward = torch.tensor([reward], dtype=torch.float)
-        terminal = torch.tensor([terminal], dtype=torch.bool)
+        terminal = torch.tensor([terminal], dtype=torch.uint8)
         cost = torch.tensor([cost], dtype=torch.float)
         state = torch.tensor([[state]], dtype=torch.float)
         next_state = torch.tensor([[next_state]], dtype=torch.float)
 
         # Data augmentation for (potentially missing) budget values
-        if self.betas_for_duplication:
+        if np.size(self.betas_for_duplication):
             for beta_d in self.betas_for_duplication:
                 if beta:  # If the transition already has a beta, augment data by altering it.
                     beta_d = torch.tensor([[[beta_d * beta]]], dtype=torch.float)
@@ -71,7 +63,7 @@ class BudgetedFittedQ(object):
             The BFTQ epoch is repeated until convergence or timeout.
         :return: the obtained value network Qr, Qc
         """
-        for self.epoch in range(self.config["max_ftq_epochs"]):
+        for self.epoch in range(self.config["epochs"]):
             delta = self._epoch()
             if delta < self.config["delta_stop"]:
                 break
@@ -86,6 +78,7 @@ class BudgetedFittedQ(object):
             2. Fit the Qr, Qc model to the targets
         :return: delta, the Bellman residual between the model and target values
         """
+        logger.debug("[BFTQ] Epoch {}/{}".format(self.epoch + 1, self.config["epochs"] + 1))
         states_betas, actions, rewards, costs, next_states, betas, terminals = self._zip_batch()
         target_r, target_c = self.compute_targets(rewards, costs, next_states, betas, terminals)
         return self._fit(states_betas, actions, target_r, target_c)
@@ -126,13 +119,13 @@ class BudgetedFittedQ(object):
         :param terminals: batch of terminations
         :return: target values
         """
+        logger.debug("[BFTQ] Compute targets")
         with torch.no_grad():
             next_rewards, next_costs = self.constrained_next_values(next_states, betas, terminals)
             target_r = rewards + self.config["gamma"] * next_rewards
             target_c = costs + self.config["gamma_c"] * next_costs
 
-            if self.config["clamp_Qc"] is not None:
-                logger.info("Clamp target costs")
+            if self.config["clamp_qc"] is not None:
                 target_c = torch.clamp(target_c, min=self.config["clamp_Qc"][0], max=self.config["clamp_Qc"][1])
             torch.cuda.empty_cache()
         return target_r, target_c
@@ -185,6 +178,7 @@ class BudgetedFittedQ(object):
         :param next_states: batch of next state
         :return: Q values at next states
         """
+        logger.debug("[BFTQ] -Forward pass")
         # Compute the cartesian product sb of all next states s with all budgets b
         ss = next_states.squeeze().repeat((1, len(self.betas_for_discretisation))) \
             .view((len(next_states) * len(self.betas_for_discretisation), self._value_network.size_state))
@@ -205,25 +199,33 @@ class BudgetedFittedQ(object):
         """
             Parallel computing of hulls
         """
+        logger.debug("[BFTQ] -Compute hulls")
         n_beta = len(self.betas_for_discretisation)
         hull_params = [(q_values[state * n_beta: (state + 1) * n_beta],
                         self.betas_for_discretisation,
                         self.config["hull_options"],
-                        self.config["clamp_Qc"])
+                        self.config["clamp_qc"])
                        for state in range(states_count)]
-        with Pool(self.config["cpu_processes"]) as p:
-            results = p.starmap(compute_convex_hull_from_values, hull_params)
-            hulls, _, _, _ = zip(*results)
+        if self.config["cpu_processes"] == 1:
+            results = [compute_convex_hull_from_values(*param) for param in hull_params]
+        else:
+            with Pool(self.config["cpu_processes"]) as p:
+                results = p.starmap(compute_convex_hull_from_values, hull_params)
+        hulls, _, _, _ = zip(*results)
         torch.cuda.empty_cache()
         return hulls
 
-    def compute_all_optimal_mixtures(self, b_batch, hulls):
+    def compute_all_optimal_mixtures(self, hulls, betas):
         """
             Parallel computing of optimal mixtures
         """
-        with Pool(self.config["cpu_processes"]) as p:
-            optimal_policies = p.starmap(optimal_mixture,
-                                         [(hulls[i], beta.detach().item()) for i, beta in enumerate(b_batch)])
+        logger.debug("[BFTQ] -Compute optimal mixtures")
+        params = [(hulls[i], beta.detach().item()) for i, beta in enumerate(betas)]
+        if self.config["cpu_processes"] == 1:
+            optimal_policies = [optimal_mixture(*param) for param in params]
+        else:
+            with Pool(self.config["cpu_processes"]) as p:
+                optimal_policies = p.starmap(optimal_mixture, params)
         return optimal_policies
 
     def _fit(self, states_betas, actions, target_r, target_c):
@@ -235,6 +237,7 @@ class BudgetedFittedQ(object):
         :param target_c: batch of target cost-values
         :return: the Bellman residual delta between the model and target values
         """
+        logger.debug("[BFTQ] Fit model")
         # Initial Bellman residual
         with torch.no_grad():
             delta = self._compute_loss(states_betas, actions, target_r, target_c).detach().item()
@@ -246,7 +249,7 @@ class BudgetedFittedQ(object):
 
         # Gradient descent
         losses = []
-        for nn_epoch in range(self.config["max_nn_epoch"]):
+        for nn_epoch in range(self.config["regression_epochs"]):
             loss = self._gradient_step(states_betas, actions, target_r, target_c)
             losses.append(loss)
         torch.cuda.empty_cache()
@@ -281,9 +284,7 @@ class BudgetedFittedQ(object):
         return loss.detach().item()
 
     def save_policy(self, policy_path=None):
-        if policy_path is None:
-            policy_path = self.workspace / "policy.pt"
-        logger.info("saving bftq policy at {}".format(policy_path))
+        policy_path = Path(policy_path) if policy_path else Path("policy.pt")
         torch.save(self._value_network, policy_path)
         return policy_path
 
@@ -294,8 +295,15 @@ class BudgetedFittedQ(object):
         torch.cuda.empty_cache()
         if reset_weight:
             self.reset_network()
-        self.optimizer = optimizer_factory(self.config["optimizer_type"],
+        self.optimizer = optimizer_factory(self.config["optimizer"]["type"],
                                            self._value_network.parameters(),
-                                           self.config["learning_rate"],
-                                           self.config["weight_decay"])
+                                           self.config["optimizer"]["learning_rate"],
+                                           self.config["optimizer"]["weight_decay"])
         self.epoch = 0
+
+
+def parse(value):
+    try:
+        return eval(value)
+    except ValueError:
+        return value
