@@ -1,7 +1,7 @@
 import torch
 from torch.distributions import Normal
 
-from rl_agents.agents.cem.cem import CEMAgent
+from rl_agents.agents.cross_entropy_method.cem import CEMAgent
 
 
 class PytorchCEMAgent(CEMAgent):

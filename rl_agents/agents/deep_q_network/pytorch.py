@@ -4,7 +4,7 @@ import torch.optim as optim
 import torch.nn.functional as functional
 from torch.autograd import Variable
 
-from rl_agents.agents.dqn.abstract import AbstractDQNAgent
+from rl_agents.agents.deep_q_network.abstract import AbstractDQNAgent
 
 # if gpu is to be used
 use_cuda = torch.cuda.is_available()

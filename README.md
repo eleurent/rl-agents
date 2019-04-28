@@ -72,7 +72,7 @@ And the agents by their class, and configuration dictionary.
 
 ```JSON
 {
-    "__class__": "<class 'rl_agents.agents.dqn.pytorch.DQNAgent'>",
+    "__class__": deep_q_network,
     "model": {
         "type": "DuelingNetwork",
         "layers": [512, 512]
@@ -106,7 +106,7 @@ A benchmark configuration files contains a list of environment configurations an
 ```JSON
 {
     "environments": ["envs/cartpole.json"],
-    "agents":["agents/dqn.json", "agents/mcts.json"]
+    "agents":[deep_q_network, "agents/mcts.json"]
 }
 ```
 
@@ -126,7 +126,7 @@ Only compatible with [finite-mdp](https://github.com/eleurent/finite-mdp) enviro
 
 Reference: [Dynamic Programming](https://press.princeton.edu/titles/9234.html), Bellman R., Princeton University Press (1957).
 
-### [Cross-Entropy Method](rl_agents/agents/cem/cem.py)
+### [Cross-Entropy Method](rl_agents/agents/cross_entropy_method/cem.py)
 
 A sampling-based planning algorithm, in which sequences of actions are drawn from a prior gaussian distribution. This distribution is iteratively bootstraped by minimizing its cross-entropy to a target distribution approximated by the top-k candidates.
 
@@ -194,7 +194,7 @@ References:
 
 ## Value-based
 
-### [DQN](rl_agents/agents/dqn)
+### [DQN](rl_agents/agents/deep_q_network)
 
 A neural-network model is used to estimate the state-action value function and produce a greedy optimal policy.
 

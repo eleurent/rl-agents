@@ -6,7 +6,7 @@ keras = pytest.importorskip("keras")
 
 @pytest.mark.skip(reason="only the pytorch DQNAgent is tested to free memory")
 def test_cartpole():
-    from rl_agents.agents.dqn.keras import DQNAgent
+    from rl_agents.agents.deep_q_network.keras import DQNAgent
 
     env = gym.make('CartPole-v0')
     agent = DQNAgent(env, config=None)

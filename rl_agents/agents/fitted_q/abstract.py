@@ -3,7 +3,7 @@ from abc import ABC
 from gym import logger
 
 from rl_agents.agents.common.memory import Transition
-from rl_agents.agents.dqn.abstract import AbstractDQNAgent
+from rl_agents.agents.deep_q_network.abstract import AbstractDQNAgent
 
 
 class AbstractFTQAgent(AbstractDQNAgent, ABC):

@@ -3,7 +3,7 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout
 from keras.optimizers import Adam
 
-from rl_agents.agents.dqn.abstract import AbstractDQNAgent
+from rl_agents.agents.deep_q_network.abstract import AbstractDQNAgent
 
 
 class DQNAgent(AbstractDQNAgent):

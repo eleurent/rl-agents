@@ -1,5 +1,5 @@
 {
-    "__class__": "<class 'rl_agents.agents.cem.cem.CEMAgent'>",
+    "__class__": "<class 'rl_agents.agents.cross_entropy_method.cem.CEMAgent'>",
     "horizon": 4,
     "iterations": 10,
     "candidates": 50,

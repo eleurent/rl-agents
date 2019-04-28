@@ -39,7 +39,7 @@ class MCTSWithPriorPolicyAgent(MCTSAgent):
         """
         mcts_config = super(MCTSWithPriorPolicyAgent, cls).default_config()
         mcts_config.update({"prior_agent": {
-                                "__class__": "<class 'rl_agents.agents.dqn.pytorch.DQNAgent'>",
+                                "__class__": "<class 'rl_agents.agents.deep_q_network.pytorch.DQNAgent'>",
                                 "exploration": {"method": "Boltzmann"}
         }})
         return mcts_config

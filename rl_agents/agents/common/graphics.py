@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 
-from rl_agents.agents.dqn.abstract import AbstractDQNAgent
-from rl_agents.agents.dqn.graphics import DQNGraphics
+from rl_agents.agents.deep_q_network.abstract import AbstractDQNAgent
+from rl_agents.agents.deep_q_network.graphics import DQNGraphics
 from rl_agents.agents.dynamic_programming.graphics import ValueIterationGraphics
 from rl_agents.agents.dynamic_programming.value_iteration import ValueIterationAgent
 from rl_agents.agents.tree_search.abstract import AbstractTreeSearchAgent
