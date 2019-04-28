@@ -35,7 +35,7 @@ class EpsilonGreedyBudgetedPolicy(BudgetedPolicy):
 
 
 class RandomBudgetedPolicy(BudgetedPolicy):
-    def __init__(self, n_actions, np_random=np.random, **kwargs):
+    def __init__(self, n_actions, np_random=np.random):
         self.n_actions = n_actions
         self.np_random = np_random
 
@@ -49,8 +49,7 @@ class RandomBudgetedPolicy(BudgetedPolicy):
 
 
 class PytorchBudgetedFittedPolicy(BudgetedPolicy):
-    def __init__(self, network, betas_for_discretisation, device, hull_options, clamp_qc=None,
-                 np_random=np.random, **kwargs):
+    def __init__(self, network, betas_for_discretisation, device, hull_options, clamp_qc=None, np_random=np.random):
         self.betas_for_discretisation = betas_for_discretisation
         self.device = device
         self.network = None
