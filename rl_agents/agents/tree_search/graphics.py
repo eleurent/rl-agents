@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pygame
 import matplotlib as mpl
 import matplotlib.cm as cm
 import numpy as np
@@ -27,6 +26,7 @@ class TreeGraphics(object):
         """
         if not surface:
             return
+        import pygame
         cell_size = (surface.get_width() // (agent.planner.config['max_depth'] + 1), surface.get_height())
         pygame.draw.rect(surface, cls.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
         cls.display_node(agent.planner.root, agent.env.action_space, surface, (0, 0), cell_size,
@@ -54,6 +54,7 @@ class TreeGraphics(object):
         :param depth: the depth of the node in the tree
         :param selected: whether the node is within a selected branch of the tree
         """
+        import pygame
         # Display node value
         cls.draw_node(node, surface, origin, size, config)
 
@@ -80,6 +81,7 @@ class TreeGraphics(object):
 
     @classmethod
     def draw_node(cls, node, surface, origin, size, config):
+        import pygame
         cmap = cm.jet_r
         norm = mpl.colors.Normalize(vmin=0, vmax=1 / (1 - config["gamma"]))
         color = cmap(norm(node.get_value()), bytes=True)
@@ -87,6 +89,7 @@ class TreeGraphics(object):
 
     @classmethod
     def display_text(cls, node, surface, origin, config):
+        import pygame
         font = pygame.font.Font(None, 13)
         text = "{:.2f} / {}".format(node.get_value(), node.count)
         text = font.render(text,
@@ -97,6 +100,7 @@ class TreeGraphics(object):
 class MCTSGraphics(TreeGraphics):
     @classmethod
     def display_text(cls, node, surface, origin, config):
+        import pygame
         font = pygame.font.Font(None, 13)
         text = "{:.2f} / {:.2f} / {}".format(node.value, node.selection_strategy(config['temperature']), node.count)
         text += " / {:.2f}".format(node.prior)
@@ -108,6 +112,7 @@ class MCTSGraphics(TreeGraphics):
 class DiscreteRobustPlannerGraphics(TreeGraphics):
     @classmethod
     def display(cls, agent, agent_surface, sim_surface):
+        import pygame
         horizon = 2
         plan = agent.planner.get_plan()
         for env in [preprocess_env(agent.true_env, preprocessors) for preprocessors in agent.config["models"]]:
@@ -126,6 +131,7 @@ class DiscreteRobustPlannerGraphics(TreeGraphics):
 
     @classmethod
     def draw_node(cls, node, surface, origin, size, config):
+        import pygame
         cmap = cm.jet_r
         norm = mpl.colors.Normalize(vmin=0, vmax=config["gamma"] / (1 - config["gamma"]))
         n = np.size(node.value)
@@ -146,6 +152,7 @@ class IntervalRobustPlannerGraphics(object):
 
     @classmethod
     def display(cls, agent, agent_surface, sim_surface):
+        import pygame
         horizon = 2
         robust_env = preprocess_env(agent.env, agent.config["env_preprocessors"])
         for vehicle in robust_env.road.vehicles:
@@ -170,6 +177,7 @@ class IntervalRobustPlannerGraphics(object):
 
     @classmethod
     def display_trajectory(cls, trajectory, surface, sim_surface, color):
+        import pygame
         color = (color[0], color[1], color[2], cls.TRANSPARENCY)
         for i in range(len(trajectory)-1):
             pygame.draw.line(surface, color,
@@ -179,6 +187,7 @@ class IntervalRobustPlannerGraphics(object):
 
     @classmethod
     def display_box(cls, min_pos, max_pos, surface, sim_surface, color):
+        import pygame
         rect = (sim_surface.vec2pix(min_pos),
                 (sim_surface.pix(max_pos[0] - min_pos[0]),
                  sim_surface.pix(max_pos[1] - min_pos[1])))
@@ -187,6 +196,7 @@ class IntervalRobustPlannerGraphics(object):
 
     @classmethod
     def display_uncertainty(cls, min_traj, max_traj, surface, sim_surface, cmap, boxes=True):
+        import pygame
         for i in reversed(range(len(min_traj))):
             for (A, B) in [(min_traj, max_traj), (min_traj, min_traj)]:
                 color = cmap(i / len(min_traj), bytes=True)

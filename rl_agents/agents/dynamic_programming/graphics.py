@@ -1,6 +1,5 @@
 import importlib
 
-import pygame
 import matplotlib as mpl
 import matplotlib.cm as cm
 import numpy as np
@@ -38,6 +37,7 @@ class ValueIterationGraphics(object):
         :param agent: the agent to be displayed
         :param surface: the surface on which the agent is displayed.
         """
+        import pygame
         norm = mpl.colors.Normalize(vmin=-2, vmax=2)
         cmap = cm.jet_r
         try:

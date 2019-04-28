@@ -1,7 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt, gridspec as gridspec
 
-import pygame
 import matplotlib as mpl
 import matplotlib.cm as cm
 
@@ -22,6 +21,7 @@ class DQNGraphics(object):
         :param surface: the pygame surface on which the agent is displayed
         :param display_text: whether to display the action values as text
         """
+        import pygame
         action_values = agent.get_state_action_values(agent.previous_state)
         action_distribution = agent.action_distribution(agent.previous_state)
 
