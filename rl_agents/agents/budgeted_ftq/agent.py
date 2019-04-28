@@ -107,8 +107,7 @@ class BFTQAgent(AbstractAgent):
                               **self.config["network"])
             self.bftq = BudgetedFittedQ(policy_network=network, config=self.config)
             self.exploration_policy = EpsilonGreedyPolicy(
-                pi_greedy=RandomBudgetedPolicy(n_actions=self.env.action_space.n, np_random=self.np_random),
-                pi_random=PytorchBudgetedFittedPolicy(
+                pi_greedy=PytorchBudgetedFittedPolicy(
                     network,
                     self.bftq.betas_for_discretisation,
                     self.bftq.device,
@@ -116,6 +115,7 @@ class BFTQAgent(AbstractAgent):
                     self.config["clamp_qc"],
                     np_random=self.np_random
                 ),
+                pi_random=RandomBudgetedPolicy(n_actions=self.env.action_space.n, np_random=self.np_random),
                 epsilon=0.5,
                 np_random=self.np_random
             )
