@@ -17,19 +17,8 @@ class BFTQAgent(AbstractAgent):
             self.config["epochs"] = int(1 / np.log(1 / self.config["gamma"]))
         self.env = env
         self.np_random = None
-        self.seed()
-        network = NetBFTQ(size_state=np.prod(self.env.observation_space.shape),
-                          n_actions=self.env.action_space.n,
-                          **self.config["network"])
-        for param in network.parameters():
-            print(param.data)
-        self.bftq = BudgetedFittedQ(policy_network=network, config=self.config)
-        self.exploration_policy = EpsilonGreedyPolicy(
-            pi_greedy=RandomBudgetedPolicy(n_actions=self.env.action_space.n, np_random=self.np_random),
-            pi_random=RandomBudgetedPolicy(n_actions=self.env.action_space.n, np_random=self.np_random),
-            epsilon=0.5,
-            np_random=self.np_random
-        )
+        self.bftq = None
+        self.exploration_policy = None
         self.beta = 0
 
     @classmethod
@@ -118,16 +107,25 @@ class BFTQAgent(AbstractAgent):
         )
 
     def reset(self):
-        pass
+        if not self.bftq:  # Do not reset the replay memory at each episode
+            if not self.np_random:
+                raise Exception("Seed the agent before reset.")
+            network = NetBFTQ(size_state=np.prod(self.env.observation_space.shape),
+                              n_actions=self.env.action_space.n,
+                              **self.config["network"])
+            for param in network.parameters():
+                print(param.data)
+            self.bftq = BudgetedFittedQ(policy_network=network, config=self.config)
+            self.exploration_policy = EpsilonGreedyPolicy(
+                pi_greedy=RandomBudgetedPolicy(n_actions=self.env.action_space.n, np_random=self.np_random),
+                pi_random=RandomBudgetedPolicy(n_actions=self.env.action_space.n, np_random=self.np_random),
+                epsilon=0.5,
+                np_random=self.np_random
+            )
 
     def seed(self, seed=None):
-        """
-            Seed the policy randomness source
-        :param seed: the seed to be used
-        :return: the used seed
-        """
         self.np_random, seed = seeding.np_random(seed)
-        torch.manual_seed(seed % (2**64-1))  # torch seeds are int64
+        torch.manual_seed(seed & ((1 << 63) - 1))  # torch seeds are int64
         return [seed]
 
     def save(self, filename):
