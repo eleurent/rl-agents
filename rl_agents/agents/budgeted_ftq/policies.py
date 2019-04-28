@@ -57,8 +57,6 @@ class PytorchBudgetedFittedPolicy(BudgetedPolicy):
         self.clamp_qc = clamp_qc
         self.np_random = np_random
         self.network = network
-        if isinstance(network, str):
-            self.load_network(network)
 
     def load_network(self, network_path):
         self.network = torch.load(network_path, map_location=self.device)

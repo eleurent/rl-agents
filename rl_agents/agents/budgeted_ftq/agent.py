@@ -139,7 +139,8 @@ class BFTQAgent(AbstractAgent):
     def load(self, filename):
         if not self.bftq:
             self.reset()
-        self.bftq.load_network(filename)
+        network = self.bftq.load_network(filename)
+        self.exploration_policy.pi_greedy.set_network(network)
 
     def eval(self):
         self.training = False

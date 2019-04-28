@@ -292,7 +292,7 @@ class BudgetedFittedQ(object):
     def load_network(self, path=None):
         path = Path(path) if path else Path("policy.pt")
         self._value_network = torch.load(path, map_location=self.device)
-        return path
+        return self._value_network
 
     def reset_network(self):
         self._value_network.reset()
