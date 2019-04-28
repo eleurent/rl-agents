@@ -129,7 +129,7 @@ class BFTQAgent(AbstractAgent):
         return [seed]
 
     def save(self, filename):
-        self.bftq.save_policy(filename)
+        self.bftq.save_network(filename)
 
     def load(self, filename):
-        pass
+        self.bftq.load_network(filename)

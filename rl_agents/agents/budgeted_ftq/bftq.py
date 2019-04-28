@@ -283,10 +283,15 @@ class BudgetedFittedQ(object):
         self.optimizer.step()
         return loss.detach().item()
 
-    def save_policy(self, policy_path=None):
-        policy_path = Path(policy_path) if policy_path else Path("policy.pt")
-        torch.save(self._value_network, policy_path)
-        return policy_path
+    def save_network(self, path=None):
+        path = Path(path) if path else Path("policy.pt")
+        torch.save(self._value_network, path)
+        return path
+
+    def load_network(self, path=None):
+        path = Path(path) if path else Path("policy.pt")
+        self._value_network = torch.load(path, map_location=self.device)
+        return path
 
     def reset_network(self):
         self._value_network.reset()
