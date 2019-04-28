@@ -7,7 +7,7 @@ from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.budgeted_ftq.bftq import BudgetedFittedQ
 from rl_agents.agents.budgeted_ftq.models import NetBFTQ
 from rl_agents.agents.budgeted_ftq.policies import PytorchBudgetedFittedPolicy, RandomBudgetedPolicy, \
-    EpsilonGreedyPolicy
+    EpsilonGreedyBudgetedPolicy
 
 
 class BFTQAgent(AbstractAgent):
@@ -31,6 +31,11 @@ class BFTQAgent(AbstractAgent):
             "memory_capacity": 10000,
             "betas_for_duplication": "np.arange(0, 1, 0.1)",
             "betas_for_discretisation": "np.arange(0, 1, 0.1)",
+            "exploration": {
+                "temperature": 1.0,
+                "final_temperature": 0.1,
+                "tau": 5000
+            },
             "optimizer": {
                 "type": "ADAM",
                 "learning_rate": 1e-3,
@@ -106,7 +111,7 @@ class BFTQAgent(AbstractAgent):
                               n_actions=self.env.action_space.n,
                               **self.config["network"])
             self.bftq = BudgetedFittedQ(policy_network=network, config=self.config)
-            self.exploration_policy = EpsilonGreedyPolicy(
+            self.exploration_policy = EpsilonGreedyBudgetedPolicy(
                 pi_greedy=PytorchBudgetedFittedPolicy(
                     network,
                     self.bftq.betas_for_discretisation,
@@ -116,7 +121,7 @@ class BFTQAgent(AbstractAgent):
                     np_random=self.np_random
                 ),
                 pi_random=RandomBudgetedPolicy(n_actions=self.env.action_space.n, np_random=self.np_random),
-                epsilon=0.5,
+                config=self.config["exploration"],
                 np_random=self.np_random
             )
 

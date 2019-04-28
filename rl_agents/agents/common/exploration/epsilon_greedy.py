@@ -38,8 +38,8 @@ class EpsilonGreedy(DiscreteDistribution):
         :param time: whether to update epsilon schedule
         """
         self.optimal_action = np.argmax(values)
-        self.epsilon = self.config['final_temperature'] + (
-                    self.config['temperature'] - self.config['final_temperature']) * np.exp(
-            - self.steps_done / self.config['tau'])
+        self.epsilon = self.config['final_temperature'] + \
+            (self.config['temperature'] - self.config['final_temperature']) * \
+            np.exp(- self.steps_done / self.config['tau'])
         if time:
             self.steps_done += 1

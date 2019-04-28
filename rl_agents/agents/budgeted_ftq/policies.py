@@ -1,6 +1,5 @@
 import abc
 import copy
-import importlib
 import torch
 import numpy as np
 
@@ -8,41 +7,34 @@ from rl_agents.agents.budgeted_ftq.budgeted_utils import optimal_mixture, comput
 from rl_agents.agents.common.utils import sample_simplex
 
 
-class Policy:
+class BudgetedPolicy:
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def execute(self, state, beta):
         pass
 
-    @classmethod
-    def from_config(cls, config):
-        return cls(**config)
 
-
-class EpsilonGreedyPolicy(Policy):
-    def __init__(self, pi_greedy, pi_random, epsilon, np_random=np.random, **kwargs):
+class EpsilonGreedyBudgetedPolicy(BudgetedPolicy):
+    def __init__(self, pi_greedy, pi_random, config, np_random=np.random):
         self.pi_greedy = pi_greedy
         self.pi_random = pi_random
-        self.epsilon = epsilon
+        self.config = config
         self.np_random = np_random
+        self.steps_done = 0
 
     def execute(self, state, beta):
-        if self.np_random.random_sample() > self.epsilon:
+        epsilon = self.config['final_temperature'] + (self.config['temperature'] - self.config['final_temperature']) * \
+                       np.exp(- self.steps_done / self.config['tau'])
+        self.steps_done += 1
+
+        if self.np_random.random_sample() > epsilon:
             return self.pi_greedy.execute(state, beta)
         else:
             return self.pi_random.execute(state, beta)
 
-    @classmethod
-    def from_config(cls, config):
-        config = config.copy()
-        config["pi_greedy"] = policy_factory(config["pi_greedy"])
-        if config["pi_random"]:
-            config["pi_random"] = policy_factory(config["pi_random"])
-        return super(EpsilonGreedyPolicy, cls).from_config(config)
 
-
-class RandomBudgetedPolicy(Policy):
+class RandomBudgetedPolicy(BudgetedPolicy):
     def __init__(self, n_actions, np_random=np.random, **kwargs):
         self.n_actions = n_actions
         self.np_random = np_random
@@ -56,7 +48,7 @@ class RandomBudgetedPolicy(Policy):
         return action, beta
 
 
-class PytorchBudgetedFittedPolicy(Policy):
+class PytorchBudgetedFittedPolicy(BudgetedPolicy):
     def __init__(self, network, betas_for_discretisation, device, hull_options, clamp_qc=None,
                  np_random=np.random, **kwargs):
         self.betas_for_discretisation = betas_for_discretisation
@@ -87,18 +79,3 @@ class PytorchBudgetedFittedPolicy(Policy):
             mixture = optimal_mixture(hull, beta)
             choice = mixture.sup if self.np_random.rand() < mixture.probability_sup else mixture.inf
             return choice.action, choice.budget
-
-
-def policy_factory(config, dynamically=False):
-    if "__class__" in config:
-        if dynamically:
-            path = config['__class__'].split("'")[1]
-            module_name, class_name = path.rsplit(".", 1)
-            policy_class = getattr(importlib.import_module(module_name), class_name)
-            return policy_class.from_config(config)
-        elif config['__class__'] == repr(RandomBudgetedPolicy):
-            return RandomBudgetedPolicy.from_config(config)
-        elif config['__class__'] == repr(PytorchBudgetedFittedPolicy):
-            return PytorchBudgetedFittedPolicy.from_config(config)
-    else:
-        raise ValueError("The configuration should specify the policy __class__")
