@@ -63,6 +63,13 @@ The `evaluate` command allows to evaluate a given agent on a given environment. 
 $ python3 experiments.py evaluate envs/cartpole.json agents/dqn.json --train --episodes=200
 ```
 
+Every agent interacts with the environment following a standard interface:
+```python
+action = agent.act(state)
+next_state, reward, done, info = env.step(action)
+agent.record(state, action, reward, next_state, done, info)
+```
+
 The environments are described by their [gym](https://github.com/openai/gym) registration `id`
 ```JSON
 {
