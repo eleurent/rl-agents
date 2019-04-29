@@ -23,7 +23,7 @@ A collection of Reinforcement Learning agents
     * [Deep Q-Network](#dqn-deep-q-network)
     * [Fitted-Q](#ftq-fitted-q)
   * Safe value-based
-    * [Budgeted Fitted-Q](#bftq-budgeted-fitted-q)
+    * [Budgeted Fitted-Q](#bftq-budgeted-fitted-q-meat_on_bone)
 
 # Installation
 
