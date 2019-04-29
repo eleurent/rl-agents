@@ -14,7 +14,6 @@ Usage:
                                     [--no-display]
                                     [--seed <str>]
                                     [--analyze]
-                                    [--recover]
                                     [--verbose]
                                     [--processes <count>]
   experiments -h | --help
