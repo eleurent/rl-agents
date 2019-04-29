@@ -1,3 +1,9 @@
+"""
+    Adapted from the original implementation by Nicolas Carrara <https://github.com/ncarrara>.
+"""
+__author__ = "Edouard Leurent"
+__credits__ = ["Nicolas Carrara"]
+
 from multiprocessing.pool import Pool
 from pathlib import Path
 
