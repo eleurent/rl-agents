@@ -1,5 +1,7 @@
 import json
 import os
+from pathlib import Path
+
 import numpy as np
 
 from gym import logger
@@ -56,7 +58,7 @@ class Evaluation(object):
         self.sim_seed = sim_seed
         self.close_env = close_env
 
-        self.directory = directory or self.default_directory
+        self.directory = Path(directory or self.default_directory)
         self.display_env = display_env
         self.monitor = MonitorV2(env,
                                  self.directory,
@@ -152,14 +154,14 @@ class Evaluation(object):
 
     def save_agent_model(self, episode, do_save=True):
         # Create the folder if it doesn't exist
-        permanent_folder = os.path.join(self.directory, self.SAVED_MODELS_FOLDER)
+        permanent_folder = self.directory / self.SAVED_MODELS_FOLDER
         os.makedirs(permanent_folder, exist_ok=True)
 
         if do_save:
-            episode_path = os.path.join(self.monitor.directory, "checkpoint-{}.tar".format(episode+1))
+            episode_path = Path(self.monitor.directory) / "checkpoint-{}.tar".format(episode+1)
             try:
                 self.agent.save(filename=episode_path)
-                self.agent.save(filename=os.path.join(permanent_folder, "latest.tar"))
+                self.agent.save(filename=permanent_folder / "latest.tar")
             except NotImplementedError:
                 pass
             else:
@@ -167,7 +169,7 @@ class Evaluation(object):
 
     def load_agent_model(self, model_path):
         if model_path is True:
-            model_path = os.path.join(self.directory, self.SAVED_MODELS_FOLDER, "latest.tar")
+            model_path = self.directory / self.SAVED_MODELS_FOLDER / "latest.tar"
         try:
             self.agent.load(filename=model_path)
             logger.info("Load {} model from {}".format(self.agent.__class__.__name__, model_path))
@@ -192,12 +194,12 @@ class Evaluation(object):
 
     @property
     def default_directory(self):
-        return os.path.join(self.OUTPUT_FOLDER, self.env.unwrapped.__class__.__name__, self.agent.__class__.__name__)
+        return Path(self.OUTPUT_FOLDER) / self.env.unwrapped.__class__.__name__ / self.agent.__class__.__name__
 
     def write_metadata(self):
         metadata = dict(env=serialize(self.env), agent=serialize(self.agent))
         file_infix = '{}.{}'.format(self.monitor.monitor_id, os.getpid())
-        file = os.path.join(self.monitor.directory, self.METADATA_FILE.format(file_infix))
+        file = Path(self.monitor.directory) / self.METADATA_FILE.format(file_infix)
         with open(file, 'w') as f:
             json.dump(metadata, f, sort_keys=True, indent=4)
 
