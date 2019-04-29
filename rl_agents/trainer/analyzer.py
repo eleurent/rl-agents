@@ -1,4 +1,3 @@
-import itertools
 import os
 import numpy as np
 import pandas as pd
@@ -30,19 +29,19 @@ class RunAnalyzer(object):
         self.describe_all(runs, field='episode_rewards', title='rewards')
         self.histogram_all(runs, field='episode_lengths', title='lengths')
         self.describe_all(runs, field='episode_lengths', title='lengths')
-        self.histogram_all(runs, field='episode_constraints', title='constraints', preprocess=lambda c: [sum(e) for e in c])
-        self.describe_all(runs, field='episode_constraints', title='constraints', preprocess=lambda c: [sum(e) for e in c])
+        self.histogram_all(runs, field='episode_costs', title='costs', preprocess=lambda c: [sum(e) for e in c])
+        self.describe_all(runs, field='episode_costs', title='costs', preprocess=lambda c: [sum(e) for e in c])
         self.compare(runs)
         plt.show()
 
     def compare(self, runs):
         if len(runs) < 2:
             return
-        constraints = lambda run: [sum(episode) for episode in run["episode_constraints"]]
+        costs = lambda run: [sum(episode) for episode in run["episode_costs"]]
         self.plot_all_confidence_ellipse(runs,
-                                         constraints,
+                                         costs,
                                          "episode_rewards",
-                                         ["constraints", "rewards"])
+                                         ["costs", "rewards"])
 
     def histogram_all(self, runs, field, title, axes=None, preprocess=None):
         dirs = [directory for directory in runs.keys() if field in runs[directory]]

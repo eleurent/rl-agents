@@ -146,9 +146,9 @@ class StatsRecorderV2(StatsRecorder):
         self.rewards_ = []
         self.episode_rewards_ = []
 
-        # Constraints
-        self.constraints = []
-        self.episode_constraints = []
+        # Costs
+        self.costs = []
+        self.episode_costs = []
 
         # Seed
         self.seed = None  # Set by the monitor when seeding the wrapped env
@@ -156,21 +156,21 @@ class StatsRecorderV2(StatsRecorder):
 
     def after_reset(self, observation):
         self.rewards_ = []
-        self.constraints = []
+        self.costs = []
         super(StatsRecorderV2, self).after_reset(observation)
 
     def after_step(self, observation, reward, done, info):
         # Aggregate rewards history
         self.rewards_.append(reward)
-        if info and "constraint" in info:
-            self.constraints.append(info["constraint"])
+        if info and "cost" in info:
+            self.costs.append(info["cost"])
 
         super(StatsRecorderV2, self).after_step(observation, reward, done, info)
 
     def save_complete(self):
         if self.steps is not None:
             self.episode_rewards_.append(self.rewards_)
-            self.episode_constraints.append(self.constraints)
+            self.episode_costs.append(self.costs)
             self.episode_seeds.append(self.seed)
             super(StatsRecorderV2, self).save_complete()
 
@@ -185,7 +185,7 @@ class StatsRecorderV2(StatsRecorder):
                 'episode_lengths': self.episode_lengths,
                 'episode_rewards': self.episode_rewards,
                 'episode_rewards_': self.episode_rewards_,
-                'episode_constraints': self.episode_constraints,
+                'episode_costs': self.episode_costs,
                 'episode_seeds': self.episode_seeds,
                 'episode_types': self.episode_types,
             }, f, default=json_encode_np)
