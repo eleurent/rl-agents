@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from gym import logger
 from gym.utils import seeding
 
 from rl_agents.agents.common.abstract import AbstractAgent
@@ -86,10 +87,13 @@ class BFTQAgent(AbstractAgent):
         """
         self.bftq.push(state, action, reward, next_state, done, info["cost"])
 
-        minibatch_complete = self.bftq.memory and \
+        minibatch_complete = self.training and not self.bftq.memory.is_empty() and \
             len(self.bftq.memory) % (self.config["samples_per_batch"] * len(self.bftq.betas_for_duplication)) == 0
         if minibatch_complete:
             self.fit()
+        if self.bftq.memory.is_full():
+            logger.info("Memory is full, switching to evaluation mode.")
+            self.eval()
 
     def fit(self):
         """
