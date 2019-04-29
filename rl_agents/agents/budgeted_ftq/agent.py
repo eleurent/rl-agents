@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from gym import logger
 from gym.utils import seeding
 
 from rl_agents.agents.common.abstract import AbstractAgent
@@ -73,15 +72,6 @@ class BFTQAgent(AbstractAgent):
         }
 
     def act(self, state):
-        action = self.explore(state)
-        minibatch_complete = self.bftq.memory and \
-                             len(self.bftq.memory) // len(self.bftq.betas_for_duplication) \
-                             % self.config["samples_per_batch"] == 0
-        if minibatch_complete and self.training:
-            self.fit()
-        return action
-
-    def explore(self, state):
         """
             Run the exploration policy to pick actions and budgets
         """
@@ -91,12 +81,20 @@ class BFTQAgent(AbstractAgent):
     def record(self, state, action, reward, next_state, done, info):
         """
             Record a transition to update the BFTQ policy
+
+            When enough experience is collected, fit the model to the batch.
         """
         self.bftq.push(state, action, reward, next_state, done, info["cost"])
 
-    def fit(self):
-        logger.info("Run BFTQ on current batch")
+        minibatch_complete = self.bftq.memory and \
+            len(self.bftq.memory) % (self.config["samples_per_batch"] * len(self.bftq.betas_for_duplication)) == 0
+        if minibatch_complete:
+            self.fit()
 
+    def fit(self):
+        """
+            Fit a budgeted policy on the batch by running the BFTQ algorithm.
+        """
         # Fit model
         self.bftq.reset()
         network = self.bftq.run()

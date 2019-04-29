@@ -64,6 +64,7 @@ class BudgetedFittedQ(object):
             The BFTQ epoch is repeated until convergence or timeout.
         :return: the obtained value network Qr, Qc
         """
+        logger.info("[BFTQ] Run")
         for self.epoch in range(self.config["epochs"]):
             delta = self._epoch()
             if delta < self.config["delta_stop"]:
