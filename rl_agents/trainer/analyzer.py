@@ -49,22 +49,22 @@ class RunAnalyzer(object):
         if preprocess:
             data = [preprocess(d) for d in data]
         data = [d[self.episodes_range[0]:self.episodes_range[1]] for d in data]
-        axes = self.histogram(data, title=title, label=dirs, axes=axes)
+        axes = self.histogram(data, title=title, labels=dirs, axes=axes)
         if axes:
             axes.legend()
             axes.grid()
         return axes
 
     @staticmethod
-    def histogram(data, title, label, axes=None):
+    def histogram(data, title, labels, axes=None):
         if not axes:
             fig = plt.figure()
             axes = fig.add_subplot(111)
             axes.set_title('Histogram of {}'.format(title))
             axes.set_xlabel(title.capitalize())
             axes.set_ylabel('Frequency')
-        weights = [np.ones(np.size(x))/np.size(x) for x in data]
-        axes.hist(data, weights=weights, label=label, rwidth=1)
+        for x, label in zip(data, labels):
+            sns.distplot(x, label=label, ax=axes)
         return axes
 
     def plot_all(self, runs, field, title, axes=None):
