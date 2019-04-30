@@ -56,7 +56,7 @@ class BFTQAgent(AbstractAgent):
             "hull_options": {
                 "decimals": None,
                 "qhull_options": "",
-                "remove_duplicated_points": True,
+                "remove_duplicates": False,
                 "library": "scipy"
             },
             "reset_network_each_epoch": True,
