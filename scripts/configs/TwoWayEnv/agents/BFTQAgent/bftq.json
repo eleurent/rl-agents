@@ -10,6 +10,7 @@
     "memory_capacity": 100000,
     "device": 0,
     "regression_epochs": 5000,
+    "clamp_qc": [0, 1.5],
     "split_batches": 4,
     "cpu_processes": 20,
     "network": {
