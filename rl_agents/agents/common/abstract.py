@@ -7,6 +7,7 @@ class AbstractAgent(Configurable, ABC):
 
     def __init__(self, config=None):
         super(AbstractAgent, self).__init__(config)
+        self.writer = None  # Tensorboard writer
 
     """
         An abstract class specifying the interface of a generic agent.
@@ -80,6 +81,13 @@ class AbstractAgent(Configurable, ABC):
             Set to testing mode. Disable any unnecessary exploration.
         """
         pass
+
+    def set_writer(self, writer):
+        """
+            Set a tensorboard writer to log the agent internal variables.
+        :param SummaryWriter writer: a summary writer
+        """
+        self.writer = writer
 
 
 class AbstractStochasticAgent(AbstractAgent):

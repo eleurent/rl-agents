@@ -65,6 +65,7 @@ class Evaluation(object):
                                  add_subdirectory=(directory is None),
                                  video_callable=(None if self.display_env else False))
         self.writer = SummaryWriter(self.monitor.directory)
+        self.agent.set_writer(self.writer)
         self.write_metadata()
 
         if recover:
