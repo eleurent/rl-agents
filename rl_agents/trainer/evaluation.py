@@ -61,7 +61,7 @@ class Evaluation(object):
         self.directory = Path(directory or self.default_directory)
         self.display_env = display_env
         self.monitor = MonitorV2(env,
-                                 self.directory,
+                                 str(self.directory),
                                  add_subdirectory=(directory is None),
                                  video_callable=(None if self.display_env else False))
         self.writer = SummaryWriter(self.monitor.directory)
