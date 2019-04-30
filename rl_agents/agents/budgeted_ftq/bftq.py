@@ -138,7 +138,7 @@ class BudgetedFittedQ(object):
             target_c = costs + self.config["gamma_c"] * next_costs
 
             if self.config["clamp_qc"] is not None:
-                target_c = torch.clamp(target_c, min=self.config["clamp_Qc"][0], max=self.config["clamp_Qc"][1])
+                target_c = torch.clamp(target_c, min=self.config["clamp_qc"][0], max=self.config["clamp_qc"][1])
             torch.cuda.empty_cache()
         return target_r, target_c
 
