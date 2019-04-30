@@ -33,13 +33,13 @@ def compute_convex_hull_from_values(values, betas, hull_options, clamp_qc=None):
     all_points = [HullPoint(action=i_a, budget=beta, qc=values[i_b][i_a + n_actions], qr=values[i_b][i_a])
                   for i_b, beta in enumerate(betas) for i_a in range(n_actions)]
     max_point = max(all_points, key=lambda p: p.qr)
-    points = [point for point in all_points if not (point.qr < max_point.qr and point.qc >= max_point.qc)]
+    points = [point for point in all_points if point.qc <= max_point.qc]
 
     # Round and remove duplicates of {(qc, qr)}
     point_values = np.array([[point.qc, point.qr] for point in points])
     if hull_options["decimals"]:
         point_values = np.round(points, decimals=hull_options["decimals"])
-    if hull_options["remove_duplicated_points"]:
+    if hull_options["remove_duplicates"]:
         point_values, indices = np.unique(point_values, axis=0, return_index=True)
         points = [points[i] for i in indices]
 
@@ -63,15 +63,15 @@ def compute_convex_hull_from_values(values, betas, hull_options, clamp_qc=None):
     # Filter out bottom part of the convex hull
     if not colinearity:
         # Start at point with max qr but min qc
-        points = [points[i] for i in vertices]
-        point_max_qr = max(points, key=lambda p: p.qr)
-        point_max_qr_min_qc = min([p for p in points if p.qr == point_max_qr.qr], key=lambda p: p.qr)
-        start = points.index(point_max_qr_min_qc)
+        points_v = [points[i] for i in vertices]
+        point_max_qr = max(points_v, key=lambda p: p.qr)
+        point_max_qr_min_qc = min([p for p in points_v if p.qr == point_max_qr.qr], key=lambda p: p.qr)
+        start = points_v.index(point_max_qr_min_qc)
         # Continue until qc stops decreasing (vertices are in CCW order)
         top_points = []
         for k in range(len(vertices)):
-            top_points.append(points[(start + k) % len(vertices)])
-            if points[(start + k + 1) % len(vertices)].qc >= points[(start + k) % len(vertices)].qc:
+            top_points.append(points_v[(start + k) % len(vertices)])
+            if points_v[(start + k + 1) % len(vertices)].qc >= points_v[(start + k) % len(vertices)].qc:
                 break
     else:
         top_points = points

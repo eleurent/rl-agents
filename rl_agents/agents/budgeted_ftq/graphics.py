@@ -32,3 +32,20 @@ def plot_histograms(title, writer, epoch, labels, values):
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
     data = np.rollaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), 2, 0)
     writer.add_image(title, data, epoch)
+    plt.close()
+
+
+def scatter_state_values(top_points, points, all_points, writer, batch, epoch):
+    title = "Values Hull batch {}".format(batch)
+    fig = plt.figure()
+    sns.scatterplot(x=[p.qc for p in all_points], y=[p.qr for p in all_points], label="all")
+    sns.scatterplot(x=[p.qc for p in points], y=[p.qr for p in points], label="undominated")
+    sns.lineplot(x=[p.qc for p in top_points], y=[p.qr for p in top_points], marker="x", label="hull")
+    plt.title(title)
+    plt.legend(loc='upper right')
+
+    fig.canvas.draw()
+    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+    data = np.rollaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), 2, 0)
+    writer.add_image(title, data, epoch)
+    plt.close()
