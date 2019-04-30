@@ -4,6 +4,15 @@
     ],
     "agents": [
         "configs/TwoWayEnv/agents/BFTQAgent/test/beta00.json",
+        "configs/TwoWayEnv/agents/BFTQAgent/test/beta01.json",
+        "configs/TwoWayEnv/agents/BFTQAgent/test/beta02.json",
+        "configs/TwoWayEnv/agents/BFTQAgent/test/beta03.json",
+        "configs/TwoWayEnv/agents/BFTQAgent/test/beta04.json",
+        "configs/TwoWayEnv/agents/BFTQAgent/test/beta05.json",
+        "configs/TwoWayEnv/agents/BFTQAgent/test/beta06.json",
+        "configs/TwoWayEnv/agents/BFTQAgent/test/beta07.json",
+        "configs/TwoWayEnv/agents/BFTQAgent/test/beta08.json",
+        "configs/TwoWayEnv/agents/BFTQAgent/test/beta09.json",
         "configs/TwoWayEnv/agents/BFTQAgent/test/beta10.json"
     ]
 }
