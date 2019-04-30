@@ -1,7 +1,7 @@
 """
     Adapted from the original implementation by Nicolas Carrara <https://github.com/ncarrara>.
 """
-from rl_agents.agents.budgeted_ftq.graphics import plot_values_histograms
+from rl_agents.agents.budgeted_ftq.graphics import plot_values_histograms, scatter_state_values
 
 __author__ = "Edouard Leurent"
 __credits__ = ["Nicolas Carrara"]
@@ -223,7 +223,8 @@ class BudgetedFittedQ(object):
         else:
             with Pool(self.config["cpu_processes"]) as p:
                 results = p.starmap(compute_convex_hull_from_values, hull_params)
-        hulls, _, _, _ = zip(*results)
+        hulls, points, all_points = zip(*results)
+        scatter_state_values(hulls[-1], points[-1], all_points[-1], self.writer, self.batch, self.epoch)
         torch.cuda.empty_cache()
         return hulls
 

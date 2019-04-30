@@ -66,7 +66,7 @@ class PytorchBudgetedFittedPolicy(BudgetedPolicy):
 
     def execute(self, state, beta):
         with torch.no_grad():
-            hull, _, _, _ = compute_convex_hull(
+            hull, _, _ = compute_convex_hull(
                 state=torch.tensor([state], device=self.device, dtype=torch.float32),
                 value_network=self.network,
                 betas=self.betas_for_discretisation,

@@ -22,7 +22,7 @@ def compute_convex_hull_from_values(values, betas, hull_options, clamp_qc=None):
     :param betas: the list of budgets corresponding to these values
     :param hull_options: options for convex hull computation
     :param clamp_qc: option to clamp qc in hull computation
-    :return: the convex hull
+    :return: the top part of the hull, the undominated points, all points
     """
     # Clamp qc
     n_actions = values.shape[1] // 2
@@ -30,10 +30,10 @@ def compute_convex_hull_from_values(values, betas, hull_options, clamp_qc=None):
         values[:, n_actions:] = np.clip(values[:, n_actions:], a_min=clamp_qc[0], a_max=clamp_qc[1])
 
     # Filter out dominated points
-    points = [HullPoint(action=i_a, budget=beta, qc=values[i_b][i_a + n_actions], qr=values[i_b][i_a])
-              for i_b, beta in enumerate(betas) for i_a in range(n_actions)]
-    max_point = max(points, key=lambda p: p.qr)
-    points = [point for point in points if not (point.qr < max_point.qr and point.qc >= max_point.qc)]
+    all_points = [HullPoint(action=i_a, budget=beta, qc=values[i_b][i_a + n_actions], qr=values[i_b][i_a])
+                  for i_b, beta in enumerate(betas) for i_a in range(n_actions)]
+    max_point = max(all_points, key=lambda p: p.qr)
+    points = [point for point in all_points if not (point.qr < max_point.qr and point.qc >= max_point.qc)]
 
     # Round and remove duplicates of {(qc, qr)}
     point_values = np.array([[point.qc, point.qr] for point in points])
@@ -44,7 +44,7 @@ def compute_convex_hull_from_values(values, betas, hull_options, clamp_qc=None):
         points = [points[i] for i in indices]
 
     # Compute convex hull
-    colinearity, true_colinearity, exception = False, False, False
+    colinearity = False
     vertices = []
     if len(points) >= 3:
         if hull_options["library"] == "scipy":
@@ -52,13 +52,13 @@ def compute_convex_hull_from_values(values, betas, hull_options, clamp_qc=None):
                 hull = ConvexHull(point_values, qhull_options=hull_options.get("qhull_options", ""))
                 vertices = hull.vertices
             except QhullError:
-                colinearity = exception = True
+                colinearity = True
         elif hull_options["library"] == "pure_python":
             assert hull_options["remove_duplicated_points"]
             hull = convex_hull_graham(point_values.tolist())
             vertices = np.array([np.where(np.all(point_values == vertex, axis=1)) for vertex in hull]).squeeze()
     else:
-        colinearity = true_colinearity = True
+        colinearity = True
 
     # Filter out bottom part of the convex hull
     if not colinearity:
@@ -68,15 +68,16 @@ def compute_convex_hull_from_values(values, betas, hull_options, clamp_qc=None):
         point_max_qr_min_qc = min([p for p in points if p.qr == point_max_qr.qr], key=lambda p: p.qr)
         start = points.index(point_max_qr_min_qc)
         # Continue until qc stops decreasing (vertices are in CCW order)
-        selected_points = []
+        top_points = []
         for k in range(len(vertices)):
-            selected_points.append(points[(start + k) % len(vertices)])
+            top_points.append(points[(start + k) % len(vertices)])
             if points[(start + k + 1) % len(vertices)].qc >= points[(start + k) % len(vertices)].qc:
                 break
-        points = selected_points
+    else:
+        top_points = points
 
-    points = sorted(points, key=lambda p: p.qc) if colinearity else list(reversed(points))
-    return points, colinearity, true_colinearity, exception
+    top_points = sorted(top_points, key=lambda p: p.qc) if colinearity else list(reversed(top_points))
+    return top_points, points, all_points
 
 
 def compute_convex_hull(state, value_network, betas, device, hull_options, clamp_qc=None):
@@ -89,7 +90,7 @@ def compute_convex_hull(state, value_network, betas, device, hull_options, clamp
     :param device: device to forward the network
     :param hull_options: options for hull computation
     :param clamp_qc: option to clamp qc in hull computation
-    :return: the convex hull
+    :return: the top part of the hull, the undominated points, all points
     """
     with torch.no_grad():
         ss = state.repeat((len(betas), 1, 1))
