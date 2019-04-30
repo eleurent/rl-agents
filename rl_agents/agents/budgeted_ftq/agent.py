@@ -112,7 +112,7 @@ class BFTQAgent(AbstractAgent):
             network = NetBFTQ(size_state=np.prod(self.env.observation_space.shape),
                               n_actions=self.env.action_space.n,
                               **self.config["network"])
-            self.bftq = BudgetedFittedQ(policy_network=network, config=self.config)
+            self.bftq = BudgetedFittedQ(value_network=network, config=self.config, writer=self.writer)
             self.exploration_policy = EpsilonGreedyBudgetedPolicy(
                 pi_greedy=PytorchBudgetedFittedPolicy(
                     network,

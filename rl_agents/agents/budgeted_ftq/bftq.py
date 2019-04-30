@@ -1,6 +1,8 @@
 """
     Adapted from the original implementation by Nicolas Carrara <https://github.com/ncarrara>.
 """
+from rl_agents.agents.budgeted_ftq.graphics import plot_values_histograms
+
 __author__ = "Edouard Leurent"
 __credits__ = ["Nicolas Carrara"]
 
@@ -19,7 +21,7 @@ from rl_agents.agents.common.memory import ReplayMemory
 
 
 class BudgetedFittedQ(object):
-    def __init__(self, policy_network, config):
+    def __init__(self, value_network, config, writer=None):
         self.config = config
 
         # Load configs
@@ -30,12 +32,15 @@ class BudgetedFittedQ(object):
         self.device = self.config["device"]
 
         # Load network
-        self._value_network = policy_network
+        self._value_network = value_network
         self._value_network = self._value_network.to(self.device)
         self.n_actions = self._value_network.predict.out_features // 2
 
+        self.writer = writer
+
         self.memory = ReplayMemory(transition_type=TransitionBFTQ, config=self.config)
         self.optimizer = None
+        self.batch = 0
         self.epoch = 0
         self.reset()
 
@@ -71,10 +76,9 @@ class BudgetedFittedQ(object):
         :return: the obtained value network Qr, Qc
         """
         logger.info("[BFTQ] Run")
+        self.batch += 1
         for self.epoch in range(self.config["epochs"]):
-            delta = self._epoch()
-            if delta < self.config["delta_stop"]:
-                break
+            self._epoch()
         return self._value_network
 
     def _epoch(self):
@@ -89,7 +93,8 @@ class BudgetedFittedQ(object):
         logger.debug("[BFTQ] Epoch {}/{}".format(self.epoch + 1, self.config["epochs"]))
         states_betas, actions, rewards, costs, next_states, betas, terminals = self._zip_batch()
         target_r, target_c = self.compute_targets(rewards, costs, next_states, betas, terminals)
-        return self._fit(states_betas, actions, target_r, target_c)
+        self._fit(states_betas, actions, target_r, target_c)
+        plot_values_histograms(self._value_network, (target_r, target_c), states_betas, actions, self.writer, self.epoch, self.batch)
 
     def _zip_batch(self):
         """
@@ -104,18 +109,17 @@ class BudgetedFittedQ(object):
         terminals = torch.cat(zipped.terminal).to(self.device)
         costs = torch.cat(zipped.cost).to(self.device)
 
-        beta_batch = torch.cat(zipped.beta).to(self.device)
-        state_batch = torch.cat(zipped.state).to(self.device)
-        next_state_batch = torch.cat(zipped.next_state).to(self.device)
-        state_beta_batch = torch.cat((state_batch, beta_batch), dim=2).to(self.device)
+        betas = torch.cat(zipped.beta).to(self.device)
+        states = torch.cat(zipped.state).to(self.device)
+        next_states = torch.cat(zipped.next_state).to(self.device)
+        states_betas = torch.cat((states, betas), dim=2).to(self.device)
 
         # Batch normalization
-        mean = torch.mean(state_beta_batch, 0).to(self.device)
-        std = torch.std(state_beta_batch, 0).to(self.device)
+        mean = torch.mean(states_betas, 0).to(self.device)
+        std = torch.std(states_betas, 0).to(self.device)
         self._value_network.set_normalization_params(mean, std)
 
-        return state_beta_batch, actions, rewards, costs, next_state_batch, beta_batch, \
-            terminals
+        return states_betas, actions, rewards, costs, next_states, betas, terminals
 
     def compute_targets(self, rewards, costs, next_states, betas, terminals):
         """
