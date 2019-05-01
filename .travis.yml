@@ -2,7 +2,7 @@ language: python
 
 matrix:
   include:
-    - python: "3.5"
+    - python: "3.6"
 
 install:
   - sudo apt-get update
