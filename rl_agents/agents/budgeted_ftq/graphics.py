@@ -16,9 +16,9 @@ def plot_values_histograms(value_network, targets, states_betas, actions, writer
                     values=[targets_c.cpu().numpy(), values.gather(1, actions + n_actions).cpu().numpy()])
     # Histograms of values of all possible actions
     plot_histograms(title="Qr (all actions) batch {}".format(batch), writer=writer, epoch=epoch, labels=map(str, range(n_actions)),
-                    values=values[:, :n_actions].cpu().numpy())
+                    values=values[:, :n_actions].cpu().numpy().transpose())
     plot_histograms(title="Qc (all actions) batch {}".format(batch), writer=writer, epoch=epoch, labels=map(str, range(n_actions)),
-                    values=values[:, -n_actions:].cpu().numpy())
+                    values=values[:, -n_actions:].cpu().numpy().transpose())
 
 
 def plot_histograms(title, writer, epoch, labels, values):
