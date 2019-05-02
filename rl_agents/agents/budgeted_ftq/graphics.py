@@ -2,6 +2,19 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import pandas as pd
+
+class BFTQGraphics(object):
+    @classmethod
+    def display(cls, agent, surface):
+        import pygame
+        mixture, hull = agent.exploration_policy.pi_greedy.compute_mixture(agent.previous_state, agent.previous_beta)
+        surf_size = surface.get_size()
+        image_str, size = plot_hull(*hull, None, None, "", beta=agent.previous_beta, mixture=mixture,
+                                    figsize=(surf_size[0]/100, surf_size[1]/100), verbose=False,
+                                    clamp_qc=agent.config["clamp_qc"])
+        surf = pygame.image.fromstring(image_str, size, "RGB")
+        surface.blit(surf, (0, 0))
 
 
 def plot_values_histograms(value_network, targets, states_betas, actions, writer, epoch, batch):
@@ -35,17 +48,49 @@ def plot_histograms(title, writer, epoch, labels, values):
     plt.close()
 
 
-def scatter_state_values(top_points, points, all_points, writer, batch, epoch):
-    title = "Values Hull batch {}".format(batch)
-    fig = plt.figure()
-    sns.scatterplot(x=[p.qc for p in all_points], y=[p.qr for p in all_points], label="all")
-    sns.scatterplot(x=[p.qc for p in points], y=[p.qr for p in points], label="undominated")
-    sns.lineplot(x=[p.qc for p in top_points], y=[p.qr for p in top_points], marker="x", label="hull")
-    plt.title(title)
-    plt.legend(loc='upper right')
+def plot_hull(hull_points, all_points, writer=None, epoch=0, title="", beta=None, mixture=None, figsize=(8, 6),
+              verbose=True, clamp_qc=None):
+    """
+        Plot the hull of all Qc, Qr points for different (action, budget).
 
+        If a threshold beta and corresponding mixture is provided, plot them.
+    :param hull_points: points of the hull
+    :param all_points: all points (Qc, Qr)
+    :param SummaryWriter writer: will log the image to tensorboard if not None
+    :param epoch: timestep for tensorboard log
+    :param title: figure title
+    :param beta: a budget threshold used at decision time
+    :param mixture: the optimal mixture corresponding to this budget beta
+    :param figsize: figure size, inches
+    :param verbose: should the legend be displayed
+    :param clamp_qc: if qc is clamped, use these values at x axis limits
+    :return: the string description of the image, and its size
+    """
+    # Figure creation
+    dfa, dfh = pd.DataFrame(all_points), pd.DataFrame(hull_points)
+    fig = plt.figure(figsize=figsize, tight_layout=True)
+    sns.scatterplot(data=dfa, x="qc", y="qr", hue="action", legend="full")
+    sns.lineplot(data=dfh, x="qc", y="qr", marker="x", label="hull")
+    if clamp_qc:  # known limits
+        plt.xlim(clamp_qc[0]-0.1, clamp_qc[1]+0.1)
+    if beta is not None:
+        plt.axvline(x=beta)
+    if mixture:
+        sns.lineplot(x=[mixture.inf.qc, mixture.sup.qc], y=[mixture.inf.qr, mixture.sup.qr],
+                     color="red", marker="o")
+    plt.title(title)
+    leg = plt.legend(loc='upper right')
+    if not verbose:
+        leg.remove()
+        plt.xlabel('')
+        plt.ylabel('')
+
+    # Figure export
     fig.canvas.draw()
-    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-    data = np.rollaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), 2, 0)
-    writer.add_image(title, data, epoch)
+    data_str = fig.canvas.tostring_rgb()
+    if writer:
+        data = np.fromstring(data_str, dtype=np.uint8, sep='')
+        data = np.rollaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), 2, 0)
+        writer.add_image(title, data, epoch)
     plt.close()
+    return data_str, fig.canvas.get_width_height()

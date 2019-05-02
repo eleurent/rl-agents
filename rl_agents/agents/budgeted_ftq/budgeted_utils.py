@@ -22,7 +22,7 @@ def compute_convex_hull_from_values(values, betas, hull_options, clamp_qc=None):
     :param betas: the list of budgets corresponding to these values
     :param hull_options: options for convex hull computation
     :param clamp_qc: option to clamp qc in hull computation
-    :return: the top part of the hull, the undominated points, all points
+    :return: the top part of the hull, all points
     """
     # Clamp qc
     n_actions = values.shape[1] // 2
@@ -77,7 +77,7 @@ def compute_convex_hull_from_values(values, betas, hull_options, clamp_qc=None):
         top_points = points
 
     top_points = sorted(top_points, key=lambda p: p.qc) if colinearity else list(reversed(top_points))
-    return top_points, points, all_points
+    return top_points, all_points
 
 
 def compute_convex_hull(state, value_network, betas, device, hull_options, clamp_qc=None):

@@ -1,7 +1,7 @@
 """
     Adapted from the original implementation by Nicolas Carrara <https://github.com/ncarrara>.
 """
-from rl_agents.agents.budgeted_ftq.graphics import plot_values_histograms, scatter_state_values
+from rl_agents.agents.budgeted_ftq.graphics import plot_values_histograms, plot_hull
 
 __author__ = "Edouard Leurent"
 __credits__ = ["Nicolas Carrara"]
@@ -169,10 +169,10 @@ class BudgetedFittedQ(object):
         # Forward pass of the model Qr, Qc
         q_values = self.compute_next_values(next_states_nf)
 
-        # Compute hulls H
+        # Compute hulls H of {(Qc, Qr)}Bd
         hulls = self.compute_all_hulls(q_values, len(next_states_nf))
 
-        # Compute optimal mixture policies satisfying budgets beta
+        # Compute optimal mixture policies satisfying budget constraint: max E[Qr] s.t. E[Qc] < beta
         mixtures = self.compute_all_optimal_mixtures(hulls, betas_nf)
 
         # Compute expected costs and rewards of these mixtures
@@ -226,9 +226,11 @@ class BudgetedFittedQ(object):
         else:
             with Pool(self.config["cpu_processes"]) as p:
                 results = p.starmap(compute_convex_hull_from_values, hull_params)
-        hulls, points, all_points = zip(*results)
-        scatter_state_values(hulls[-1], points[-1], all_points[-1], self.writer, self.batch, self.epoch)
+        hulls, all_points = zip(*results)
+
         torch.cuda.empty_cache()
+        for s in [0, -1]:
+            plot_hull(hulls[s], all_points[s], self.writer, self.epoch, title="Hull {} batch {}".format(s, self.batch))
         return hulls
 
     def compute_all_optimal_mixtures(self, hulls, betas):

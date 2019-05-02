@@ -19,8 +19,9 @@ class BFTQAgent(AbstractAgent):
         self.np_random = None
         self.bftq = None
         self.exploration_policy = None
-        self.beta = 0
+        self.beta = self.previous_beta = 0
         self.training = True
+        self.previous_state = None
 
     @classmethod
     def default_config(cls):
@@ -76,6 +77,8 @@ class BFTQAgent(AbstractAgent):
         """
             Run the exploration policy to pick actions and budgets
         """
+        state = state.flatten()
+        self.previous_state, self.previous_beta = state, self.beta
         action, self.beta = self.exploration_policy.execute(state, self.beta)
         return action
 
@@ -85,7 +88,7 @@ class BFTQAgent(AbstractAgent):
 
             When enough experience is collected, fit the model to the batch.
         """
-        self.bftq.push(state, action, reward, next_state, done, info["cost"])
+        self.bftq.push(state.flatten(), action, reward, next_state.flatten(), done, info["cost"])
 
         minibatch_complete = self.training and not self.bftq.memory.is_empty() and \
             len(self.bftq.memory) % (self.config["samples_per_batch"] * len(self.bftq.betas_for_duplication)) == 0

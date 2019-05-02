@@ -65,14 +65,18 @@ class PytorchBudgetedFittedPolicy(BudgetedPolicy):
         self.network = copy.deepcopy(network)
 
     def execute(self, state, beta):
+        mixture, _ = self.compute_mixture(state, beta)
+        choice = mixture.sup if self.np_random.rand() < mixture.probability_sup else mixture.inf
+        return choice.action, choice.budget
+
+    def compute_mixture(self, state, beta):
         with torch.no_grad():
-            hull, _, _ = compute_convex_hull(
+            hull = compute_convex_hull(
                 state=torch.tensor([state], device=self.device, dtype=torch.float32),
                 value_network=self.network,
                 betas=self.betas_for_discretisation,
                 device=self.device,
                 hull_options=self.hull_options,
                 clamp_qc=self.clamp_qc)
-            mixture = optimal_mixture(hull, beta)
-            choice = mixture.sup if self.np_random.rand() < mixture.probability_sup else mixture.inf
-            return choice.action, choice.budget
+        mixture = optimal_mixture(hull[0], beta)
+        return mixture, hull

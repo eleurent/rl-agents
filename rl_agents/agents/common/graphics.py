@@ -1,5 +1,7 @@
 from __future__ import division, print_function
 
+from rl_agents.agents.budgeted_ftq.agent import BFTQAgent
+from rl_agents.agents.budgeted_ftq.graphics import BFTQGraphics
 from rl_agents.agents.deep_q_network.abstract import AbstractDQNAgent
 from rl_agents.agents.deep_q_network.graphics import DQNGraphics
 from rl_agents.agents.dynamic_programming.graphics import ValueIterationGraphics
@@ -27,6 +29,8 @@ class AgentGraphics(object):
 
         if isinstance(agent, AbstractDQNAgent):
             DQNGraphics.display(agent, agent_surface)
+        elif isinstance(agent, BFTQAgent):
+            BFTQGraphics.display(agent, agent_surface)
         elif isinstance(agent, ValueIterationAgent):
             ValueIterationGraphics.display(agent, agent_surface)
         elif isinstance(agent, MCTSAgent):
