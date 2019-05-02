@@ -62,7 +62,7 @@ class Evaluation(object):
         self.sim_seed = sim_seed
         self.close_env = close_env
 
-        self.directory = directory or self.default_directory
+        self.directory = Path(directory or self.default_directory)
         self.run_directory = self.directory / (run_directory or self.default_run_directory)
         self.display_env = display_env
         self.monitor = MonitorV2(env,
