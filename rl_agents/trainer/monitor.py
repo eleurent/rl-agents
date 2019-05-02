@@ -18,19 +18,15 @@ class MonitorV2(Monitor):
     """
         A modified Environment Monitor that includes the following features:
 
-        - Each run directory is automatically named with date and time
         - The stats recorder is a StatsRecorderV2, that implements additional features, including the environment seed
         at each episode so that they can be reproduced
         - The wrapped environment is closed with the monitor
         - Video recording of all frames during an ongoing environment step
         - Automatic saving of all fields of the stats recorder
     """
-    RUN_PREFIX = 'run'
 
-    def __init__(self, env, directory, add_subdirectory=True, video_callable=None, force=False, resume=True,
+    def __init__(self, env, directory, video_callable=None, force=False, resume=True,
                  write_upon_reset=False, uid=None, mode=None):
-        if add_subdirectory:
-            directory = self.run_directory(directory)
         super(MonitorV2, self).__init__(env, directory, video_callable, force, resume, write_upon_reset, uid, mode)
 
     def _start(self, directory, video_callable=None, force=False, resume=False, write_upon_reset=False, uid=None,
@@ -129,10 +125,6 @@ class MonitorV2(Monitor):
                         else:
                             all_contents[key] = value
         return all_contents
-
-    def run_directory(self, directory):
-        return os.path.join(directory, '{}_{}'.format(self.RUN_PREFIX,
-                                                      datetime.datetime.now().strftime('%Y%m%d-%H%M%S')))
 
 
 class StatsRecorderV2(StatsRecorder):

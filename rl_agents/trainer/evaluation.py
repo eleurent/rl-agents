@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 from pathlib import Path
@@ -20,12 +21,14 @@ class Evaluation(object):
 
     OUTPUT_FOLDER = 'out'
     SAVED_MODELS_FOLDER = 'saved_models'
+    RUN_PREFIX = 'run'
     METADATA_FILE = 'metadata.{}.json'
 
     def __init__(self,
                  env,
                  agent,
                  directory=None,
+                 run_directory=None,
                  num_episodes=1000,
                  training=True,
                  sim_seed=None,
@@ -38,7 +41,8 @@ class Evaluation(object):
 
         :param env: The environment to be solved, possibly wrapping an AbstractEnv environment
         :param AbstractAgent agent: The agent solving the environment
-        :param str directory: Output directory path
+        :param Path directory: Workspace directory path
+        :param Path run_directory: Run directory path
         :param int num_episodes: Number of episodes run
         !param training: Whether the agent is being trained or tested
         :param sim_seed: The seed used for the environment/agent randomness source
@@ -58,11 +62,11 @@ class Evaluation(object):
         self.sim_seed = sim_seed
         self.close_env = close_env
 
-        self.directory = Path(directory or self.default_directory)
+        self.directory = directory or self.default_directory
+        self.run_directory = self.directory / (run_directory or self.default_run_directory)
         self.display_env = display_env
         self.monitor = MonitorV2(env,
-                                 str(self.directory),
-                                 add_subdirectory=(directory is None),
+                                 self.run_directory,
                                  video_callable=(None if self.display_env else False))
         self.writer = SummaryWriter(self.monitor.directory)
         self.agent.set_writer(self.writer)
@@ -185,7 +189,7 @@ class Evaluation(object):
         self.writer.add_scalar('episode/total_reward', sum(rewards), episode)
         self.writer.add_scalar('episode/return', sum(r*gamma**t for t, r in enumerate(rewards)), episode)
         self.writer.add_histogram('episode/rewards', rewards, episode)
-        logger.info("Episode {} score: {}".format(episode, sum(rewards)))
+        logger.info("Episode {} score: {:.1f}".format(episode, sum(rewards)))
 
     def after_some_episodes(self, episode):
         if self.monitor.is_episode_selected():
@@ -197,11 +201,15 @@ class Evaluation(object):
     def default_directory(self):
         return Path(self.OUTPUT_FOLDER) / self.env.unwrapped.__class__.__name__ / self.agent.__class__.__name__
 
+    @property
+    def default_run_directory(self):
+        return '{}_{}'.format(self.RUN_PREFIX, datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
+
     def write_metadata(self):
         metadata = dict(env=serialize(self.env), agent=serialize(self.agent))
         file_infix = '{}.{}'.format(self.monitor.monitor_id, os.getpid())
         file = Path(self.monitor.directory) / self.METADATA_FILE.format(file_infix)
-        with open(file, 'w') as f:
+        with file.open('w') as f:
             json.dump(metadata, f, sort_keys=True, indent=4)
 
     def seed(self, episode=0):

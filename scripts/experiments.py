@@ -33,6 +33,7 @@ Options:
 """
 import datetime
 import os
+from pathlib import Path
 
 import gym
 import json
@@ -66,16 +67,11 @@ def evaluate(environment_config, agent_config, options):
     gym.logger.set_level(gym.logger.DEBUG if options['--verbose'] else gym.logger.INFO)
     env = load_environment(environment_config)
     agent = load_agent(agent_config, env)
-    if options['--name-from-config']:
-        directory = os.path.join(Evaluation.OUTPUT_FOLDER,
-                                 os.path.basename(environment_config).split('.')[0],
-                                 os.path.basename(agent_config).split('.')[0])
-    else:
-        directory = None
+    run_directory = Path(agent_config).with_suffix('').name if options['--name-from-config'] else None
     options['--seed'] = int(options['--seed']) if options['--seed'] is not None else None
     evaluation = Evaluation(env,
                             agent,
-                            directory=directory,
+                            run_directory=run_directory,
                             num_episodes=int(options['--episodes']),
                             sim_seed=options['--seed'],
                             recover=options['--recover'],
@@ -109,11 +105,15 @@ def benchmark(options):
     # Prepare experiments
     with open(options['<benchmark>']) as f:
         benchmark_config = json.loads(f.read())
+    generate_agent_configs(benchmark_config)
     experiments = product(benchmark_config['environments'], benchmark_config['agents'], [options])
 
     # Run evaluations
     with Pool(processes=int(options['--processes'])) as pool:
         results = pool.starmap(evaluate, experiments)
+
+    # Clean temporary config files
+    generate_agent_configs(benchmark_config, clean=True)
 
     # Write evaluations summary
     benchmark_filename = os.path.join(Evaluation.OUTPUT_FOLDER, '{}_{}.{}.json'.format(
@@ -124,6 +124,34 @@ def benchmark(options):
 
     if options['--analyze']:
         RunAnalyzer(results)
+
+
+def generate_agent_configs(benchmark_config, clean=False):
+    """
+        Generate several agent configurations from:
+        - a "base_agent" configuration path field
+        - a "key" field referring to a parameter that should vary
+        - a "values" field listing the values of the parameter taken for each agent
+
+        Created agent configurations will be stored in temporary file, that can be removed after use by setting the
+        argument clean=True.
+    :param benchmark_config: a benchmark configuration
+    :param clean: should the temporary agent configurations files be removed
+    :return the updated benchmark config
+    """
+    if "base_agent" in benchmark_config:
+        with open(benchmark_config["base_agent"], 'r') as f:
+            base_config = json.load(f)
+            configs = [dict(base_config, **{benchmark_config["key"]: value})
+                       for value in benchmark_config["values"]]
+            paths = [Path(benchmark_config["base_agent"]).parent / "bench_{}={}.json".format(benchmark_config["key"], value)
+                     for value in benchmark_config["values"]]
+            if clean:
+                [path.unlink() for path in paths]
+            else:
+                [json.dump(config, path.open('w')) for config, path in zip(configs, paths)]
+            benchmark_config["agents"] = paths
+    return benchmark_config
 
 
 if __name__ == "__main__":
