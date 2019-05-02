@@ -24,30 +24,36 @@ class RunAnalyzer(object):
     def analyze(self, run_directories):
         runs = {self.suffix(directory): MonitorV2.load_results(directory) for directory in run_directories}
         runs = {key: value for (key, value) in runs.items() if value is not None}
+        runs = self.preprocess(runs)
         self.plot_all(runs, field='episode_rewards', title='rewards')
-        self.histogram_all(runs, field='episode_rewards', title='rewards')
-        self.describe_all(runs, field='episode_rewards', title='rewards')
+        self.histogram_all(runs, field='discounted_rewards', title='rewards')
+        self.describe_all(runs, field='discounted_rewards', title='rewards')
         self.histogram_all(runs, field='episode_lengths', title='lengths')
         self.describe_all(runs, field='episode_lengths', title='lengths')
-        self.histogram_all(runs, field='episode_costs', title='costs', preprocess=lambda c: [sum(e) for e in c])
-        self.describe_all(runs, field='episode_costs', title='costs', preprocess=lambda c: [sum(e) for e in c])
+        self.histogram_all(runs, field='discounted_costs', title='costs')
+        self.describe_all(runs, field='discounted_costs', title='costs')
         self.compare(runs)
         plt.show()
+
+    def preprocess(self, runs, gamma=0.9):
+        for dir, data in runs.items():
+            data["discounted_rewards"] = [np.sum([episode[t]*gamma**t for t in range(len(episode))])
+                                          for episode in data["episode_rewards_"]]
+            data["discounted_costs"] = [np.sum([episode[t]*gamma**t for t in range(len(episode))])
+                                          for episode in data["episode_costs"]]
+        return runs
 
     def compare(self, runs):
         if len(runs) < 2:
             return
-        costs = lambda run: [sum(episode) for episode in run["episode_costs"]]
         self.plot_all_confidence_ellipse(runs,
-                                         costs,
-                                         "episode_rewards",
+                                         "discounted_costs",
+                                         "discounted_rewards",
                                          ["costs", "rewards"])
 
-    def histogram_all(self, runs, field, title, axes=None, preprocess=None):
+    def histogram_all(self, runs, field, title, axes=None):
         dirs = [directory for directory in runs.keys() if field in runs[directory]]
         data = [runs[directory][field] for directory in dirs]
-        if preprocess:
-            data = [preprocess(d) for d in data]
         data = [d[self.episodes_range[0]:self.episodes_range[1]] for d in data]
         axes = self.histogram(data, title=title, labels=dirs, axes=axes)
         if axes:
