@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from rl_agents.agents.common import load_environment, agent_factory
+from rl_agents.agents.common.factory import load_environment, agent_factory
 from rl_agents.trainer.evaluation import Evaluation
 
 gamma = 0.8

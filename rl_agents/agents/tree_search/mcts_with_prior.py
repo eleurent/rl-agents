@@ -1,7 +1,7 @@
 import numpy as np
 
 from rl_agents.agents.common.abstract import AbstractAgent
-from rl_agents.agents.common import agent_factory
+from rl_agents.agents.common.factory import agent_factory
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 
 

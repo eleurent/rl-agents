@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from rl_agents.agents.tree_search.graphics import TreePlot
-from rl_agents.agents.common import agent_factory, load_environment
+from rl_agents.agents.common.factory import agent_factory, load_environment
 
 sns.set()
 out = Path("out/planners")

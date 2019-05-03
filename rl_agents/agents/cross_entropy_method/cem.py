@@ -2,7 +2,7 @@ import torch
 from torch.distributions import Normal
 
 from rl_agents.agents.common.abstract import AbstractAgent
-from rl_agents.agents.common import safe_deepcopy_env
+from rl_agents.agents.common.factory import safe_deepcopy_env
 
 
 class CEMAgent(AbstractAgent):
