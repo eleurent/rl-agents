@@ -1,5 +1,5 @@
 {
-    "id": "highway-roundabout-v0",
+    "id": "roundabout-v0",
     "import_module": "highway_env",
     "incoming_vehicle_destination": 0,
     "other_vehicles_type": "highway_env.vehicle.behavior.LinearVehicle"
