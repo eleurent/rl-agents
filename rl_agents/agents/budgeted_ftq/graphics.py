@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import pandas as pd
+import re
+
 
 class BFTQGraphics(object):
     @classmethod
@@ -44,7 +46,7 @@ def plot_histograms(title, writer, epoch, labels, values):
     fig.canvas.draw()
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
     data = np.rollaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), 2, 0)
-    writer.add_image(title, data, epoch)
+    writer.add_image(clean_tag(title), data, epoch)
     plt.close()
 
 
@@ -91,6 +93,14 @@ def plot_hull(hull_points, all_points, writer=None, epoch=0, title="", beta=None
     if writer:
         data = np.fromstring(data_str, dtype=np.uint8, sep='')
         data = np.rollaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), 2, 0)
-        writer.add_image(title, data, epoch)
+        writer.add_image(clean_tag(title), data, epoch)
     plt.close()
     return data_str, fig.canvas.get_width_height()
+
+
+def clean_tag(tag):
+    """
+        Clean image tags before logging to tensorboard
+    """
+    invalid_characters = re.compile(r'[^-/\w\.]')
+    return invalid_characters.sub('_', tag)
