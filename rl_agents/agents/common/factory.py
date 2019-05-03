@@ -1,8 +1,10 @@
 import copy
 import importlib
 import json
+import logging
 import gym
-from gym import logger, Wrapper, Env
+
+logger = logging.getLogger(__name__)
 
 
 def agent_factory(environment, config):
@@ -103,7 +105,7 @@ def safe_deepcopy_env(obj):
     memo = {id(obj): result}
     for k, v in obj.__dict__.items():
         if k not in ['viewer', 'automatic_rendering_callback', 'grid_render']:
-            if isinstance(v, Env):
+            if isinstance(v, gym.Env):
                 setattr(result, k, safe_deepcopy_env(v))
             else:
                 setattr(result, k, copy.deepcopy(v, memo=memo))

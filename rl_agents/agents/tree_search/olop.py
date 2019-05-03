@@ -1,9 +1,11 @@
-from gym import logger
+import logging
 import numpy as np
 
 from rl_agents.agents.common.factory import safe_deepcopy_env
 from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
-from rl_agents.utils import bernoulli_kullback_leibler, hoeffding_upper_bound, kl_upper_bound, laplace_upper_bound
+from rl_agents.utils import hoeffding_upper_bound, kl_upper_bound, laplace_upper_bound
+
+logger = logging.getLogger(__name__)
 
 
 class OLOPAgent(AbstractTreeSearchAgent):

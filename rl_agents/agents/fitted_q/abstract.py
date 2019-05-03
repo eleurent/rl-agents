@@ -1,9 +1,11 @@
 import numpy as np
 from abc import ABC
-from gym import logger
+import logging
 
 from rl_agents.agents.common.memory import Transition
 from rl_agents.agents.deep_q_network.abstract import AbstractDQNAgent
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractFTQAgent(AbstractDQNAgent, ABC):

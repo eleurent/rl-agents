@@ -8,16 +8,17 @@ __credits__ = ["Nicolas Carrara"]
 
 from multiprocessing.pool import Pool
 from pathlib import Path
-
 import numpy as np
-from gym import logger
 import torch
+import logging
 
 from rl_agents.agents.budgeted_ftq.budgeted_utils import TransitionBFTQ, compute_convex_hull_from_values, \
     optimal_mixture
 from rl_agents.agents.budgeted_ftq.models import loss_function_factory, optimizer_factory
 from rl_agents.agents.common.utils import near_split
 from rl_agents.agents.common.memory import ReplayMemory
+
+logger = logging.getLogger(__name__)
 
 
 class BudgetedFittedQ(object):
@@ -78,7 +79,7 @@ class BudgetedFittedQ(object):
             The BFTQ epoch is repeated until convergence or timeout.
         :return: the obtained value network Qr, Qc
         """
-        logger.info("[BFTQ] Run")
+        logger.info("Run")
         self.batch += 1
         for self.epoch in range(self.config["epochs"]):
             self._epoch()
@@ -93,7 +94,7 @@ class BudgetedFittedQ(object):
             2. Fit the Qr, Qc model to the targets
         :return: delta, the Bellman residual between the model and target values
         """
-        logger.debug("[BFTQ] Epoch {}/{}".format(self.epoch + 1, self.config["epochs"]))
+        logger.debug("Epoch {}/{}".format(self.epoch + 1, self.config["epochs"]))
         states_betas, actions, rewards, costs, next_states, betas, terminals = self._zip_batch()
         target_r, target_c = self.compute_targets(rewards, costs, next_states, betas, terminals)
         self._fit(states_betas, actions, target_r, target_c)
@@ -134,7 +135,7 @@ class BudgetedFittedQ(object):
         :param terminals: batch of terminations
         :return: target values
         """
-        logger.debug("[BFTQ] Compute targets")
+        logger.debug("Compute targets")
         with torch.no_grad():
             next_rewards, next_costs = self.constrained_next_values(next_states, betas, terminals)
             target_r = rewards + self.config["gamma"] * next_rewards
@@ -193,7 +194,7 @@ class BudgetedFittedQ(object):
         :param next_states: batch of next state
         :return: Q values at next states
         """
-        logger.debug("[BFTQ] -Forward pass")
+        logger.debug("-Forward pass")
         # Compute the cartesian product sb of all next states s with all budgets b
         ss = next_states.squeeze().repeat((1, len(self.betas_for_discretisation))) \
             .view((len(next_states) * len(self.betas_for_discretisation), self._value_network.size_state))
@@ -214,7 +215,7 @@ class BudgetedFittedQ(object):
         """
             Parallel computing of hulls
         """
-        logger.debug("[BFTQ] -Compute hulls")
+        logger.debug("-Compute hulls")
         n_beta = len(self.betas_for_discretisation)
         hull_params = [(q_values[state * n_beta: (state + 1) * n_beta],
                         self.betas_for_discretisation,
@@ -237,7 +238,7 @@ class BudgetedFittedQ(object):
         """
             Parallel computing of optimal mixtures
         """
-        logger.debug("[BFTQ] -Compute optimal mixtures")
+        logger.debug("-Compute optimal mixtures")
         params = [(hulls[i], beta.detach().item()) for i, beta in enumerate(betas)]
         if self.config["cpu_processes"] == 1:
             optimal_policies = [optimal_mixture(*param) for param in params]
@@ -255,7 +256,7 @@ class BudgetedFittedQ(object):
         :param target_c: batch of target cost-values
         :return: the Bellman residual delta between the model and target values
         """
-        logger.debug("[BFTQ] Fit model")
+        logger.debug("Fit model")
         # Initial Bellman residual
         with torch.no_grad():
             delta = self._compute_loss(states_betas, actions, target_r, target_c).detach().item()

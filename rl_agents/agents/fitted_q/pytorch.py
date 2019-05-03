@@ -1,8 +1,10 @@
+import logging
 import pickle
-from gym import logger
 
 from rl_agents.agents.deep_q_network.pytorch import DQNAgent
 from rl_agents.agents.fitted_q.abstract import AbstractFTQAgent
+
+logger = logging.getLogger(__name__)
 
 
 class FTQAgent(AbstractFTQAgent, DQNAgent):

@@ -1,17 +1,15 @@
-from __future__ import division, print_function
-
 import json
+import logging
 import os
-import datetime
-import numpy as np
 
-from gym import logger
 from gym.wrappers import Monitor
 from gym.wrappers.monitor import detect_training_manifests, collapse_env_infos, merge_stats_files
 from gym.wrappers.monitoring import video_recorder
 from gym.wrappers.monitoring.stats_recorder import StatsRecorder
 from gym.utils import atomic_write
 from gym.utils.json_utils import json_encode_np
+
+logger = logging.getLogger(__name__)
 
 
 class MonitorV2(Monitor):

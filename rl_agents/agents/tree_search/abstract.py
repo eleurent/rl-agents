@@ -1,10 +1,12 @@
+import logging
 import numpy as np
-from gym import logger
 from gym.utils import seeding
 
 from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.common.factory import preprocess_env
 from rl_agents.configuration import Configurable
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractTreeSearchAgent(AbstractAgent):

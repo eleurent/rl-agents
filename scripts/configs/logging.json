@@ -1,0 +1,28 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+        "standard": {
+            "format": "[%(levelname)s] %(message)s "
+        },
+        "detailed": {
+            "format": "[%(name)s:%(levelname)s] %(message)s "
+        }
+    },
+    "handlers": {
+        "default": {
+            "level": "INFO",
+            "formatter": "standard",
+            "class": "logging.StreamHandler"
+        }
+    },
+    "loggers": {
+        "": {
+            "handlers": [
+                "default"
+            ],
+            "level": "DEBUG",
+            "propagate": true
+        }
+    }
+}

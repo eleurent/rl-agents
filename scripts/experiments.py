@@ -34,18 +34,20 @@ Options:
 import datetime
 import os
 from pathlib import Path
-
 import gym
 import json
 from docopt import docopt
 from itertools import product
 from multiprocessing.pool import Pool
 
+from rl_agents.trainer import logger
 from rl_agents.trainer.analyzer import RunAnalyzer
 from rl_agents.trainer.evaluation import Evaluation
 from rl_agents.agents.common.factory import load_agent, load_environment
 
 BENCHMARK_FILE = 'benchmark_summary'
+LOGGING_CONFIG = 'configs/logging.json'
+VERBOSE_CONFIG = 'configs/verbose.json'
 
 
 def main():
@@ -64,7 +66,9 @@ def evaluate(environment_config, agent_config, options):
     :param agent_config: the path of the agent configuration file
     :param options: the evaluation options
     """
-    gym.logger.set_level(gym.logger.DEBUG if options['--verbose'] else gym.logger.INFO)
+    logger.configure(LOGGING_CONFIG)
+    if options['--verbose']:
+        logger.configure(VERBOSE_CONFIG)
     env = load_environment(environment_config)
     agent = load_agent(agent_config, env)
     run_directory = Path(agent_config).with_suffix('').name if options['--name-from-config'] else None

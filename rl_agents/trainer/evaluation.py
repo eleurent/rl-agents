@@ -1,17 +1,18 @@
 import datetime
 import json
+import logging
 import os
 from pathlib import Path
-
 import numpy as np
-
-from gym import logger
 from tensorboardX import SummaryWriter
 
+import rl_agents.trainer.logger
+from rl_agents.agents.common.graphics import AgentGraphics
 from rl_agents.configuration import serialize
 from rl_agents.trainer.graphics import RewardViewer
-from rl_agents.agents.common.graphics import AgentGraphics
 from rl_agents.trainer.monitor import MonitorV2
+
+logger = logging.getLogger(__name__)
 
 
 class Evaluation(object):
@@ -61,14 +62,16 @@ class Evaluation(object):
         self.training = training
         self.sim_seed = sim_seed
         self.close_env = close_env
+        self.display_env = display_env
 
         self.directory = Path(directory or self.default_directory)
         self.run_directory = self.directory / (run_directory or self.default_run_directory)
-        self.display_env = display_env
         self.monitor = MonitorV2(env,
                                  self.run_directory,
                                  video_callable=(None if self.display_env else False))
-        self.writer = SummaryWriter(self.monitor.directory)
+        rl_agents.trainer.logger.configure()
+        rl_agents.trainer.logger.add_file_handler(self.run_directory)
+        self.writer = SummaryWriter(str(self.run_directory))
         self.agent.set_writer(self.writer)
         self.write_metadata()
 

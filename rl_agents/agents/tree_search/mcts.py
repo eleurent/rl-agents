@@ -1,9 +1,11 @@
+import logging
 import numpy as np
 from functools import partial
-from gym import logger
 
 from rl_agents.agents.common.factory import safe_deepcopy_env
 from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
+
+logger = logging.getLogger(__name__)
 
 
 class MCTSAgent(AbstractTreeSearchAgent):
