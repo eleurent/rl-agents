@@ -59,10 +59,10 @@ class AbstractTreeSearchAgent(AbstractAgent):
         return self.plan(state)[0]
 
     def save(self, filename):
-        pass
+        raise NotImplementedError()
 
     def load(self, filename):
-        pass
+        raise NotImplementedError()
 
 
 class AbstractPlanner(Configurable):
