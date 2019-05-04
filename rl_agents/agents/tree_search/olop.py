@@ -120,7 +120,7 @@ class OLOP(AbstractPlanner):
                 self.leaves = node.expand(state, self.leaves, update_children=False)
             if action not in node.children:  # Default action may not be available
                 action = list(node.children.keys())[0]  # Pick first available action instead
-            observation, reward, done, _ = state.step(action)
+            observation, reward, done, _ = self.step_state(state, action)
             node = node.children[action]
             node.update(reward, done)
             # if node.done:
@@ -177,6 +177,7 @@ class OLOP(AbstractPlanner):
             return min_value
 
     def plan(self, state, observation):
+        self.reset_oracle_calls()
         for self.episode in range(self.config['episodes']):
             if (self.episode+1) % max(self.config['episodes'] // 10, 1) == 0:
                 logger.debug('{} / {}'.format(self.episode+1, self.config['episodes']))

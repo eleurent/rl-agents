@@ -48,6 +48,8 @@ class AbstractTreeSearchAgent(AbstractAgent):
 
     def reset(self):
         self.planner.step_by_reset()
+        self.planner.oracle_calls = self.planner.mean_oracle_calls = 0
+        self.planner.all_oracle_calls = []
 
     def seed(self, seed=None):
         return self.planner.seed(seed)
@@ -69,6 +71,9 @@ class AbstractPlanner(Configurable):
     def __init__(self, config=None):
         super(AbstractPlanner, self).__init__(config)
         self.np_random = None
+        self.oracle_calls = 0
+        self._all_oracle_calls = []
+        self.mean_oracle_calls = 0
         self.root = self.make_root()
         self.seed()
 
@@ -99,6 +104,7 @@ class AbstractPlanner(Configurable):
         :param observation: the corresponding state observation
         :return: the actions sequence
         """
+        self.oracle_calls = 0
         raise NotImplementedError()
 
     def get_plan(self):
@@ -148,6 +154,17 @@ class AbstractPlanner(Configurable):
         else:
             # The selected action was never explored, start a new tree.
             self.step_by_reset()
+
+    def step_state(self, state, action):
+        self.oracle_calls += 1
+        return state.step(action)
+
+    def reset_oracle_calls(self):
+        if self.oracle_calls > 0:
+            self._all_oracle_calls.append(self.oracle_calls)
+            self.mean_oracle_calls = int(np.mean(self._all_oracle_calls))
+            logger.debug("Number of oracle calls: {}, mean: {}".format(self.oracle_calls, self.mean_oracle_calls))
+        self.oracle_calls = 0
 
 
 class Node(object):

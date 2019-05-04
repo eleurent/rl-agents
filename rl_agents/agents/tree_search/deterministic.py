@@ -40,9 +40,11 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
 
     def plan(self, state, observation):
         self.root.state = state
-        for _ in np.arange(self.config["budget"] // state.action_space.n):
+        self.reset_oracle_calls()
+        for _ in range(self.config["budget"] // state.action_space.n):
             self.run()
-
+            if self.oracle_calls >= self.config["budget"]:
+                break
         return self.get_plan()
 
     def step_by_subtree(self, action):
@@ -85,7 +87,7 @@ class DeterministicNode(Node):
                                                self.planner,
                                                state=safe_deepcopy_env(self.state),
                                                depth=self.depth + 1)
-            _, reward, done, _ = self.children[action].state.step(action)
+            _, reward, done, _ = self.planner.step_state(self.children[action].state, action)
             self.children[action].update(reward, done)
 
         leaves.remove(self)
