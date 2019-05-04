@@ -3,7 +3,8 @@ import numpy as np
 
 from rl_agents.agents.common.factory import safe_deepcopy_env
 from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
-from rl_agents.utils import hoeffding_upper_bound, kl_upper_bound, laplace_upper_bound
+from rl_agents.math_utils import hoeffding_upper_bound, kl_upper_bound, laplace_upper_bound, \
+    bernstein_empirical_upper_bound
 
 logger = logging.getLogger(__name__)
 
@@ -195,6 +196,9 @@ class OLOPNode(Node):
         self.cumulative_reward = 0
         """ Sum of all rewards received at this node. """
 
+        self.cumulative_squared_reward = 0
+        """ Sum of squares of all rewards received at this node. """
+
         self.mu_ucb = np.infty
         """ Upper bound of the node mean reward. """
 
@@ -219,10 +223,9 @@ class OLOPNode(Node):
         if self.done:
             reward = 0
         self.cumulative_reward += reward
+        self.cumulative_squared_reward += reward**2
         self.count += 1
         self.compute_ucb()
-
-
 
     def compute_ucb(self):
         if self.planner.config["upper_bound"]["time"] == "local":
@@ -230,6 +233,7 @@ class OLOPNode(Node):
         elif self.planner.config["upper_bound"]["time"] == "global":
             time = self.planner.config["episodes"]
         else:
+            time = 1
             logger.error("Unknown upper-bound time reference")
 
         if self.planner.config["upper_bound"]["type"] == "hoeffding":
@@ -241,6 +245,13 @@ class OLOPNode(Node):
         elif self.planner.config["upper_bound"]["type"] == "kullback-leibler":
             self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, time,
                                          c=self.planner.config["upper_bound"]["c"])
+        elif self.planner.config["upper_bound"]["type"] == "empirical_bernstein":
+            if self.count >= 2:
+                variance = max((self.cumulative_squared_reward / self.count - (self.cumulative_reward / self.count)**2) \
+                           * self.count / (self.count - 1), 0)
+                self.mu_ucb = bernstein_empirical_upper_bound(self.cumulative_reward, self.count, time, variance=variance)
+            else:
+                self.mu_ucb = bernstein_empirical_upper_bound(self.cumulative_reward, 1, time, variance=0)
         else:
             logger.error("Unknown upper-bound type")
 
@@ -255,7 +266,7 @@ class OLOPNode(Node):
             self.children[action] = type(self)(self,
                                                self.planner)
             if update_children:
-                _, reward, done, _ = safe_deepcopy_env(state).step(action)
+                _, reward, done, _ = self.planner.step_state(safe_deepcopy_env(state), action)
                 self.children[action].update(reward, done)
 
         idx = leaves.index(self)

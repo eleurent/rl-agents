@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from rl_agents.agents.common.factory import preprocess_env
-from rl_agents.utils import remap, constrain
+from rl_agents.math_utils import remap, constrain
 
 
 class TreeGraphics(object):

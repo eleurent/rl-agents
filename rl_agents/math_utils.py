@@ -62,7 +62,7 @@ def hoeffding_upper_bound(_sum, count, time, c=4):
 
     :param _sum: Sum of sample values
     :param count: Number of samples
-    :param time: Allows to set the bound confidence level to time^(-c)
+    :param time: Allows to set the bound confidence level delta to time^(-c)
     :param c: Time exponent in the confidence level
     """
     return _sum / count + np.sqrt(c * np.log(time) / (2 * count))
@@ -74,7 +74,7 @@ def laplace_upper_bound(_sum, count, time, c=2):
 
     :param _sum: Sum of sample values
     :param count: Number of samples
-    :param time: Allows to set the bound confidence level to time^(-c)
+    :param time: Allows to set the bound confidence level delta to time^(-c)
     :param c: Time exponent in the confidence level
     """
     return _sum / count + np.sqrt((1 + 1 / count) * c * np.log(np.sqrt(count + 1) * time) / (2 * count))
@@ -116,3 +116,15 @@ def kl_upper_bound(_sum, count, time, c=2, eps=1e-2):
     return constrain(q, 0, 1)
 
 
+def bernstein_empirical_upper_bound(_sum, count, time, variance=0):
+    """
+        Upper Confidence Bound of the empirical mean built on the Bernstein concentration inequality.
+
+        This bound adapts to the empirical variance.
+
+    :param _sum: Sum of sample values
+    :param count: Number of samples
+    :param time: Allows to set the bound confidence level
+    :param variance: Sample variance
+    """
+    return _sum / count + np.sqrt(2 * variance * np.log(time) / count) + 0 * 8 * np.log(time) / (3 * count)

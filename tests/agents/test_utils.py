@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from rl_agents.utils import bernoulli_kullback_leibler, d_bernoulli_kullback_leibler_dq, kl_upper_bound
+from rl_agents.math_utils import bernoulli_kullback_leibler, d_bernoulli_kullback_leibler_dq, kl_upper_bound
 
 
 def test_bernoulli_kullback_leibler():
