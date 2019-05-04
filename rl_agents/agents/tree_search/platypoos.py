@@ -1,6 +1,5 @@
 import logging
 from operator import attrgetter
-from gym import logger
 import numpy as np
 
 from rl_agents.agents.common.factory import safe_deepcopy_env

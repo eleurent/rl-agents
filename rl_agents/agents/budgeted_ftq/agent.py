@@ -1,6 +1,6 @@
+import logging
 import numpy as np
 import torch
-from gym import logger
 from gym.utils import seeding
 
 from rl_agents.agents.common.abstract import AbstractAgent
@@ -8,6 +8,8 @@ from rl_agents.agents.budgeted_ftq.bftq import BudgetedFittedQ
 from rl_agents.agents.budgeted_ftq.models import NetBFTQ
 from rl_agents.agents.budgeted_ftq.policies import PytorchBudgetedFittedPolicy, RandomBudgetedPolicy, \
     EpsilonGreedyBudgetedPolicy
+
+logger = logging.getLogger(__name__)
 
 
 class BFTQAgent(AbstractAgent):
