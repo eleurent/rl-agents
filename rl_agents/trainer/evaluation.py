@@ -22,8 +22,9 @@ class Evaluation(object):
 
     OUTPUT_FOLDER = 'out'
     SAVED_MODELS_FOLDER = 'saved_models'
-    RUN_PREFIX = 'run'
+    RUN_FOLDER = 'run_{}'
     METADATA_FILE = 'metadata.{}.json'
+    LOGGING_FILE = 'logging.{}.log'
 
     def __init__(self,
                  env,
@@ -69,10 +70,9 @@ class Evaluation(object):
         self.monitor = MonitorV2(env,
                                  self.run_directory,
                                  video_callable=(None if self.display_env else False))
-        rl_agents.trainer.logger.configure()
-        rl_agents.trainer.logger.add_file_handler(self.run_directory)
         self.writer = SummaryWriter(str(self.run_directory))
         self.agent.set_writer(self.writer)
+        self.write_logging()
         self.write_metadata()
 
         if recover:
@@ -182,7 +182,7 @@ class Evaluation(object):
             self.agent.load(filename=model_path)
             logger.info("Load {} model from {}".format(self.agent.__class__.__name__, model_path))
         except FileNotFoundError:
-            logger.warn("No pre-trained model found at the desired location.")
+            logger.warning("No pre-trained model found at the desired location.")
         except NotImplementedError:
             pass
 
@@ -206,14 +206,19 @@ class Evaluation(object):
 
     @property
     def default_run_directory(self):
-        return '{}_{}'.format(self.RUN_PREFIX, datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
+        return self.RUN_FOLDER.format(datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
 
     def write_metadata(self):
         metadata = dict(env=serialize(self.env), agent=serialize(self.agent))
         file_infix = '{}.{}'.format(self.monitor.monitor_id, os.getpid())
-        file = Path(self.monitor.directory) / self.METADATA_FILE.format(file_infix)
+        file = self.run_directory / self.METADATA_FILE.format(file_infix)
         with file.open('w') as f:
             json.dump(metadata, f, sort_keys=True, indent=4)
+
+    def write_logging(self):
+        file_infix = '{}.{}'.format(self.monitor.monitor_id, os.getpid())
+        rl_agents.trainer.logger.configure()
+        rl_agents.trainer.logger.add_file_handler(self.run_directory / self.LOGGING_FILE.format(file_infix))
 
     def seed(self, episode=0):
         seed = self.sim_seed + episode if self.sim_seed is not None else None

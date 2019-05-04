@@ -54,18 +54,17 @@ def configure(config={}, gym_level=gym.logger.INFO):
     gym.logger.set_level(gym_level)
 
 
-def add_file_handler(directory, filename="run.log"):
+def add_file_handler(file_path):
     """
         Add a file handler to the root logger.
 
-    :param Path directory: log file directory
-    :param str filename: log filename
+    :param Path file_path: log file path
     """
     configure({
         "handlers": {
-            filename: {
+            file_path.name: {
                 "class": "logging.FileHandler",
-                "filename": directory / filename,
+                "filename": file_path,
                 "level": "DEBUG",
                 "formatter": "detailed",
                 "mode": 'w'
@@ -74,7 +73,7 @@ def add_file_handler(directory, filename="run.log"):
         "loggers": {
             "": {
                 "handlers": [
-                    filename,
+                    file_path.name,
                     *logging_config["handlers"]
                 ]
             }
