@@ -130,8 +130,8 @@ class OLOP(AbstractPlanner):
         """
             Update the nodes mean reward UCB.
 
-            This should only be needed for upper-bounds that depend on global times.
-            Bounds with only local time dependency can be computed when updating sampled nodes, without requiring
+            This should only be needed for upper-bounds that depend on local times.
+            Bounds with only global time dependency can be computed when updating sampled nodes, without requiring
             a global update of the rest of the tree.
         """
         if self.config["upper_bound"]["time"] == "local":
