@@ -85,7 +85,7 @@ class DeterministicNode(Node):
         if self.state is None:
             raise Exception("The state should be set before expanding a node")
         try:
-            actions = self.state.get_available_actions()
+            actions = actions = range(self.state.action_space.n)  # self.state.get_available_actions()
         except AttributeError:
             actions = range(self.state.action_space.n)
         for action in actions:
