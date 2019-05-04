@@ -23,6 +23,12 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
         self.env = env
         self.leaves = None
 
+    @classmethod
+    def default_config(cls):
+        cfg = super().default_config()
+        cfg.update({"restart": False})
+        return cfg
+
     def make_root(self):
         root = DeterministicNode(None, planner=self)
         self.leaves = [root]
@@ -87,6 +93,14 @@ class DeterministicNode(Node):
                                                self.planner,
                                                state=safe_deepcopy_env(self.state),
                                                depth=self.depth + 1)
+
+            # Fake restart: simulate from root down to self
+            if self.planner.config["restart"]:
+                for _ in range(self.depth):
+                    self.planner.step_state(safe_deepcopy_env(self.children[action].state), action)
+                    if self.planner.oracle_calls >= self.planner.config["budget"]:
+                        return
+
             _, reward, done, _ = self.planner.step_state(self.children[action].state, action)
             self.children[action].update(reward, done)
 
