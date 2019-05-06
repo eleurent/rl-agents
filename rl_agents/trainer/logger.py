@@ -60,6 +60,7 @@ def add_file_handler(file_path):
 
     :param Path file_path: log file path
     """
+    file_path.parent.mkdir(parents=True, exist_ok=True)
     configure({
         "handlers": {
             file_path.name: {
