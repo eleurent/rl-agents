@@ -4,7 +4,7 @@ import numpy as np
 from rl_agents.agents.common.factory import safe_deepcopy_env
 from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
 from rl_agents.math_utils import hoeffding_upper_bound, kl_upper_bound, laplace_upper_bound, \
-    bernstein_empirical_upper_bound
+    empirical_bernstein_upper_bound
 
 logger = logging.getLogger(__name__)
 
@@ -249,9 +249,9 @@ class OLOPNode(Node):
             if self.count >= 2:
                 variance = max((self.cumulative_squared_reward / self.count - (self.cumulative_reward / self.count)**2) \
                            * self.count / (self.count - 1), 0)
-                self.mu_ucb = bernstein_empirical_upper_bound(self.cumulative_reward, self.count, time, variance=variance)
+                self.mu_ucb = empirical_bernstein_upper_bound(self.cumulative_reward, self.count, time, variance=variance)
             else:
-                self.mu_ucb = bernstein_empirical_upper_bound(self.cumulative_reward, 1, time, variance=0)
+                self.mu_ucb = empirical_bernstein_upper_bound(self.cumulative_reward, 1, time, variance=0)
         else:
             logger.error("Unknown upper-bound type")
 

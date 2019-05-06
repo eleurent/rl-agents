@@ -116,7 +116,7 @@ def kl_upper_bound(_sum, count, time, c=2, eps=1e-2):
     return constrain(q, 0, 1)
 
 
-def bernstein_empirical_upper_bound(_sum, count, time, variance=0):
+def empirical_bernstein_upper_bound(_sum, count, time, variance=0):
     """
         Upper Confidence Bound of the empirical mean built on the Bernstein concentration inequality.
 
@@ -127,4 +127,4 @@ def bernstein_empirical_upper_bound(_sum, count, time, variance=0):
     :param time: Allows to set the bound confidence level
     :param variance: Sample variance
     """
-    return _sum / count + np.sqrt(2 * variance * np.log(time) / count) + 0 * 8 * np.log(time) / (3 * count)
+    return _sum / count + np.sqrt(2 * variance * np.log(time) / count) + 8 * np.log(time) / (3 * count)
