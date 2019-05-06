@@ -45,21 +45,40 @@ def env_configs():
 
 def agent_configs():
     agents = {
-        # "random": {
-        #     "__class__": "<class 'rl_agents.agents.simple.random.RandomUniformAgent'>"
-        # },
-        # "olop": {
-        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-        #     "gamma": gamma,
-        #     "max_depth": 4,
-        #     "upper_bound": {
-        #         "type": "hoeffding",
-        #         "c": 4
-        #     },
-        #     "lazy_tree_construction": True,
-        #     "continuation_type": "uniform",
-        #     # "env_preprocessors": [{"method": "simplify"}]
-        # },
+        "OPD": {
+            "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
+            "gamma": gamma,
+            "env_preprocessors": [{"method": "simplify"}]
+        },
+        "OPD-restart": {
+            "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
+            "gamma": gamma,
+            "env_preprocessors": [{"method": "simplify"}],
+            "restart": True
+        },
+        "Emp-OLOP": {
+            "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+            "gamma": gamma,
+            "max_depth": 4,
+            "upper_bound": {
+                "type": "hoeffding",
+                "c": 0
+            },
+            "lazy_tree_construction": True,
+            "continuation_type": "uniform",
+            "env_preprocessors": [{"method": "simplify"}]
+        },
+        "BE-OLOP": {
+            "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+            "gamma": gamma,
+            "max_depth": 4,
+            "upper_bound": {
+                "type": "empirical_bernstein",
+            },
+            "lazy_tree_construction": True,
+            "continuation_type": "uniform",
+            "env_preprocessors": [{"method": "simplify"}]
+        },
         "KL-OLOP": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
             "gamma": gamma,
@@ -71,49 +90,9 @@ def agent_configs():
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
             "env_preprocessors": [{"method": "simplify"}]
-        },
-        # "kl-olop-1": {
-        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-        #     "gamma": gamma,
-        #     "max_depth": 4,
-        #     "upper_bound": {
-        #         "type": "kullback-leibler",
-        #         "c": 1
-        #     },
-        #     "lazy_tree_construction": True,
-        #     "continuation_type": "uniform",
-        #     # "env_preprocessors": [{"method": "simplify"}]
-        # },
-        # "laplace": {
-        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-        #     "gamma": gamma,
-        #     "upper_bound": {
-        #         "type": "laplace",
-        #         "c": 2
-        #     },
-        #     "lazy_tree_construction": True,
-        #     "continuation_type": "uniform",
-        #     # "env_preprocessors": [{"method": "simplify"}]
-        # },
-        "OPD": {
-            "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
-            "gamma": gamma,
-            "env_preprocessors": [{"method": "simplify"}]
-        },
-        "OPD-restart": {
-            "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
-            "gamma": gamma,
-            "env_preprocessors": [{"method": "simplify"}],
-            "restart": True
         }
-        # ,
-        # "value_iteration": {
-        #     "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
-        #     "gamma": gamma,
-        #     "iterations": int(3 / (1 - gamma))
-        # }
     }
-    return OrderedDict(agents)
+    return agents
 
 
 def evaluate(experiment):
@@ -151,7 +130,7 @@ def evaluate(experiment):
     result = {
         "agent": agent_name,
         "budget": budget,
-        "oracle_calls": int(np.ceil(agent.planner.mean_oracle_calls/5)*5),
+        "oracle_calls": agent.planner.mean_oracle_calls,
         "seed": seed,
         "total_reward": total_reward,
         "return": return_,
