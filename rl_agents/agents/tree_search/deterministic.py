@@ -50,7 +50,7 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
     def plan(self, state, observation):
         self.root.state = state
         self.reset_oracle_calls()
-        for _ in range(self.config["budget"] // state.action_space.n):
+        for _ in range(int(np.ceil(self.config["budget"] / state.action_space.n))):
             self.run()
             if self.oracle_calls >= self.config["budget"]:
                 break
@@ -88,7 +88,7 @@ class DeterministicNode(Node):
         if self.state is None:
             raise Exception("The state should be set before expanding a node")
         try:
-            actions = actions = range(self.state.action_space.n)  # self.state.get_available_actions()
+            actions = range(self.state.action_space.n)  # self.state.get_available_actions()
         except AttributeError:
             actions = range(self.state.action_space.n)
         for action in actions:
@@ -106,6 +106,8 @@ class DeterministicNode(Node):
 
             _, reward, done, _ = self.planner.step_state(self.children[action].state, action)
             self.children[action].update(reward, done)
+            if self.planner.oracle_calls >= self.planner.config["budget"]:
+                return
 
         leaves.remove(self)
         leaves.extend(self.children.values())
