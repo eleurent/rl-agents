@@ -26,7 +26,10 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
     @classmethod
     def default_config(cls):
         cfg = super().default_config()
-        cfg.update({"restart": False})
+        cfg.update({
+            "restart": False,
+            "ignore_terminal": True
+        })
         return cfg
 
     def make_root(self):
@@ -39,7 +42,7 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
             Run an OptimisticDeterministicPlanner episode
         """
         leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
-        if not leaf_to_expand.done:
+        if not leaf_to_expand.done or self.config["ignore_terminal"]:
             leaf_to_expand.expand(self.leaves)
 
         leaf_to_expand.backup_to_root()
