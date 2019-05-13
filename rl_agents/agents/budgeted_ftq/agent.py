@@ -90,7 +90,8 @@ class BFTQAgent(AbstractAgent):
 
             When enough experience is collected, fit the model to the batch.
         """
-        self.bftq.push(state.flatten(), action, reward, next_state.flatten(), done, info["cost"])
+        self.bftq.push(state.flatten(), action, reward, next_state.flatten(), done, info["cost"],
+                       self.previous_beta, self.beta)
 
         minibatch_complete = self.training and not self.bftq.memory.is_empty() and \
             len(self.bftq.memory) % (self.config["samples_per_batch"] * len(self.bftq.betas_for_duplication)) == 0

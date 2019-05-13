@@ -48,7 +48,7 @@ class BudgetedFittedQ(object):
         self.epoch = 0
         self.reset()
 
-    def push(self, state, action, reward, next_state, terminal, cost, beta=None):
+    def push(self, state, action, reward, next_state, terminal, cost, beta=None, next_beta=None):
         """
             Push a transition into the replay memory.
         """
@@ -58,6 +58,7 @@ class BudgetedFittedQ(object):
         cost = torch.tensor([cost], dtype=torch.float)
         state = torch.tensor([[state]], dtype=torch.float)
         next_state = torch.tensor([[next_state]], dtype=torch.float)
+        next_beta = torch.tensor([[next_beta]], dtype=torch.float)
 
         # Data augmentation for (potentially missing) budget values
         if np.size(self.betas_for_duplication):
@@ -66,10 +67,10 @@ class BudgetedFittedQ(object):
                     beta_d = torch.tensor([[[beta_d * beta]]], dtype=torch.float)
                 else:  # Otherwise, simply set new betas
                     beta_d = torch.tensor([[[beta_d]]], dtype=torch.float)
-                self.memory.push(state, action, reward, next_state, terminal, cost, beta_d)
+                self.memory.push(state, action, reward, next_state, terminal, cost, beta_d, next_beta)
         else:
             beta = torch.tensor([[[beta]]], dtype=torch.float)
-            self.memory.push(state, action, reward, next_state, terminal, cost, beta)
+            self.memory.push(state, action, reward, next_state, terminal, cost, beta, next_beta)
 
     def run(self):
         """
@@ -95,8 +96,8 @@ class BudgetedFittedQ(object):
         :return: delta, the Bellman residual between the model and target values
         """
         logger.debug("Epoch {}/{}".format(self.epoch + 1, self.config["epochs"]))
-        states_betas, actions, rewards, costs, next_states, betas, terminals = self._zip_batch()
-        target_r, target_c = self.compute_targets(rewards, costs, next_states, betas, terminals)
+        states_betas, actions, rewards, costs, next_states, betas, terminals, next_betas = self._zip_batch()
+        target_r, target_c = self.compute_targets(rewards, costs, next_states, next_betas, terminals)
         self._fit(states_betas, actions, target_r, target_c)
         plot_values_histograms(self._value_network, (target_r, target_c), states_betas, actions, self.writer, self.epoch, self.batch)
 
@@ -116,6 +117,7 @@ class BudgetedFittedQ(object):
         betas = torch.cat(zipped.beta).to(self.device)
         states = torch.cat(zipped.state).to(self.device)
         next_states = torch.cat(zipped.next_state).to(self.device)
+        next_betas = torch.cat(zipped.next_beta).to(self.device)
         states_betas = torch.cat((states, betas), dim=2).to(self.device)
 
         # Batch normalization
@@ -123,9 +125,9 @@ class BudgetedFittedQ(object):
         std = torch.std(states_betas, 0).to(self.device)
         self._value_network.set_normalization_params(mean, std)
 
-        return states_betas, actions, rewards, costs, next_states, betas, terminals
+        return states_betas, actions, rewards, costs, next_states, betas, terminals, next_betas
 
-    def compute_targets(self, rewards, costs, next_states, betas, terminals):
+    def compute_targets(self, rewards, costs, next_states, next_betas, terminals):
         """
             Compute target values by applying constrained Bellman operator
         :param rewards: batch of rewards
@@ -137,7 +139,7 @@ class BudgetedFittedQ(object):
         """
         logger.debug("Compute targets")
         with torch.no_grad():
-            next_rewards, next_costs = self.constrained_next_values(next_states, betas, terminals)
+            next_rewards, next_costs = self.constrained_next_values(next_states, next_betas, terminals, costs)
             target_r = rewards + self.config["gamma"] * next_rewards
             target_c = costs + self.config["gamma_c"] * next_costs
 
@@ -146,15 +148,16 @@ class BudgetedFittedQ(object):
             torch.cuda.empty_cache()
         return target_r, target_c
 
-    def constrained_next_values(self, next_states, betas, terminals):
+    def constrained_next_values(self, next_states, next_betas, terminals, costs):
         """
             Boostrap the (qr, qc) values at next states, following optimal policies under budget constraints.
 
             The model is evaluated for optimal mixtures of actions & budgets that fulfill the cost constraints.
 
         :param next_states: batch of next states
-        :param betas: batch of budgets
+        :param next_betas: batch of next budgets
         :param terminals: batch of terminations
+        :param costs: batch of costs
         :return: qr and qc at the next states, following optimal mixtures
         """
         # Initialisation
@@ -165,7 +168,7 @@ class BudgetedFittedQ(object):
 
         # Select non-final next states
         next_states_nf = next_states[1 - terminals]
-        betas_nf = betas[1 - terminals]
+        next_betas_nf = next_betas[1 - terminals]
 
         # Forward pass of the model Qr, Qc
         q_values = self.compute_next_values(next_states_nf)
@@ -174,7 +177,7 @@ class BudgetedFittedQ(object):
         hulls = self.compute_all_hulls(q_values, len(next_states_nf))
 
         # Compute optimal mixture policies satisfying budget constraint: max E[Qr] s.t. E[Qc] < beta
-        mixtures = self.compute_all_optimal_mixtures(hulls, betas_nf)
+        mixtures = self.compute_all_optimal_mixtures(hulls, next_betas_nf)
 
         # Compute expected costs and rewards of these mixtures
         next_rewards_nf = torch.zeros(len(next_states_nf), device=self.device)
@@ -234,12 +237,12 @@ class BudgetedFittedQ(object):
             plot_hull(hulls[s], all_points[s], self.writer, self.epoch, title="Hull {} batch {}".format(s, self.batch))
         return hulls
 
-    def compute_all_optimal_mixtures(self, hulls, betas):
+    def compute_all_optimal_mixtures(self, hulls, next_betas):
         """
             Parallel computing of optimal mixtures
         """
         logger.debug("-Compute optimal mixtures")
-        params = [(hulls[i], beta.detach().item()) for i, beta in enumerate(betas)]
+        params = [(hulls[i], beta.detach().item()) for i, beta in enumerate(next_betas)]
         if self.config["cpu_processes"] == 1:
             optimal_policies = [optimal_mixture(*param) for param in params]
         else:
@@ -329,5 +332,5 @@ class BudgetedFittedQ(object):
 def parse(value):
     try:
         return eval(value)
-    except ValueError:
+    except TypeError:
         return value
