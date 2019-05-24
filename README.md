@@ -6,6 +6,7 @@ A collection of Reinforcement Learning agents
 
 * [Installation](#installation)
 * [Usage](#usage)
+* [Monitoring](#monitoring)
 * [Agents](#agents)
   * Planning
     * [Value Iteration](#vi-value-iteration)
@@ -119,7 +120,14 @@ A benchmark configuration files contains a list of environment configurations an
 }
 ```
 
+# Monitoring
 
+There are a few tools available to monitor the agent performances:
+* *Run metadata*: for the sake of reproducibility, the environment and agent configurations used for the run are merged and save to a `metadata.*.json` file.
+* [*Gym Monitor*](https://github.com/openai/gym/blob/master/gym/wrappers/monitor.py): the main statistics (episode rewards, lengths, seeds) of are logged to an `episode_batch.*.stats.json` file. They can be automatically visualised by running `scripts/analyze.py`
+* [*Logging*](https://docs.python.org/3/howto/logging.html): agents can send messages through the standard python logging library. By default, all messages with log level _INFO_ are saved to a `logging.*.log` file. Add the option `scripts/experiments.py --verbose` to save with log level _DEBUG_.
+* [*Tensorboard*](https://github.com/lanpa/tensorboardX): by default, a tensoboard writer records information about useful scalars, images and model graphs to the run directory. It can be visualized by running:
+```tensorboard --logdir <path-to-runs-dir>```
 
 # Agents
 
