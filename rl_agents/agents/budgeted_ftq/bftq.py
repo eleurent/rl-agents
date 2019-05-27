@@ -1,7 +1,7 @@
 """
     Adapted from the original implementation by Nicolas Carrara <https://github.com/ncarrara>.
 """
-from rl_agents.agents.budgeted_ftq.graphics import plot_values_histograms, plot_hull
+from rl_agents.agents.budgeted_ftq.graphics import plot_values_histograms, plot_frontier
 
 __author__ = "Edouard Leurent"
 __credits__ = ["Nicolas Carrara"]
@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import logging
 
-from rl_agents.agents.budgeted_ftq.budgeted_utils import TransitionBFTQ, compute_convex_hull_from_values, \
+from rl_agents.agents.budgeted_ftq.greedy_policy import TransitionBFTQ, pareto_frontier, \
     optimal_mixture
 from rl_agents.agents.budgeted_ftq.models import loss_function_factory, optimizer_factory
 from rl_agents.agents.common.utils import near_split
@@ -77,7 +77,7 @@ class BudgetedFittedQ(object):
 
             We fit a model for the optimal reward-cost state-budget-action values Qr and Qc.
             The BFTQ epoch is repeated until convergence or timeout.
-        :return: the obtained value network Qr, Qc
+        :return: the obtained value network Qr*, Qc*
         """
         logger.info("Run")
         self.batch += 1
@@ -90,9 +90,8 @@ class BudgetedFittedQ(object):
             Run a single epoch of BFTQ.
 
             This is similar to a fitted value iteration:
-            1. Bootstrap the targets for Qr, Qc using the constrained Bellman Operator
+            1. Bootstrap the targets for Qr, Qc using the Budgeted Bellman Optimality operator
             2. Fit the Qr, Qc model to the targets
-        :return: delta, the Bellman residual between the model and target values
         """
         logger.debug("Epoch {}/{}".format(self.epoch + 1, self.config["epochs"]))
         states_betas, actions, rewards, costs, next_states, betas, terminals = self._zip_batch()
@@ -127,7 +126,7 @@ class BudgetedFittedQ(object):
 
     def compute_targets(self, rewards, costs, next_states, betas, terminals):
         """
-            Compute target values by applying constrained Bellman operator
+            Compute target values by applying the Budgeted Bellman Optimality operator
         :param rewards: batch of rewards
         :param costs: batch of costs
         :param next_states: batch of next states
@@ -137,7 +136,7 @@ class BudgetedFittedQ(object):
         """
         logger.debug("Compute targets")
         with torch.no_grad():
-            next_rewards, next_costs = self.constrained_next_values(next_states, betas, terminals)
+            next_rewards, next_costs = self.boostrap_next_values(next_states, betas, terminals)
             target_r = rewards + self.config["gamma"] * next_rewards
             target_c = costs + self.config["gamma_c"] * next_costs
 
@@ -146,16 +145,16 @@ class BudgetedFittedQ(object):
             torch.cuda.empty_cache()
         return target_r, target_c
 
-    def constrained_next_values(self, next_states, betas, terminals):
+    def boostrap_next_values(self, next_states, betas, terminals):
         """
-            Boostrap the (qr, qc) values at next states, following optimal policies under budget constraints.
+            Boostrap the (Vr, Vc) values at next states by following the greedy policy.
 
-            The model is evaluated for optimal mixtures of actions & budgets that fulfill the cost constraints.
+            The model is evaluated for optimal one-step mixtures of actions & budgets that fulfill the cost constraints.
 
         :param next_states: batch of next states
         :param betas: batch of budgets
         :param terminals: batch of terminations
-        :return: qr and qc at the next states, following optimal mixtures
+        :return: Vr and Vc at the next states, following optimal mixtures
         """
         # Initialisation
         next_rewards = torch.zeros(len(next_states), device=self.device)
@@ -163,20 +162,18 @@ class BudgetedFittedQ(object):
         if self.epoch == 0:
             return next_rewards, next_costs
 
-        # Select non-final next states
+        # Greedy policy computation pi(a'|s')
+        # 1. Select non-final next states
         next_states_nf = next_states[1 - terminals]
         betas_nf = betas[1 - terminals]
-
-        # Forward pass of the model Qr, Qc
+        # 2. Forward pass of the model Qr, Qc
         q_values = self.compute_next_values(next_states_nf)
-
-        # Compute hulls H of {(Qc, Qr)}Bd
-        hulls = self.compute_all_hulls(q_values, len(next_states_nf))
-
-        # Compute optimal mixture policies satisfying budget constraint: max E[Qr] s.t. E[Qc] < beta
+        # 3. Compute Pareto-optimal frontiers F of {(Qc, Qr)}_AB at all states
+        hulls = self.compute_all_frontiers(q_values, len(next_states_nf))
+        # 4. Compute optimal mixture policies satisfying budget constraint: max E[Qr] s.t. E[Qc] < beta
         mixtures = self.compute_all_optimal_mixtures(hulls, betas_nf)
 
-        # Compute expected costs and rewards of these mixtures
+        # Expected value Vr,Vc of the greedy policy at s'
         next_rewards_nf = torch.zeros(len(next_states_nf), device=self.device)
         next_costs_nf = torch.zeros(len(next_states_nf), device=self.device)
         for i, mix in enumerate(mixtures):
@@ -190,7 +187,10 @@ class BudgetedFittedQ(object):
 
     def compute_next_values(self, next_states):
         """
-            Compute Q(s, beta) with a single forward pass
+            Compute Q(S, B) with a single forward pass.
+
+            S: set of states
+            B: set of budgets (discretised)
         :param next_states: batch of next state
         :return: Q values at next states
         """
@@ -211,11 +211,11 @@ class BudgetedFittedQ(object):
             torch.cuda.empty_cache()
         return torch.cat(q_values).detach().cpu().numpy()
 
-    def compute_all_hulls(self, q_values, states_count):
+    def compute_all_frontiers(self, q_values, states_count):
         """
-            Parallel computing of hulls
+            Parallel computing of pareto-optimal frontiers F
         """
-        logger.debug("-Compute hulls")
+        logger.debug("-Compute frontiers")
         n_beta = len(self.betas_for_discretisation)
         hull_params = [(q_values[state * n_beta: (state + 1) * n_beta],
                         self.betas_for_discretisation,
@@ -223,23 +223,23 @@ class BudgetedFittedQ(object):
                         self.config["clamp_qc"])
                        for state in range(states_count)]
         if self.config["cpu_processes"] == 1:
-            results = [compute_convex_hull_from_values(*param) for param in hull_params]
+            results = [pareto_frontier(*param) for param in hull_params]
         else:
             with Pool(self.config["cpu_processes"]) as p:
-                results = p.starmap(compute_convex_hull_from_values, hull_params)
-        hulls, all_points = zip(*results)
+                results = p.starmap(pareto_frontier, hull_params)
+        frontiers, all_points = zip(*results)
 
         torch.cuda.empty_cache()
         for s in [0, -1]:
-            plot_hull(hulls[s], all_points[s], self.writer, self.epoch, title="Hull {} batch {}".format(s, self.batch))
-        return hulls
+            plot_frontier(frontiers[s], all_points[s], self.writer, self.epoch, title="Hull {} batch {}".format(s, self.batch))
+        return frontiers
 
-    def compute_all_optimal_mixtures(self, hulls, betas):
+    def compute_all_optimal_mixtures(self, frontiers, betas):
         """
             Parallel computing of optimal mixtures
         """
         logger.debug("-Compute optimal mixtures")
-        params = [(hulls[i], beta.detach().item()) for i, beta in enumerate(betas)]
+        params = [(frontiers[i], beta.detach().item()) for i, beta in enumerate(betas)]
         if self.config["cpu_processes"] == 1:
             optimal_policies = [optimal_mixture(*param) for param in params]
         else:

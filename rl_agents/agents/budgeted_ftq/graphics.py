@@ -10,11 +10,11 @@ class BFTQGraphics(object):
     @classmethod
     def display(cls, agent, surface):
         import pygame
-        mixture, hull = agent.exploration_policy.pi_greedy.compute_mixture(agent.previous_state, agent.previous_beta)
+        mixture, hull = agent.exploration_policy.pi_greedy.greedy_policy(agent.previous_state, agent.previous_beta)
         surf_size = surface.get_size()
-        image_str, size = plot_hull(*hull, None, None, "", beta=agent.previous_beta, mixture=mixture,
-                                    figsize=(surf_size[0]/100, surf_size[1]/100), verbose=False,
-                                    clamp_qc=agent.config["clamp_qc"])
+        image_str, size = plot_frontier(*hull, None, None, "", beta=agent.previous_beta, mixture=mixture,
+                                        figsize=(surf_size[0]/100, surf_size[1]/100), verbose=False,
+                                        clamp_qc=agent.config["clamp_qc"])
         surf = pygame.image.fromstring(image_str, size, "RGB")
         surface.blit(surf, (0, 0))
 
@@ -50,13 +50,13 @@ def plot_histograms(title, writer, epoch, labels, values):
     plt.close()
 
 
-def plot_hull(hull_points, all_points, writer=None, epoch=0, title="", beta=None, mixture=None, figsize=(8, 6),
-              verbose=True, clamp_qc=None):
+def plot_frontier(frontier, all_points, writer=None, epoch=0, title="", beta=None, mixture=None, figsize=(8, 6),
+                  verbose=True, clamp_qc=None):
     """
         Plot the hull of all Qc, Qr points for different (action, budget).
 
         If a threshold beta and corresponding mixture is provided, plot them.
-    :param hull_points: points of the hull
+    :param frontier: points of the Pareto frontier
     :param all_points: all points (Qc, Qr)
     :param SummaryWriter writer: will log the image to tensorboard if not None
     :param epoch: timestep for tensorboard log
@@ -69,7 +69,7 @@ def plot_hull(hull_points, all_points, writer=None, epoch=0, title="", beta=None
     :return: the string description of the image, and its size
     """
     # Figure creation
-    dfa, dfh = pd.DataFrame(all_points), pd.DataFrame(hull_points)
+    dfa, dfh = pd.DataFrame(all_points), pd.DataFrame(frontier)
     fig = plt.figure(figsize=figsize, tight_layout=True)
     sns.scatterplot(data=dfa, x="qc", y="qr", hue="action", legend="full")
     sns.lineplot(data=dfh, x="qc", y="qr", marker="x", label="hull")

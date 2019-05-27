@@ -3,7 +3,7 @@ import copy
 import torch
 import numpy as np
 
-from rl_agents.agents.budgeted_ftq.budgeted_utils import optimal_mixture, compute_convex_hull
+from rl_agents.agents.budgeted_ftq.greedy_policy import optimal_mixture, pareto_frontier_at
 from rl_agents.agents.common.utils import sample_simplex
 
 
@@ -65,13 +65,13 @@ class PytorchBudgetedFittedPolicy(BudgetedPolicy):
         self.network = copy.deepcopy(network)
 
     def execute(self, state, beta):
-        mixture, _ = self.compute_mixture(state, beta)
+        mixture, _ = self.greedy_policy(state, beta)
         choice = mixture.sup if self.np_random.rand() < mixture.probability_sup else mixture.inf
         return choice.action, choice.budget
 
-    def compute_mixture(self, state, beta):
+    def greedy_policy(self, state, beta):
         with torch.no_grad():
-            hull = compute_convex_hull(
+            hull = pareto_frontier_at(
                 state=torch.tensor([state], device=self.device, dtype=torch.float32),
                 value_network=self.network,
                 betas=self.betas_for_discretisation,
