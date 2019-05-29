@@ -248,6 +248,4 @@ This agent can only be used with environments that provide a cost signal in thei
 {'cost': 1.0}
 ``` 
 
-References: 
-* [A Fitted-Q Algorithm for Budgeted MDPs](https://hal.archives-ouvertes.fr/hal-01867353), Carrara N., Laroche R., Bouraoui J-L., Urvoy T., Pietquin O. (2018).
-* [Scaling Up Budgeted Reinforcement Learning](https://arxiv.org/abs/1903.01004), Carrara N., Leurent E., Laroche R., Urvoy T., Maillard O-A., Pietquin O. (2019).
+Reference: [Budgeted Reinforcement Learning in Continuous State Space](https://arxiv.org/abs/1903.01004), Carrara N., Leurent E., Laroche R., Urvoy T., Maillard O-A., Pietquin O. (2019).
