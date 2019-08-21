@@ -1,0 +1,10 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
+    "env_preprocessors": [
+        {
+            "method":"set_route_at_intersection",
+            "args": "random"
+        }
+    ],
+    "budget": 50
+}
