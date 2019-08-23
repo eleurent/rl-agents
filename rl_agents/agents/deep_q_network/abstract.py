@@ -127,6 +127,13 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
     def reset(self):
         pass
 
+    def set_writer(self, writer):
+        super().set_writer(writer)
+        try:
+            self.exploration_policy.set_writer(writer)
+        except AttributeError:
+            pass
+
     def action_distribution(self, state):
         self.previous_state = state
         values = self.get_state_action_values(state)

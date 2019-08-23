@@ -18,6 +18,7 @@ class EpsilonGreedy(DiscreteDistribution):
         self.optimal_action = None
         self.epsilon = 0
         self.steps_done = 0
+        self.writer = None
         self.seed()
 
     @classmethod
@@ -43,3 +44,8 @@ class EpsilonGreedy(DiscreteDistribution):
             np.exp(- self.steps_done / self.config['tau'])
         if time:
             self.steps_done += 1
+        if self.writer:
+            self.writer.add_scalar('exploration/epsilon', self.epsilon, self.steps_done)
+
+    def set_writer(self, writer):
+        self.writer = writer
