@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import numpy as np
 
 from rl_agents.agents.common.abstract import AbstractStochasticAgent
 from rl_agents.agents.common.exploration.common import exploration_factory
@@ -9,7 +10,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
     def __init__(self, env, config=None):
         super(AbstractDQNAgent, self).__init__(config)
         self.env = env
-        self.config["num_states"] = env.observation_space.shape[0]
+        self.config["num_states"] = int(np.prod(env.observation_space.shape))
         self.config["num_actions"] = env.action_space.n
         self.config["model"]["all_layers"] = \
             [self.config["num_states"]] + self.config["model"]["layers"] + [self.config["num_actions"]]

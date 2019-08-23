@@ -98,6 +98,7 @@ class FCNetwork(nn.Module):
         self.lin3 = nn.Linear(config["all_layers"][2], config["all_layers"][3])
 
     def forward(self, x):
+        x = x.reshape(x.shape[0], -1)
         x = torch.tanh(self.lin1(x))
         x = torch.tanh(self.lin2(x))
         return self.lin3(x)
@@ -120,6 +121,7 @@ class DuelingNetwork(nn.Module):
         self.value = nn.Linear(config["all_layers"][2], 1)
 
     def forward(self, x):
+        x = x.reshape(x.shape[0], -1)
         x = torch.tanh(self.lin1(x))
         x = torch.tanh(self.lin2(x))
         advantage = self.advantage(x)
