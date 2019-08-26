@@ -12,10 +12,10 @@ class FTQAgent(AbstractFTQAgent, DQNAgent):
         super(FTQAgent, self).__init__(env, config)
 
     def initialize_model(self):
-        self.policy_net.reset()
+        self.value_net.reset()
 
     def update_target_network(self):
-        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.target_net.load_state_dict(self.value_net.state_dict())
 
     def save(self, filename):
         super(FTQAgent, self).save(filename)
