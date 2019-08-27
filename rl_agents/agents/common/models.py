@@ -78,37 +78,23 @@ class EgoAttention(nn.Module, Configurable):
 
     def forward(self, ego, others, mask=None):
         batch_size = others.shape[0]
-        n_others = others.shape[1]
+        n_entities = others.shape[1] + 1
         input_all = torch.cat((ego.view(batch_size, 1, self.config["feature_size"]), others), dim=1)
-        # Dimensions: Batch, item, head, feature
-        key_all = self.key_all(input_all).view(batch_size, n_others + 1, self.config["heads"], self.features_per_head)
-        value_all = self.value_all(input_all).view(batch_size, n_others + 1, self.config["heads"], self.features_per_head)
+        # Dimensions: Batch, entity, head, feature_per_head
+        key_all = self.key_all(input_all).view(batch_size, n_entities, self.config["heads"], self.features_per_head)
+        value_all = self.value_all(input_all).view(batch_size, n_entities, self.config["heads"], self.features_per_head)
         query_ego = self.query_ego(ego).view(batch_size, 1, self.config["heads"], self.features_per_head)
-        if mask is not None:
-            mask = mask.unsqueeze(2).repeat((1, 1, self.config["heads"], 1))
 
+        # Dimensions: Batch, head, entity, feature_per_head
         key_all = key_all.permute(0, 2, 1, 3)
         value_all = value_all.permute(0, 2, 1, 3)
         query_ego = query_ego.permute(0, 2, 1, 3)
-        output = attention(query_ego, key_all, value_all, mask,
-                           nn.Dropout(self.config["dropout_factor"])).reshape(batch_size, self.config["feature_size"])
-        comb = (self.attention_combine(output) + ego.squeeze(1))/2
-        return comb
-
-    def get_attention_matrix(self, ego, others, mask=None):
-        batch_size = others.shape[0]
-        n_others = others.shape[1]
-        input_all = torch.cat((ego.view(batch_size, 1, self.config["feature_size"]), others), dim=1)
-        key_all = self.key_others(input_all).view(batch_size, n_others, self.config["heads"], self.features_per_head)
-        query_ego = self.query_ego(ego).view(batch_size, 1, self.config["heads"], self.features_per_head)
-        mask = mask.unsqueeze(2).repeat((1, 1, self.config["heads"], 1))
-        d_k = query_ego.size(-1)
-        scores = torch.matmul(query_ego, key_all.transpose(-2, -1)) / math.sqrt(d_k)
         if mask is not None:
-            mask_veh = (1 - torch.prod(1 - mask, 0)).unsqueeze(2)
-            scores[:, :, :, :mask_veh.shape[-1]] = scores[:, :, :, :mask_veh.shape[-1]].masked_fill(mask_veh == 0, -1e9)
-        p_attn = F.softmax(scores, dim=-1)
-        return p_attn
+            mask = mask.view((batch_size, 1, 1, n_entities)).repeat((1, self.config["heads"], 1, 1))
+        value, attention_matrix = attention(query_ego, key_all, value_all, mask,
+                                            nn.Dropout(self.config["dropout_factor"]))
+        result = (self.attention_combine(value.reshape((batch_size, self.config["feature_size"]))) + ego.squeeze(1))/2
+        return result, attention_matrix
 
 
 class EgoAttentionNetwork(nn.Module, Configurable):
@@ -123,7 +109,7 @@ class EgoAttentionNetwork(nn.Module, Configurable):
 
         self.ego_embedding = model_factory(self.config["embedding_layer"])
         self.others_embedding = self.ego_embedding
-        self.attention = EgoAttention(self.config["attention_layer"])
+        self.attention_layer = EgoAttention(self.config["attention_layer"])
         self.output_layer = model_factory(self.config["output_layer"])
 
     @classmethod
@@ -151,20 +137,21 @@ class EgoAttentionNetwork(nn.Module, Configurable):
         }
 
     def forward(self, x):
-        ego, others = self.split_input(x)
-        ego_embedded_att = self.attention(self.ego_embedding(ego), self.others_embedding(others))
+        ego, others, mask = self.split_input(x)
+        ego_embedded_att, _ = self.attention_layer(self.ego_embedding(ego), self.others_embedding(others), mask)
         return self.output_layer(ego_embedded_att)
 
     def split_input(self, x):
-        # Dims: batch, vehicle, features
+        # Dims: batch, entities, features
         ego = x[:, 0:1, :]
         others = x[:, 1:, :]
-        # if self.config["presence_feature_idx"] is not None:  # Only select present vehicle
-        #     others = others[others[:, :, self.config["presence_feature_idx"]] > 0].view(x.shape[0], -1, x.shape[2])
-        return ego, others
+        mask = x[:, :, self.config["presence_feature_idx"]:self.config["presence_feature_idx"] + 1] < 0.5
+        return ego, others, mask
 
-    def get_attention_matrices(self, ego, others):
-        return self.attention.get_attention_matrix(self.ego_embedding(ego), self.others_embedding(others))
+    def get_attention_matrix(self, x):
+        ego, others, mask = self.split_input(x)
+        _, attention_matrix = self.attention_layer(self.ego_embedding(ego), self.others_embedding(others), mask)
+        return attention_matrix
 
 
 def attention(query, key, value, mask=None, dropout=None):
@@ -180,13 +167,12 @@ def attention(query, key, value, mask=None, dropout=None):
     d_k = query.size(-1)
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
     if mask is not None:
-        mask_veh = (1 - torch.prod(1-mask, 0)).unsqueeze(2)
-        scores[:, :, :, :mask_veh.shape[-1]] = scores[:, :, :, :mask_veh.shape[-1]].masked_fill(mask_veh == 0, -1e9)
+        scores = scores.masked_fill(mask, -1e9)
     p_attn = F.softmax(scores, dim=-1)
     if dropout is not None:
         p_attn = dropout(p_attn)
     output = torch.matmul(p_attn, value)
-    return output
+    return output, p_attn
 
 
 def activation_factory(activation_type):
