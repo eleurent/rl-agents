@@ -63,10 +63,10 @@ class EgoAttention(nn.Module, Configurable):
         Configurable.__init__(self, config)
         self.features_per_head = int(self.config["feature_size"] / self.config["heads"])
 
-        self.value_all = nn.Linear(self.feature_size, self.feature_size, bias=False)
-        self.key_all = nn.Linear(self.feature_size, self.feature_size, bias=False)
-        self.query_ego = nn.Linear(self.feature_size, self.feature_size, bias=False)
-        self.attention_combine = nn.Linear(self.feature_size, self.feature_size, bias=False)
+        self.value_all = nn.Linear(self.config["feature_size"], self.config["feature_size"], bias=False)
+        self.key_all = nn.Linear(self.config["feature_size"], self.config["feature_size"], bias=False)
+        self.query_ego = nn.Linear(self.config["feature_size"], self.config["feature_size"], bias=False)
+        self.attention_combine = nn.Linear(self.config["feature_size"], self.config["feature_size"], bias=False)
 
     @classmethod
     def default_config(cls):
@@ -92,8 +92,8 @@ class EgoAttention(nn.Module, Configurable):
         query_ego = query_ego.permute(0, 2, 1, 3)
         output = attention(query_ego, key_all, value_all, mask,
                            nn.Dropout(self.config["dropout_factor"])).reshape(batch_size, self.config["feature_size"])
-        output = (self.attention_combine(output) + ego)/2
-        return output
+        comb = (self.attention_combine(output) + ego.squeeze(1))/2
+        return comb
 
     def get_attention_matrix(self, ego, others, mask=None):
         batch_size = others.shape[0]
@@ -111,11 +111,13 @@ class EgoAttention(nn.Module, Configurable):
         return p_attn
 
 
-class EgoAttentionAction(nn.Module, Configurable):
+class EgoAttentionNetwork(nn.Module, Configurable):
     def __init__(self, config):
-        super(EgoAttentionAction, self).__init__(config)
+        super().__init__()
+        Configurable.__init__(self, config)
         self.config = config
-        self.config["embedding_layer"]["in"] = self.config["in"]
+        if not self.config["embedding_layer"]["in"]:
+            self.config["embedding_layer"]["in"] = self.config["in"]
         self.config["output_layer"]["in"] = self.config["attention_layer"]["feature_size"]
         self.config["output_layer"]["out"] = self.config["out"]
 
@@ -130,9 +132,11 @@ class EgoAttentionAction(nn.Module, Configurable):
             "in": None,
             "out": None,
             "n_head": 4,
+            "presence_feature_idx": 0,
             "embedding_layer": {
                 "type": "MultiLayerPerceptron",
-                "layers": [128, 128, 128]
+                "layers": [128, 128, 128],
+                "reshape": False
             },
             "attention_layer": {
                 "type": "EgoAttention",
@@ -141,20 +145,38 @@ class EgoAttentionAction(nn.Module, Configurable):
             },
             "output_layer": {
                 "type": "MultiLayerPerceptron",
-                "layers": [128, 128, 128]
+                "layers": [128, 128, 128],
+                "reshape": False
             },
         }
 
-    def forward(self, ego, others):
+    def forward(self, x):
+        ego, others = self.split_input(x)
         ego_embedded_att = self.attention(self.ego_embedding(ego), self.others_embedding(others))
         return self.output_layer(ego_embedded_att)
+
+    def split_input(self, x):
+        # Dims: batch, vehicle, features
+        ego = x[:, 0:1, :]
+        others = x[:, 1:, :]
+        # if self.config["presence_feature_idx"] is not None:  # Only select present vehicle
+        #     others = others[others[:, :, self.config["presence_feature_idx"]] > 0].view(x.shape[0], -1, x.shape[2])
+        return ego, others
 
     def get_attention_matrices(self, ego, others):
         return self.attention.get_attention_matrix(self.ego_embedding(ego), self.others_embedding(others))
 
 
 def attention(query, key, value, mask=None, dropout=None):
-    """ Compute a Scaled Dot Product Attention """
+    """
+        Compute a Scaled Dot Product Attention.
+    :param query: size: batch, head, entities, features
+    :param key:  size: batch, head, entities, features
+    :param value: size: batch, head, entities, features
+    :param mask:
+    :param dropout:
+    :return:
+    """
     d_k = query.size(-1)
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
     if mask is not None:
@@ -180,9 +202,9 @@ def loss_function_factory(loss_function):
     if loss_function == "l2":
         return F.mse_loss
     elif loss_function == "l1":
-        return  F.l1_loss
+        return F.l1_loss
     elif loss_function == "bce":
-        return  F.binary_cross_entropy
+        return F.binary_cross_entropy
     else:
         raise ValueError("Unknown loss function : {}".format(loss_function))
 
@@ -201,5 +223,7 @@ def model_factory(config: dict) -> nn.Module:
         return MultiLayerPerceptron(config)
     elif config["type"] == "DuelingNetwork":
         return DuelingNetwork(config)
+    elif config["type"] == "EgoAttentionNetwork":
+        return EgoAttentionNetwork(config)
     else:
         raise ValueError("Unknown model type")
