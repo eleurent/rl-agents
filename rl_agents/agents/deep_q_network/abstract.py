@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
+from gym import spaces
 
 from rl_agents.agents.common.abstract import AbstractStochasticAgent
 from rl_agents.agents.common.exploration.common import exploration_factory
@@ -10,10 +11,9 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
     def __init__(self, env, config=None):
         super(AbstractDQNAgent, self).__init__(config)
         self.env = env
-        self.config["num_states"] = int(np.prod(env.observation_space.shape))
-        self.config["num_actions"] = env.action_space.n
-        self.config["model"]["all_layers"] = \
-            [self.config["num_states"]] + self.config["model"]["layers"] + [self.config["num_actions"]]
+        assert isinstance(env.action_space, spaces.Discrete), "Only compatible with Discrete action spaces."
+        self.config["model"]["in"] = int(np.prod(env.observation_space.shape))
+        self.config["model"]["out"] = env.action_space.n
         self.memory = ReplayMemory(self.config)
         self.exploration_policy = exploration_factory(self.config["exploration"], self.env.action_space)
         self.training = True
@@ -74,7 +74,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
     def update_target_network(self):
         self.steps += 1
         if self.steps % self.config["target_update"] == 0:
-            self.target_net.load_state_dict(self.policy_net.state_dict())
+            self.target_net.load_state_dict(self.value_net.state_dict())
 
     @abstractmethod
     def compute_bellman_residual(self, batch, target_state_action_value=None):

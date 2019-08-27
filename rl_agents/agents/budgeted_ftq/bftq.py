@@ -14,7 +14,7 @@ import logging
 
 from rl_agents.agents.budgeted_ftq.greedy_policy import TransitionBFTQ, pareto_frontier, \
     optimal_mixture
-from rl_agents.agents.budgeted_ftq.models import loss_function_factory, optimizer_factory
+from rl_agents.agents.common.models import loss_function_factory, optimizer_factory
 from rl_agents.agents.common.utils import near_split
 from rl_agents.agents.common.memory import ReplayMemory
 
