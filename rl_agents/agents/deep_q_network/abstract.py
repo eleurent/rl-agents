@@ -23,7 +23,9 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
     def default_config(cls):
         return dict(model=dict(type="DuelingNetwork",
                                layers=[100, 100]),
-                    optimizer=dict(lr=5e-4),
+                    optimizer=dict(type="ADAM",
+                                   lr=5e-4,
+                                   weight_decay=0),
                     memory_capacity=50000,
                     batch_size=100,
                     gamma=0.99,
@@ -50,7 +52,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         self.memory.push(state, action, reward, next_state, done, info)
         batch = self.sample_minibatch()
         if batch:
-            loss, _ = self.compute_bellman_residual(batch)
+            loss, _, _ = self.compute_bellman_residual(batch)
             self.step_optimizer(loss)
             self.update_target_network()
 
@@ -85,7 +87,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
                                           if not, it will be computed from batch and model (Double DQN target)
         :return: the loss over the batch, and the computed target
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @abstractmethod
     def get_batch_state_values(self, states):
@@ -96,7 +98,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
                  - [V1; ...; VN] the array of the state values for each state
                  - [a1*; ...; aN*] the array of corresponding optimal action indexes for each state
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @abstractmethod
     def get_batch_state_action_values(self, states):
@@ -105,7 +107,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         :param states: [s1; ...; sN] an array of states
         :return: values:[[Q11, ..., Q1n]; ...] the array of all action values for each state
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get_state_value(self, state):
         """
@@ -121,6 +123,9 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         :return: [Q(a1,s), ..., Q(an,s)] the array of its action-values for each actions
         """
         return self.get_batch_state_action_values([state])[0]
+
+    def step_optimizer(self, loss):
+        raise NotImplementedError
 
     def seed(self, seed=None):
         return self.exploration_policy.seed(seed)

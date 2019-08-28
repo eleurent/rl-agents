@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 from abc import ABC
 import logging
@@ -12,12 +14,17 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
     def __init__(self, env, config=None):
         super(AbstractFTQAgent, self).__init__(env, config)
         self.batched = True
+        self.iterations_time = 0
+        self.regression_time = 0
+        self.batch_time = 0
+        time = 0
 
     @classmethod
     def default_config(cls):
         cfg = super(AbstractFTQAgent, cls).default_config()
         cfg.update({"value_iteration_epochs": "from-gamma",
                     "regression_epochs": 50,
+                    "processes": os.cpu_count(),
                     "constraint_penalty": 0})
         return cfg
 
@@ -48,25 +55,33 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
         """
         batch = self.sample_minibatch()
         batch = self._add_constraint_penalty(batch)
+        self.batch_time += 1
+        if self.writer:
+            self.writer.add_scalar('agent/batch_size', len(batch.state), self.batch_time)
         # Optimize model on batch
         value_iteration_epochs = self.config["value_iteration_epochs"] or int(3 / (1 - self.config["gamma"]))
         self.initialize_model()
         for epoch in range(value_iteration_epochs):
             self.update_target_network()
-            delta, target = self.compute_bellman_residual(batch)
+            delta, target, batch = self.compute_bellman_residual(batch)
             self.initialize_model()
-            logger.info("Bellman residual at iteration {} on batch {} is {}".format(epoch, len(batch.reward), delta))
-            for _ in range(self.config["regression_epochs"]):
-                loss, _ = self.compute_bellman_residual(batch, target)
+            logger.debug("Bellman residual at iteration {} is {}".format(epoch, delta))
+            if self.writer:
+                self.writer.add_scalar('agent/bellman_residual', delta, self.iterations_time)
+                self.log_memory(self.iterations_time)
+                self.iterations_time += 1
+
+            for step in range(self.config["regression_epochs"]):
+                loss, _, _ = self.compute_bellman_residual(batch, target)
                 self.step_optimizer(loss)
+                if self.writer:
+                    if self.regression_time % 10 == 0:
+                        self.writer.add_scalar('agent/regression_loss', loss, self.regression_time)
+                    self.regression_time += 1
 
     def sample_minibatch(self):
         """
             Sample a batch of transitions from memory.
-            This only happens
-                - when the memory is full
-                - at some intermediate memory lengths
-            Otherwise, the returned batch is empty
         :return: a batch of the whole memory
         """
         transitions = self.memory.sample(len(self.memory))
@@ -82,4 +97,16 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
             batch = batch._replace(reward=tuple(np.array(batch.reward) + self.config["constraint_penalty"] *
                                                 np.array([info["constraint"] for info in batch.info])))
         return batch
+
+    def reset(self):
+        super().reset()
+        self.iterations_time = 0
+        self.regression_time = 0
+        self.batch_time = 0
+
+    def initialize_model(self):
+        raise NotImplementedError
+
+    def log_memory(self, log_memory):
+        raise NotImplementedError
 

@@ -1,4 +1,11 @@
+import logging
+import os
+import re
+
 import numpy as np
+from subprocess import PIPE, run
+
+logger = logging.getLogger(__name__)
 
 
 def sample_simplex(coeff, bias, min_x, max_x, np_random=np.random):
@@ -41,3 +48,21 @@ def sample_simplex(coeff, bias, min_x, max_x, np_random=np.random):
     last_index = remain_indexes[0]
     x[last_index] = bias / coeff[last_index]
     return x
+
+
+def load_pytorch():
+    logger.info("Using torch.multiprocessing.set_start_method('spawn')")
+    import torch.multiprocessing as multiprocessing
+    try:
+        multiprocessing.set_start_method('spawn')
+    except RuntimeError as e:
+        logger.warning(str(e))
+
+
+def get_memory(pid=None):
+    if not pid:
+        pid = os.getpid()
+    command = "nvidia-smi"
+    result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True, shell=True).stdout
+    m = re.findall("\| *[0-9] *" + str(pid) + " *C *.*python.*? +([0-9]+).*\|", result, re.MULTILINE)
+    return [int(mem) for mem in m]

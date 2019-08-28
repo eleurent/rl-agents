@@ -1,17 +1,11 @@
+import logging
 import torch
-import torch.optim as optim
-import torch.nn.functional as functional
-from torch.autograd import Variable
 
-from rl_agents.agents.common.models import model_factory
+from rl_agents.agents.common.memory import Transition
+from rl_agents.agents.common.models import model_factory, loss_function_factory, optimizer_factory
 from rl_agents.agents.deep_q_network.abstract import AbstractDQNAgent
 
-# if gpu is to be used
-use_cuda = torch.cuda.is_available()
-FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
-LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor
-ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
-Tensor = FloatTensor
+logger = logging.getLogger(__name__)
 
 
 class DQNAgent(AbstractDQNAgent):
@@ -21,11 +15,14 @@ class DQNAgent(AbstractDQNAgent):
         self.target_net = model_factory(self.config["model"])
         self.target_net.load_state_dict(self.value_net.state_dict())
         self.target_net.eval()
-        if use_cuda:
-            self.value_net.cuda()
-            self.target_net.cuda()
-
-        self.optimizer = optim.Adam(self.value_net.parameters(), lr=self.config["optimizer"]["lr"])
+        self.device = self.config["device"]
+        self.value_net.to(self.device)
+        self.target_net.to(self.device)
+        self.loss_function = loss_function_factory(self.config["loss_function"])
+        self.optimizer = optimizer_factory(self.config["optimizer"]["type"],
+                                           self.value_net.parameters(),
+                                           lr=self.config["optimizer"]["lr"],
+                                           weight_decay=self.config["optimizer"]["weight_decay"])
         self.steps = 0
 
     def step_optimizer(self, loss):
@@ -37,43 +34,43 @@ class DQNAgent(AbstractDQNAgent):
         self.optimizer.step()
 
     def compute_bellman_residual(self, batch, target_state_action_value=None):
-        # Compute a mask of non-final states and concatenate the batch elements
-        non_final_mask = 1 - ByteTensor(batch.terminal)
-        next_states_batch = Variable(torch.cat(tuple(Tensor([batch.next_state]))))
-        state_batch = Variable(torch.cat(tuple(Tensor([batch.state]))))
-        action_batch = Variable(LongTensor(batch.action))
-        reward_batch = Variable(Tensor(batch.reward))
+        # Compute concatenate the batch elements
+        if not isinstance(batch.state, torch.Tensor):
+            logger.info("Casting the batch to torch.tensor")
+            state = torch.cat(tuple(torch.tensor([batch.state], dtype=torch.float))).to(self.device)
+            action = torch.tensor(batch.action, dtype=torch.long).to(self.device)
+            reward = torch.tensor(batch.reward, dtype=torch.float).to(self.device)
+            next_state = torch.cat(tuple(torch.tensor([batch.next_state], dtype=torch.float))).to(self.device)
+            terminal = torch.tensor(batch.terminal, dtype=torch.uint8).to(self.device)
+            batch = Transition(state, action, reward, next_state, terminal, batch.info)
 
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken
-        state_action_values = self.value_net(state_batch)
-        state_action_values = state_action_values.gather(1, action_batch.unsqueeze(1)).squeeze(1)
+        state_action_values = self.value_net(batch.state)
+        state_action_values = state_action_values.gather(1, batch.action.unsqueeze(1)).squeeze(1)
 
         if target_state_action_value is None:
-            # Compute V(s_{t+1}) for all next states.
-            next_state_values = Variable(torch.zeros(reward_batch.shape).type(Tensor))
-            # Double Q-learning: pick best actions from policy network
-            _, best_actions = self.value_net(next_states_batch).max(1)
-            # Double Q-learning: estimate action values from target network
-            best_values = self.target_net(next_states_batch).gather(1, best_actions.unsqueeze(1)).squeeze(1)
-            next_state_values[non_final_mask] = best_values[non_final_mask]
-
-            # Compute the expected Q values
-            target_state_action_value = reward_batch + self.config["gamma"] * next_state_values
-            # Undo volatility (to prevent unnecessary gradients)
-            target_state_action_value = Variable(target_state_action_value.data)
+            with torch.no_grad():
+                # Compute V(s_{t+1}) for all next states.
+                next_state_values = torch.zeros(batch.reward.shape).to(self.device)
+                # Double Q-learning: pick best actions from policy network
+                _, best_actions = self.value_net(batch.next_state).max(1)
+                # Double Q-learning: estimate action values from target network
+                best_values = self.target_net(batch.next_state).gather(1, best_actions.unsqueeze(1)).squeeze(1)
+                next_state_values[1 - batch.terminal] = best_values[1 - batch.terminal]
+                # Compute the expected Q values
+                target_state_action_value = batch.reward + self.config["gamma"] * next_state_values
 
         # Compute loss
-        # loss = F.smooth_l1_loss(state_action_values, target_state_action_value)
-        loss = functional.mse_loss(state_action_values, target_state_action_value)
-        return loss, target_state_action_value
+        loss = self.loss_function(state_action_values, target_state_action_value)
+        return loss, target_state_action_value, batch
 
     def get_batch_state_values(self, states):
-        values, actions = self.value_net(Variable(Tensor(states))).max(1)
+        values, actions = self.value_net(torch.tensor(states, dtype=torch.float).to(self.device)).max(1)
         return values.data.cpu().numpy(), actions.data.cpu().numpy()
 
     def get_batch_state_action_values(self, states):
-        return self.value_net(Variable(Tensor(states))).data.cpu().numpy()
+        return self.value_net(torch.tensor(states, dtype=torch.float).to(self.device)).data.cpu().numpy()
 
     def save(self, filename):
         state = {'state_dict': self.value_net.state_dict(),
@@ -88,3 +85,12 @@ class DQNAgent(AbstractDQNAgent):
 
     def initialize_model(self):
         self.value_net.reset()
+
+    def set_writer(self, writer):
+        super().set_writer(writer)
+        self.writer.add_graph(self.value_net,
+                              input_to_model=torch.zeros((1, *self.env.observation_space.shape),
+                                                         dtype=torch.float, device=self.device))
+        self.writer.add_scalar("agent/trainable_parameters",
+                               sum(p.numel() for p in self.value_net.parameters() if p.requires_grad),
+                               0)
