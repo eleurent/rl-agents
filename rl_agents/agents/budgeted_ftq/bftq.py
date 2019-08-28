@@ -231,7 +231,7 @@ class BudgetedFittedQ(object):
 
         torch.cuda.empty_cache()
         for s in [0, -1]:
-            plot_frontier(frontiers[s], all_points[s], self.writer, self.epoch, title="Hull {} batch {}".format(s, self.batch))
+            plot_frontier(frontiers[s], all_points[s], self.writer, self.epoch, title="agent/Hull {} batch {}".format(s, self.batch))
         return frontiers
 
     def compute_all_optimal_mixtures(self, frontiers, betas):

@@ -25,14 +25,14 @@ def plot_values_histograms(value_network, targets, states_betas, actions, writer
     n_actions = value_network.predict.out_features // 2
     targets_r, targets_c = targets
     # Histograms of values of observed transitions
-    plot_histograms(title="Qr (observed transitions) batch {}".format(batch), writer=writer, epoch=epoch, labels=["target", "prediction"],
+    plot_histograms(title="agent/Qr (observed transitions) batch {}".format(batch), writer=writer, epoch=epoch, labels=["target", "prediction"],
                     values=[targets_r.cpu().numpy(), values.gather(1, actions).cpu().numpy()])
-    plot_histograms(title="Qc (observed transitions) batch {}".format(batch), writer=writer, epoch=epoch, labels=["target", "prediction"],
+    plot_histograms(title="agent/Qc (observed transitions) batch {}".format(batch), writer=writer, epoch=epoch, labels=["target", "prediction"],
                     values=[targets_c.cpu().numpy(), values.gather(1, actions + n_actions).cpu().numpy()])
     # Histograms of values of all possible actions
-    plot_histograms(title="Qr (all actions) batch {}".format(batch), writer=writer, epoch=epoch, labels=map(str, range(n_actions)),
+    plot_histograms(title="agent/Qr (all actions) batch {}".format(batch), writer=writer, epoch=epoch, labels=map(str, range(n_actions)),
                     values=values[:, :n_actions].cpu().numpy().transpose())
-    plot_histograms(title="Qc (all actions) batch {}".format(batch), writer=writer, epoch=epoch, labels=map(str, range(n_actions)),
+    plot_histograms(title="agent/Qc (all actions) batch {}".format(batch), writer=writer, epoch=epoch, labels=map(str, range(n_actions)),
                     values=values[:, -n_actions:].cpu().numpy().transpose())
 
 
