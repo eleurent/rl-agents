@@ -10,7 +10,7 @@
         },
         "attention_layer": {
             "type": "EgoAttention",
-            "feature_size": 64,
+            "feature_size": 128,
             "heads": 4
         },
         "output_layer": {
@@ -21,7 +21,8 @@
     },
     "optimizer":
     {
-        "lr": 1e-3,
+        "type": "RANGER",
+        "lr": 0.1,
         "weight_decay": 0.0
     },
     "exploration":
@@ -33,8 +34,8 @@
     "processes": 20,
     "batch_size": 100000,
     "memory_capacity": 50000,
-    "gamma": 0.8,
-    "value_iteration_epochs": null,
+    "gamma": 0.9,
+    "value_iteration_epochs": 15,
     "regression_epochs": 2000,
     "loss_function": "smooth_l1"
 }

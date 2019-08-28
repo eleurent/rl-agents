@@ -197,15 +197,15 @@ class EgoAttentionNetwork(BaseModule, Configurable):
 def attention(query, key, value, mask=None, dropout=None):
     """
         Compute a Scaled Dot Product Attention.
-    :param query: size: batch, head, entities, features
+    :param query: size: batch, head, 1 (ego-entity), features
     :param key:  size: batch, head, entities, features
     :param value: size: batch, head, entities, features
-    :param mask:
+    :param mask: size: batch,  head, 1 (absence feature), 1 (ego-entity)
     :param dropout:
-    :return:
+    :return: the attention softmax(QK^T/sqrt(dk))V
     """
     d_k = query.size(-1)
-    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
+    scores = torch.matmul(query, key.transpose(-2, -1)) / torch.sqrt(d_k)
     if mask is not None:
         scores = scores.masked_fill(mask, -1e9)
     p_attn = F.softmax(scores, dim=-1)
@@ -222,28 +222,6 @@ def activation_factory(activation_type):
         return torch.tanh
     else:
         raise ValueError("Unknown activation_type: {}".format(activation_type))
-
-
-def loss_function_factory(loss_function):
-    if loss_function == "l2":
-        return F.mse_loss
-    elif loss_function == "l1":
-        return F.l1_loss
-    elif loss_function == "smooth_l1":
-        return F.smooth_l1_loss
-    elif loss_function == "bce":
-        return F.binary_cross_entropy
-    else:
-        raise ValueError("Unknown loss function : {}".format(loss_function))
-
-
-def optimizer_factory(optimizer_type, params, lr=None, weight_decay=None):
-    if optimizer_type == "ADAM":
-        return torch.optim.Adam(params=params, lr=lr, weight_decay=weight_decay)
-    elif optimizer_type == "RMS_PROP":
-        return torch.optim.RMSprop(params=params, weight_decay=weight_decay)
-    else:
-        raise ValueError("Unknown optimizer type: {}".format(optimizer_type))
 
 
 def model_factory(config: dict) -> nn.Module:

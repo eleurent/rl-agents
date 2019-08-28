@@ -1,7 +1,7 @@
 import logging
 import pickle
 
-from rl_agents.agents.common.models import optimizer_factory
+from rl_agents.agents.common.optimizers import optimizer_factory
 from rl_agents.agents.common.utils import get_memory, load_pytorch
 from rl_agents.agents.deep_q_network.pytorch import DQNAgent
 from rl_agents.agents.fitted_q.abstract import AbstractFTQAgent
