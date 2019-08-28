@@ -1,46 +1,6 @@
 import torch
 
-from rl_agents.agents.common.models import activation_factory
-
-
-class BaseModule(torch.nn.Module):
-    """
-        Base torch.nn.Module implementing basic features:
-            - initialization factory
-            - normalization parameters
-    """
-    def __init__(self, activation_type="RELU", reset_type="XAVIER", normalize=None):
-        super(BaseModule, self).__init__()
-        self.activation = activation_factory(activation_type)
-        self.reset_type = reset_type
-        self.normalize = normalize
-        self.mean = None
-        self.std = None
-
-    def _init_weights(self, m):
-        if hasattr(m, 'weight'):
-            if self.reset_type == "XAVIER":
-                torch.nn.init.xavier_uniform_(m.weight.data)
-            elif self.reset_type == "ZEROS":
-                torch.nn.init.constant_(m.weight.data, 0.)
-            else:
-                raise ValueError("Unknown reset type")
-        if hasattr(m, 'bias'):
-            torch.nn.init.constant_(m.bias.data, 0.)
-
-    def set_normalization_params(self, mean, std):
-        if self.normalize:
-            std[std == 0.] = 1.
-        self.std = std
-        self.mean = mean
-
-    def reset(self):
-        self.apply(self._init_weights)
-
-    def forward(self, *input):
-        if self.normalize:
-            input = (input.float() - self.mean.float()) / self.std.float()
-        return NotImplementedError
+from rl_agents.agents.common.models import BaseModule
 
 
 class BudgetedMLP(BaseModule):

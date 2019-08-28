@@ -6,7 +6,47 @@ from torch.nn import functional as F
 from rl_agents.configuration import Configurable
 
 
-class MultiLayerPerceptron(nn.Module, Configurable):
+class BaseModule(torch.nn.Module):
+    """
+        Base torch.nn.Module implementing basic features:
+            - initialization factory
+            - normalization parameters
+    """
+    def __init__(self, activation_type="RELU", reset_type="XAVIER", normalize=None):
+        super().__init__()
+        self.activation = activation_factory(activation_type)
+        self.reset_type = reset_type
+        self.normalize = normalize
+        self.mean = None
+        self.std = None
+
+    def _init_weights(self, m):
+        if hasattr(m, 'weight'):
+            if self.reset_type == "XAVIER":
+                torch.nn.init.xavier_uniform_(m.weight.data)
+            elif self.reset_type == "ZEROS":
+                torch.nn.init.constant_(m.weight.data, 0.)
+            else:
+                raise ValueError("Unknown reset type")
+        if hasattr(m, 'bias') and m.bias is not None:
+            torch.nn.init.constant_(m.bias.data, 0.)
+
+    def set_normalization_params(self, mean, std):
+        if self.normalize:
+            std[std == 0.] = 1.
+        self.std = std
+        self.mean = mean
+
+    def reset(self):
+        self.apply(self._init_weights)
+
+    def forward(self, *input):
+        if self.normalize:
+            input = (input.float() - self.mean.float()) / self.std.float()
+        return NotImplementedError
+
+
+class MultiLayerPerceptron(BaseModule, Configurable):
     def __init__(self, config):
         super().__init__()
         Configurable.__init__(self, config)
@@ -35,7 +75,7 @@ class MultiLayerPerceptron(nn.Module, Configurable):
         return x
 
 
-class DuelingNetwork(nn.Module, Configurable):
+class DuelingNetwork(BaseModule, Configurable):
     def __init__(self, config):
         super().__init__()
         Configurable.__init__(self, config)
@@ -57,7 +97,7 @@ class DuelingNetwork(nn.Module, Configurable):
         return value + advantage - advantage.mean(1).unsqueeze(1).expand(-1,  self.config["out"])
 
 
-class EgoAttention(nn.Module, Configurable):
+class EgoAttention(BaseModule, Configurable):
     def __init__(self, config):
         super().__init__()
         Configurable.__init__(self, config)
@@ -97,7 +137,7 @@ class EgoAttention(nn.Module, Configurable):
         return result, attention_matrix
 
 
-class EgoAttentionNetwork(nn.Module, Configurable):
+class EgoAttentionNetwork(BaseModule, Configurable):
     def __init__(self, config):
         super().__init__()
         Configurable.__init__(self, config)
@@ -189,6 +229,8 @@ def loss_function_factory(loss_function):
         return F.mse_loss
     elif loss_function == "l1":
         return F.l1_loss
+    elif loss_function == "smooth_l1":
+        return F.smooth_l1_loss
     elif loss_function == "bce":
         return F.binary_cross_entropy
     else:
@@ -213,3 +255,4 @@ def model_factory(config: dict) -> nn.Module:
         return EgoAttentionNetwork(config)
     else:
         raise ValueError("Unknown model type")
+

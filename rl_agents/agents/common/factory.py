@@ -33,9 +33,14 @@ def load_agent(agent_path, env):
     :param env: the environment with which the agent interacts
     :return: the agent
     """
-    # Load agent
-    with open(agent_path) as f:
-        agent_config = json.loads(f.read())
+    # Load agent from file
+    if not isinstance(agent_path, dict):
+        with open(agent_path) as f:
+            agent_config = json.loads(f.read())
+    else:
+        agent_config = agent_path
+
+
     return agent_factory(env, agent_config)
 
 
