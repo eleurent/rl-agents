@@ -26,9 +26,11 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
                     optimizer=dict(type="ADAM",
                                    lr=5e-4,
                                    weight_decay=0),
+                    loss_function="smooth_l1",
                     memory_capacity=50000,
                     batch_size=100,
                     gamma=0.99,
+                    device="cpu",
                     exploration=dict(method="EpsilonGreedy"),
                     target_update=1)
 
