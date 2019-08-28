@@ -4,6 +4,7 @@ import torch
 from rl_agents.agents.common.memory import Transition
 from rl_agents.agents.common.models import model_factory
 from rl_agents.agents.common.optimizers import loss_function_factory, optimizer_factory
+from rl_agents.agents.common.utils import choose_device
 from rl_agents.agents.deep_q_network.abstract import AbstractDQNAgent
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ class DQNAgent(AbstractDQNAgent):
         self.target_net = model_factory(self.config["model"])
         self.target_net.load_state_dict(self.value_net.state_dict())
         self.target_net.eval()
-        self.device = self.config["device"]
+        self.device = choose_device(self.config["device"])
         self.value_net.to(self.device)
         self.target_net.to(self.device)
         self.loss_function = loss_function_factory(self.config["loss_function"])
@@ -79,7 +80,7 @@ class DQNAgent(AbstractDQNAgent):
         torch.save(state, filename)
 
     def load(self, filename):
-        checkpoint = torch.load(filename)
+        checkpoint = torch.load(filename, map_location=self.device)
         self.value_net.load_state_dict(checkpoint['state_dict'])
         self.target_net.load_state_dict(checkpoint['state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
