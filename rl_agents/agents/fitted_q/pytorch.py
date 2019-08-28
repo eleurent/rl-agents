@@ -19,8 +19,8 @@ class FTQAgent(AbstractFTQAgent, DQNAgent):
 
     def save(self, filename):
         super(FTQAgent, self).save(filename)
-        dataset_filename = filename + ".data"
-        with open(dataset_filename, 'wb') as f:
+        samples_dataset_filename = filename.with_suffix(".data")
+        with open(samples_dataset_filename, 'wb') as f:
             pickle.dump(self.memory.memory, f)
         logger.info("Saved a replay memory of length {}".format(len(self.memory)))
 

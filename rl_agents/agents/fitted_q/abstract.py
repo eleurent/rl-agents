@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 class AbstractFTQAgent(AbstractDQNAgent, ABC):
     def __init__(self, env, config=None):
         super(AbstractFTQAgent, self).__init__(env, config)
+        self.batched = True
 
     @classmethod
     def default_config(cls):
@@ -25,10 +26,7 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
             Record a transition by performing a Fitted-Q iteration
 
             - push the transition into memory
-            - when enough experience is acquired, sample a batch
-            - perform N value iteration steps Qk -> Qk+1, ie:
-                - compute the Bellman residual loss over the batch
-                - Minimize it through M gradient descent steps
+
         :param state: a state
         :param action: an action
         :param reward: a reward
@@ -40,9 +38,15 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
             return
         # Store transition to memory
         self.memory.push(state, action, reward, next_state, done, info)
+
+    def update(self):
+        """
+            Updates the value model.
+                - perform N value iteration steps Qk -> Qk+1, ie:
+                - compute the Bellman residual loss over the batch
+                - Minimize it through M gradient descent steps
+        """
         batch = self.sample_minibatch()
-        if not batch:
-            return
         batch = self._add_constraint_penalty(batch)
         # Optimize model on batch
         value_iteration_epochs = self.config["value_iteration_epochs"] or int(3 / (1 - self.config["gamma"]))
@@ -65,16 +69,8 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
             Otherwise, the returned batch is empty
         :return: a batch of the whole memory
         """
-        if self.memory.is_full():
-            logger.info("Memory is full, switching to evaluation mode.")
-            self.eval()
-            transitions = self.memory.sample(len(self.memory))
-            return Transition(*zip(*transitions))
-        elif len(self.memory) % self.config["batch_size"] == 0:
-            transitions = self.memory.sample(len(self.memory))
-            return Transition(*zip(*transitions))
-        else:
-            return None
+        transitions = self.memory.sample(len(self.memory))
+        return Transition(*zip(*transitions))
 
     def _add_constraint_penalty(self, batch):
         """

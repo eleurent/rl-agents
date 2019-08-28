@@ -2,12 +2,15 @@ import datetime
 import json
 import logging
 import os
+from multiprocessing.pool import Pool
 from pathlib import Path
 import numpy as np
 from tensorboardX import SummaryWriter
 
 import rl_agents.trainer.logger
+from rl_agents.agents.common.factory import load_environment, load_agent
 from rl_agents.agents.common.graphics import AgentGraphics
+from rl_agents.utils import near_split, zip_with_singletons
 from rl_agents.configuration import serialize
 from rl_agents.trainer.graphics import RewardViewer
 from rl_agents.trainer.monitor import MonitorV2
@@ -93,7 +96,10 @@ class Evaluation(object):
 
     def train(self):
         self.training = True
-        self.run_episodes()
+        if getattr(self.agent, "batched", False):
+            self.run_batched_episodes()
+        else:
+            self.run_episodes()
         self.close()
 
     def test(self, model_path=True):
@@ -160,13 +166,60 @@ class Evaluation(object):
 
         return reward, terminal
 
-    def save_agent_model(self, episode, do_save=True):
+    def run_batched_episodes(self):
+        """
+            Alternatively run several parallel sample collection jobs, and update model.
+        :return:
+        """
+        batch_sizes = near_split(self.num_episodes * 26, size_bins=self.agent.config["batch_size"])
+        for batch, batch_size in enumerate(batch_sizes):
+            # Save current agent
+            self.save_agent_model(identifier=batch)
+            # Prepare workers
+            env_config, agent_config = serialize(self.env), serialize(self.agent)
+            cpu_processes = os.cpu_count()
+            workers_sample_counts = near_split(batch_size, cpu_processes)
+            workers_starts = np.cumsum(np.insert(workers_sample_counts[:-1], 0, 0))  # local time, need to add global start cumsum(batch_sizes[:batch-1])
+            workers_seeds = self.sim_seed + batch*len(batch_sizes)
+            workers_params = list(zip_with_singletons(env_config, agent_config, workers_sample_counts, workers_seeds))
+
+            # Collect trajectories
+            logger.info("Collecting samples with {} workers...".format(cpu_processes))
+            if cpu_processes == 1:
+                results = [Evaluation.collect_samples(*workers_params[0])]
+            else:
+                with Pool(processes=cpu_processes) as pool:
+                    results = pool.starmap(Evaluation.collect_samples, workers_params)
+
+            # Fill memory
+            [self.agent.record(*sample) for sample in results]
+
+            # Fit model
+            logger.info("[BATCH={}]---------------------------------------".format(batch))
+            logger.info("[BATCH={}][run_batched_episodes] #samples={}".format(batch, len(self.agent.memory)))
+            logger.info("[BATCH={}]---------------------------------------".format(batch))
+            self.agent.update()
+
+    @staticmethod
+    def collect_samples(environment_config, agent_config, count, seed):
+        env = load_environment(environment_config)
+        agent = load_agent(agent_config, env)
+        state = env.reset()
+        samples = []
+        for _ in range(count):
+            action = agent.act(state)
+            next_state, reward, done, info = env.step(action)
+            samples.append((state, action, next_state, reward, done, info))
+        env.close()
+        return samples
+
+    def save_agent_model(self, identifier, do_save=True):
         # Create the folder if it doesn't exist
         permanent_folder = self.directory / self.SAVED_MODELS_FOLDER
         os.makedirs(permanent_folder, exist_ok=True)
 
         if do_save:
-            episode_path = Path(self.monitor.directory) / "checkpoint-{}.tar".format(episode+1)
+            episode_path = Path(self.monitor.directory) / "checkpoint-{}.tar".format(identifier + 1)
             try:
                 self.agent.save(filename=episode_path)
                 self.agent.save(filename=permanent_folder / "latest.tar")
