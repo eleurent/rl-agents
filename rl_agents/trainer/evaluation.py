@@ -10,6 +10,7 @@ from tensorboardX import SummaryWriter
 import rl_agents.trainer.logger
 from rl_agents.agents.common.factory import load_environment, load_agent
 from rl_agents.agents.common.graphics import AgentGraphics
+from rl_agents.agents.common.memory import Transition
 from rl_agents.utils import near_split, zip_with_singletons
 from rl_agents.configuration import serialize
 from rl_agents.trainer.graphics import RewardViewer
@@ -134,7 +135,6 @@ class Evaluation(object):
                     pass
 
             # End of episode
-            rewards = np.array(rewards)
             self.after_all_episodes(episode, rewards)
             self.after_some_episodes(episode)
 
@@ -171,33 +171,44 @@ class Evaluation(object):
             Alternatively run several parallel sample collection jobs, and update model.
         :return:
         """
-        batch_sizes = near_split(self.num_episodes * 26, size_bins=self.agent.config["batch_size"])
+        episode = 0
+        episode_duration = 26
+        batch_sizes = near_split(self.num_episodes * episode_duration, size_bins=self.agent.config["batch_size"])
         for batch, batch_size in enumerate(batch_sizes):
+            logger.info("[BATCH={}/{}]---------------------------------------".format(batch+1, len(batch_sizes)))
+            logger.info("[BATCH={}/{}][run_batched_episodes] #samples={}".format(batch+1, len(batch_sizes),
+                                                                                 len(self.agent.memory)))
+            logger.info("[BATCH={}/{}]---------------------------------------".format(batch+1, len(batch_sizes)))
             # Save current agent
             self.save_agent_model(identifier=batch)
+
             # Prepare workers
             env_config, agent_config = serialize(self.env), serialize(self.agent)
-            cpu_processes = os.cpu_count()
+            cpu_processes = self.agent.config["processes"]
             workers_sample_counts = near_split(batch_size, cpu_processes)
-            workers_starts = np.cumsum(np.insert(workers_sample_counts[:-1], 0, 0))  # local time, need to add global start cumsum(batch_sizes[:batch-1])
-            workers_seeds = self.sim_seed + batch*len(batch_sizes)
+            workers_starts = np.cumsum(np.insert(workers_sample_counts[:-1], 0, 0))
+            # TODO: local time, need to add global start cumsum(batch_sizes[:batch-1])
+            # TODO: central scheduling of exploration by the agent through config
+            workers_seeds = self.seed(batch*cpu_processes) + np.arange(cpu_processes)
             workers_params = list(zip_with_singletons(env_config, agent_config, workers_sample_counts, workers_seeds))
 
             # Collect trajectories
-            logger.info("Collecting samples with {} workers...".format(cpu_processes))
+            logger.info("Collecting {} samples with {} workers...".format(batch_size, cpu_processes))
             if cpu_processes == 1:
                 results = [Evaluation.collect_samples(*workers_params[0])]
             else:
                 with Pool(processes=cpu_processes) as pool:
                     results = pool.starmap(Evaluation.collect_samples, workers_params)
+            trajectories = [trajectory for worker in results for trajectory in worker]
 
             # Fill memory
-            [self.agent.record(*sample) for sample in results]
+            for trajectory in trajectories:
+                if trajectory[-1].terminal:  # Check whether the episode was properly finished before logging
+                    self.after_all_episodes(episode, [transition.reward for transition in trajectory])
+                episode += 1
+                [self.agent.record(*transition) for transition in trajectory]
 
             # Fit model
-            logger.info("[BATCH={}]---------------------------------------".format(batch))
-            logger.info("[BATCH={}][run_batched_episodes] #samples={}".format(batch, len(self.agent.memory)))
-            logger.info("[BATCH={}]---------------------------------------".format(batch))
             self.agent.update()
 
     @staticmethod
@@ -205,13 +216,22 @@ class Evaluation(object):
         env = load_environment(environment_config)
         agent = load_agent(agent_config, env)
         state = env.reset()
-        samples = []
+        episodes = []
+        trajectory = []
         for _ in range(count):
             action = agent.act(state)
             next_state, reward, done, info = env.step(action)
-            samples.append((state, action, next_state, reward, done, info))
+            trajectory.append(Transition(state, action, reward, next_state, done, info))
+            if done:
+                state = env.reset()
+                episodes.append(trajectory)
+                trajectory = []
+            else:
+                state = next_state
+        if trajectory:
+            episodes.append(trajectory)
         env.close()
-        return samples
+        return episodes
 
     def save_agent_model(self, identifier, do_save=True):
         # Create the folder if it doesn't exist
@@ -240,6 +260,7 @@ class Evaluation(object):
             pass
 
     def after_all_episodes(self, episode, rewards):
+        rewards = np.array(rewards)
         gamma = self.agent.config.get("gamma", 1)
         self.writer.add_scalar('episode/length', len(rewards), episode)
         self.writer.add_scalar('episode/total_reward', sum(rewards), episode)
