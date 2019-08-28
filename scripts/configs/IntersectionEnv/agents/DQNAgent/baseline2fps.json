@@ -1,0 +1,19 @@
+{
+    "__class__": "<class 'rl_agents.agents.deep_q_network.pytorch.DQNAgent'>",
+    "model": {
+        "type": "MultiLayerPerceptron",
+        "layers": [128, 128]
+    },
+    "gamma": 0.9,
+    "n_steps": 3,
+    "batch_size": 64,
+    "memory_capacity": 15000,
+    "target_update": 50,
+    "exploration": {
+        "method": "EpsilonGreedy",
+        "tau": 10000,
+
+        "temperature": 1.0,
+        "final_temperature": 0.05
+    }
+}
