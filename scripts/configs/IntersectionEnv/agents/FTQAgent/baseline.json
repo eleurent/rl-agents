@@ -7,16 +7,20 @@
     },
     "optimizer":
     {
-        "lr": 1e-2
+        "lr": 0.5e-4,
+        "weight_decay": 0.0
     },
     "exploration":
     {
         "method": "EpsilonGreedy",
-        "tau": 2000
+        "tau": 200000
     },
-    "batch_size": 2000,
-    "memory_capacity": 20000,
-    "gamma": 0.9,
+    "device": "cuda:0",
+    "processes": 20,
+    "batch_size": 100000,
+    "memory_capacity": 50000,
+    "gamma": 0.8,
     "value_iteration_epochs": null,
-    "regression_epochs": 400
+    "regression_epochs": 2000,
+    "loss_function": "smooth_l1"
 }
