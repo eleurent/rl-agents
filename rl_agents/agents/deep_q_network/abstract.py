@@ -3,7 +3,7 @@ import numpy as np
 from gym import spaces
 
 from rl_agents.agents.common.abstract import AbstractStochasticAgent
-from rl_agents.agents.common.exploration.common import exploration_factory
+from rl_agents.agents.common.exploration.abstract import exploration_factory
 from rl_agents.agents.common.memory import ReplayMemory, Transition
 
 
@@ -66,7 +66,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         """
         self.previous_state = state
         values = self.get_state_action_values(state)
-        self.exploration_policy.update(values, time=True)
+        self.exploration_policy.update(values, step_time=True)
         return self.exploration_policy.sample()
 
     def sample_minibatch(self):
@@ -145,8 +145,11 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
     def action_distribution(self, state):
         self.previous_state = state
         values = self.get_state_action_values(state)
-        self.exploration_policy.update(values, time=False)
+        self.exploration_policy.update(values, step_time=False)
         return self.exploration_policy.get_distribution()
+
+    def set_time(self, time):
+        self.exploration_policy.set_time(time)
 
     def eval(self):
         self.training = False

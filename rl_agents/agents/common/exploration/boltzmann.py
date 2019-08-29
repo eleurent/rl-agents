@@ -30,5 +30,5 @@ class Boltzmann(DiscreteDistribution):
             weights[np.argmax(self.values)] = 1
         return {action: weights[action] / np.sum(weights) for action in actions}
 
-    def update(self, values, time=False):
+    def update(self, values, step_time=False):
         self.values = values

@@ -17,7 +17,7 @@ class EpsilonGreedy(DiscreteDistribution):
         self.config['final_temperature'] = min(self.config['temperature'], self.config['final_temperature'])
         self.optimal_action = None
         self.epsilon = 0
-        self.steps_done = 0
+        self.time = 0
         self.writer = None
         self.seed()
 
@@ -32,20 +32,23 @@ class EpsilonGreedy(DiscreteDistribution):
         distribution[self.optimal_action] += 1 - self.epsilon
         return distribution
 
-    def update(self, values, time=False):
+    def update(self, values, step_time=True):
         """
             Update the action distribution parameters
         :param values: the state-action values
-        :param time: whether to update epsilon schedule
+        :param step_time: whether to update epsilon schedule
         """
         self.optimal_action = np.argmax(values)
         self.epsilon = self.config['final_temperature'] + \
             (self.config['temperature'] - self.config['final_temperature']) * \
-            np.exp(- self.steps_done / self.config['tau'])
-        if time:
-            self.steps_done += 1
+            np.exp(- self.time / self.config['tau'])
+        if step_time:
+            self.time += 1
         if self.writer:
-            self.writer.add_scalar('exploration/epsilon', self.epsilon, self.steps_done)
+            self.writer.add_scalar('exploration/epsilon', self.epsilon, self.time)
+
+    def set_time(self, time):
+        self.time = time
 
     def set_writer(self, writer):
         self.writer = writer

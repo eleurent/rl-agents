@@ -32,3 +32,28 @@ class DiscreteDistribution(Configurable, ABC):
         """
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
+
+    def set_time(self, time):
+        """ Set the local time, allowing to schedule the distribution temperature. """
+        pass
+
+
+def exploration_factory(exploration_config, action_space):
+    """
+        Handles creation of exploration policies
+    :param exploration_config: configuration dictionary of the policy, must contain a "method" key
+    :param action_space: the environment action space
+    :return: a new exploration policy
+    """
+    from rl_agents.agents.common.exploration.boltzmann import Boltzmann
+    from rl_agents.agents.common.exploration.epsilon_greedy import EpsilonGreedy
+    from rl_agents.agents.common.exploration.greedy import Greedy
+
+    if exploration_config['method'] == 'Greedy':
+        return Greedy(action_space, exploration_config)
+    elif exploration_config['method'] == 'EpsilonGreedy':
+        return EpsilonGreedy(action_space, exploration_config)
+    elif exploration_config['method'] == 'Boltzmann':
+        return Boltzmann(action_space, exploration_config)
+    else:
+        raise ValueError("Unknown exploration method")

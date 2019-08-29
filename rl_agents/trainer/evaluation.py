@@ -168,11 +168,12 @@ class Evaluation(object):
 
     def run_batched_episodes(self):
         """
-            Alternatively run several parallel sample collection jobs, and update model.
-        :return:
+            Alternatively,
+            - run multiple sample-collection jobs in parallel
+            - update model
         """
         episode = 0
-        episode_duration = 26
+        episode_duration = 14
         batch_sizes = near_split(self.num_episodes * episode_duration, size_bins=self.agent.config["batch_size"])
         for batch, batch_size in enumerate(batch_sizes):
             logger.info("[BATCH={}/{}]---------------------------------------".format(batch+1, len(batch_sizes)))
@@ -180,17 +181,21 @@ class Evaluation(object):
                                                                                  len(self.agent.memory)))
             logger.info("[BATCH={}/{}]---------------------------------------".format(batch+1, len(batch_sizes)))
             # Save current agent
-            self.save_agent_model(identifier=batch)
+            model_path = self.save_agent_model(identifier=batch)
 
             # Prepare workers
             env_config, agent_config = serialize(self.env), serialize(self.agent)
             cpu_processes = self.agent.config["processes"]
             workers_sample_counts = near_split(batch_size, cpu_processes)
-            workers_starts = np.cumsum(np.insert(workers_sample_counts[:-1], 0, 0))
-            # TODO: local time, need to add global start cumsum(batch_sizes[:batch-1])
-            # TODO: central scheduling of exploration by the agent through config
-            workers_seeds = self.seed(batch*cpu_processes) + np.arange(cpu_processes)
-            workers_params = list(zip_with_singletons(env_config, agent_config, workers_sample_counts, workers_seeds))
+            workers_starts = list(np.cumsum(np.insert(workers_sample_counts[:-1], 0, 0)) + np.sum(batch_sizes[:batch]))
+            base_seed = self.seed(batch * cpu_processes)[0]
+            workers_seeds = [base_seed + i for i in range(cpu_processes)]
+            workers_params = list(zip_with_singletons(env_config,
+                                                      agent_config,
+                                                      workers_sample_counts,
+                                                      workers_starts,
+                                                      workers_seeds,
+                                                      model_path))
 
             # Collect trajectories
             logger.info("Collecting {} samples with {} workers...".format(batch_size, cpu_processes))
@@ -212,9 +217,27 @@ class Evaluation(object):
             self.agent.update()
 
     @staticmethod
-    def collect_samples(environment_config, agent_config, count, seed):
+    def collect_samples(environment_config, agent_config, count, start_time, seed, model_path):
+        """
+            Collect interaction samples of an agent / environment pair.
+
+            Note that the last episode may not terminate, when enough samples have been collected.
+
+        :param dict environment_config: the environment configuration
+        :param dict agent_config: the agent configuration
+        :param int count: number of samples to collect
+        :param start_time: the initial local time of the agent
+        :param seed: the env/agent seed
+        :param model_path: the path to load the agent model from
+        :return: a list of trajectories, i.e. lists of Transitions
+        """
         env = load_environment(environment_config)
+        env.seed(seed)
         agent = load_agent(agent_config, env)
+        agent.load(model_path)
+        agent.seed(seed)
+        agent.set_time(start_time)
+
         state = env.reset()
         episodes = []
         trajectory = []
@@ -228,7 +251,7 @@ class Evaluation(object):
                 trajectory = []
             else:
                 state = next_state
-        if trajectory:
+        if trajectory:  # Unfinished episode
             episodes.append(trajectory)
         env.close()
         return episodes
@@ -238,8 +261,9 @@ class Evaluation(object):
         permanent_folder = self.directory / self.SAVED_MODELS_FOLDER
         os.makedirs(permanent_folder, exist_ok=True)
 
+        episode_path = None
         if do_save:
-            episode_path = Path(self.monitor.directory) / "checkpoint-{}.tar".format(identifier + 1)
+            episode_path = Path(self.monitor.directory) / "checkpoint-{}.tar".format(identifier)
             try:
                 self.agent.save(filename=episode_path)
                 self.agent.save(filename=permanent_folder / "latest.tar")
@@ -247,6 +271,7 @@ class Evaluation(object):
                 pass
             else:
                 logger.info("Saved {} model to {}".format(self.agent.__class__.__name__, episode_path))
+        return episode_path
 
     def load_agent_model(self, model_path):
         if model_path is True:
@@ -309,7 +334,7 @@ class Evaluation(object):
             Close the evaluation.
         """
         if self.training:
-            self.save_agent_model(self.monitor.episode_id)
+            self.save_agent_model("final")
         self.monitor.close()
         self.writer.close()
         if self.close_env:

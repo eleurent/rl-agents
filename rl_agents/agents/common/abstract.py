@@ -89,6 +89,10 @@ class AbstractAgent(Configurable, ABC):
         """
         self.writer = writer
 
+    def set_time(self, time):
+        """ Set a local time, to control the agent internal schedules (e.g. exploration) """
+        pass
+
 
 class AbstractStochasticAgent(AbstractAgent):
     """
