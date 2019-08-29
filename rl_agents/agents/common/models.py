@@ -1,4 +1,4 @@
-import math
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -205,7 +205,7 @@ def attention(query, key, value, mask=None, dropout=None):
     :return: the attention softmax(QK^T/sqrt(dk))V
     """
     d_k = query.size(-1)
-    scores = torch.matmul(query, key.transpose(-2, -1)) / torch.sqrt(d_k)
+    scores = torch.matmul(query, key.transpose(-2, -1)) / np.sqrt(d_k)
     if mask is not None:
         scores = scores.masked_fill(mask, -1e9)
     p_attn = F.softmax(scores, dim=-1)
