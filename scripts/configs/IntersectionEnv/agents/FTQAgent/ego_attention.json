@@ -21,18 +21,18 @@
     },
     "optimizer":
     {
-        "type": "RANGER",
-        "lr": 0.1,
+        "type": "ADAM",
+        "lr": 0.001,
         "weight_decay": 0.0
     },
     "exploration":
     {
         "method": "EpsilonGreedy",
-        "tau": 200000
+        "tau": 6000
     },
-    "device": "cuda:0",
+    "device": "cuda:best",
     "processes": 20,
-    "batch_size": 100000,
+    "batch_size": 7000,
     "memory_capacity": 50000,
     "gamma": 0.9,
     "value_iteration_epochs": 15,
