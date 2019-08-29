@@ -173,7 +173,7 @@ class Evaluation(object):
             - update model
         """
         episode = 0
-        episode_duration = 14
+        episode_duration = 14  # TODO: use a fixed number of samples instead
         batch_sizes = near_split(self.num_episodes * episode_duration, size_bins=self.agent.config["batch_size"])
         for batch, batch_size in enumerate(batch_sizes):
             logger.info("[BATCH={}/{}]---------------------------------------".format(batch+1, len(batch_sizes)))
@@ -195,7 +195,8 @@ class Evaluation(object):
                                                       workers_sample_counts,
                                                       workers_starts,
                                                       workers_seeds,
-                                                      model_path))
+                                                      model_path,
+                                                      batch))
 
             # Collect trajectories
             logger.info("Collecting {} samples with {} workers...".format(batch_size, cpu_processes))
@@ -217,7 +218,7 @@ class Evaluation(object):
             self.agent.update()
 
     @staticmethod
-    def collect_samples(environment_config, agent_config, count, start_time, seed, model_path):
+    def collect_samples(environment_config, agent_config, count, start_time, seed, model_path, batch):
         """
             Collect interaction samples of an agent / environment pair.
 
@@ -229,10 +230,15 @@ class Evaluation(object):
         :param start_time: the initial local time of the agent
         :param seed: the env/agent seed
         :param model_path: the path to load the agent model from
+        :param batch: index of the current batch
         :return: a list of trajectories, i.e. lists of Transitions
         """
         env = load_environment(environment_config)
         env.seed(seed)
+
+        if batch == 0:  # Force pure exploration during first batch
+            agent_config["exploration"]["final_temperature"] = 1
+        agent_config["device"] = "cuda:1"
         agent = load_agent(agent_config, env)
         agent.load(model_path)
         agent.seed(seed)

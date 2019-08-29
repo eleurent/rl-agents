@@ -52,6 +52,8 @@ def sample_simplex(coeff, bias, min_x, max_x, np_random=np.random):
 
 
 def load_pytorch():
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.enabled = False
     logger.info("Using torch.multiprocessing.set_start_method('spawn')")
     import torch.multiprocessing as multiprocessing
     try:
@@ -82,7 +84,7 @@ def choose_device(preferred_device, default_device="cpu"):
             preferred_device = least_used_device()
         torch.zeros((1,), device=preferred_device)  # Test availability
         return preferred_device
-    except RuntimeError:
+    except (RuntimeError, AssertionError):
         logger.error("Preferred device {} unavailable, switching to default {}"
                      .format(preferred_device, default_device))
         return default_device

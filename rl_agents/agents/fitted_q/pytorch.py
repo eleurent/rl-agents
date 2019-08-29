@@ -18,8 +18,7 @@ class FTQAgent(AbstractFTQAgent, DQNAgent):
         self.value_net.reset()
         self.optimizer = optimizer_factory(self.config["optimizer"]["type"],
                                            self.value_net.parameters(),
-                                           lr=self.config["optimizer"]["lr"],
-                                           weight_decay=self.config["optimizer"]["weight_decay"])
+                                           **self.config["optimizer"])
 
     def update_target_network(self):
         self.target_net.load_state_dict(self.value_net.state_dict())

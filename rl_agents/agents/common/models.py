@@ -144,11 +144,13 @@ class EgoAttentionNetwork(BaseModule, Configurable):
         self.config = config
         if not self.config["embedding_layer"]["in"]:
             self.config["embedding_layer"]["in"] = self.config["in"]
+        if not self.config["others_embedding_layer"]["in"]:
+            self.config["others_embedding_layer"]["in"] = self.config["in"]
         self.config["output_layer"]["in"] = self.config["attention_layer"]["feature_size"]
         self.config["output_layer"]["out"] = self.config["out"]
 
         self.ego_embedding = model_factory(self.config["embedding_layer"])
-        self.others_embedding = self.ego_embedding
+        self.others_embedding = model_factory(self.config["others_embedding_layer"])
         self.attention_layer = EgoAttention(self.config["attention_layer"])
         self.output_layer = model_factory(self.config["output_layer"])
 
@@ -160,6 +162,11 @@ class EgoAttentionNetwork(BaseModule, Configurable):
             "n_head": 4,
             "presence_feature_idx": 0,
             "embedding_layer": {
+                "type": "MultiLayerPerceptron",
+                "layers": [128, 128, 128],
+                "reshape": False
+            },
+            "others_embedding_layer": {
                 "type": "MultiLayerPerceptron",
                 "layers": [128, 128, 128],
                 "reshape": False

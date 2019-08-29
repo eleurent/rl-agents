@@ -39,13 +39,13 @@ class Ranger(Optimizer):
         # radam buffer for state
         self.radam_buffer = [[None, None, None] for ind in range(10)]
 
-        # lookahead weights
-        self.slow_weights = [[p.clone().detach() for p in group['params']]
-                             for group in self.param_groups]
-
-        # don't use grad for lookahead weights
-        for w in it.chain(*self.slow_weights):
-            w.requires_grad = False
+        # # lookahead weights
+        # self.slow_weights = [[p.clone().detach() for p in group['params']]
+        #                      for group in self.param_groups]
+        #
+        # # don't use grad for lookahead weights
+        # for w in it.chain(*self.slow_weights):
+        #     w.requires_grad = False
 
     def __setstate__(self, state):
         super(Ranger, self).__setstate__(state)
@@ -128,16 +128,16 @@ class Ranger(Optimizer):
 
         # ---------------- end radam step
 
-        # look ahead tracking and updating if latest batch = k
-        for group, slow_weights in zip(self.param_groups, self.slow_weights):
-            group['step_counter'] += 1
-            if group['step_counter'] % self.k != 0:
-                continue
-            for p, q in zip(group['params'], slow_weights):
-                if p.grad is None:
-                    continue
-                q.data.add_(self.alpha, p.data - q.data)
-                p.data.copy_(q.data)
+        # # look ahead tracking and updating if latest batch = k
+        # for group, slow_weights in zip(self.param_groups, self.slow_weights):
+        #     group['step_counter'] += 1
+        #     if group['step_counter'] % self.k != 0:
+        #         continue
+        #     for p, q in zip(group['params'], slow_weights):
+        #         if p.grad is None:
+        #             continue
+        #         q.data.add_(self.alpha, p.data - q.data)
+        #         p.data.copy_(q.data)
 
         return loss
 
@@ -155,12 +155,12 @@ def loss_function_factory(loss_function):
         raise ValueError("Unknown loss function : {}".format(loss_function))
 
 
-def optimizer_factory(optimizer_type, params, lr=None, weight_decay=None):
+def optimizer_factory(optimizer_type, params, lr=None, weight_decay=None, k=None, **kwargs):
     if optimizer_type == "ADAM":
         return torch.optim.Adam(params=params, lr=lr, weight_decay=weight_decay)
     elif optimizer_type == "RMS_PROP":
         return torch.optim.RMSprop(params=params, weight_decay=weight_decay)
     elif optimizer_type == "RANGER":
-        return Ranger(params=params, lr=lr, weight_decay=weight_decay)
+        return Ranger(params=params, lr=lr, weight_decay=weight_decay, k=k)
     else:
         raise ValueError("Unknown optimizer type: {}".format(optimizer_type))
