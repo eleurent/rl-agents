@@ -48,7 +48,6 @@ class Ranger(Optimizer):
             w.requires_grad = False
 
     def __setstate__(self, state):
-        print("set state called")
         super(Ranger, self).__setstate__(state)
 
     def step(self, closure=None):
