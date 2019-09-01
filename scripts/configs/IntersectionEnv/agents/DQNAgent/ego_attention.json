@@ -4,26 +4,32 @@
         "type": "EgoAttentionNetwork",
         "embedding_layer": {
             "type": "MultiLayerPerceptron",
-            "layers": [128, 128, 128],
+            "layers": [64, 64],
+            "reshape": false,
+            "in": 7
+        },
+        "others_embedding_layer": {
+            "type": "MultiLayerPerceptron",
+            "layers": [64, 64],
             "reshape": false,
             "in": 7
         },
         "attention_layer": {
             "type": "EgoAttention",
-            "feature_size": 128,
-            "heads": 4
+            "feature_size": 64,
+            "heads": 1
         },
         "output_layer": {
             "type": "MultiLayerPerceptron",
-            "layers": [128, 128],
+            "layers": [64, 64],
             "reshape": false
         }
     },
-    "gamma": 0.9,
-    "n_steps": 3,
-    "batch_size": 64,
+    "gamma": 0.95,
+    "n_steps": 1,
+    "batch_size": 32,
     "memory_capacity": 15000,
-    "target_update": 300,
+    "target_update": 256,
     "exploration": {
         "method": "EpsilonGreedy",
         "tau": 10000,

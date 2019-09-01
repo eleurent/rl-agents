@@ -4,7 +4,7 @@
         "type": "MultiLayerPerceptron",
         "layers": [128, 128]
     },
-    "gamma": 0.9,
+    "gamma": 0.95,
     "n_steps": 1,
     "batch_size": 32,
     "memory_capacity": 15000,
@@ -14,5 +14,9 @@
         "tau": 10000,
         "temperature": 1.0,
         "final_temperature": 0.05
+    },
+    "optimizer": {
+        "type": "RANGER",
+        "lr": 0.1
     }
 }
