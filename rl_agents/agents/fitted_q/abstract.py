@@ -72,7 +72,9 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
                 self.iterations_time += 1
 
             for step in range(self.config["regression_epochs"]):
-                loss, _, _ = self.compute_bellman_residual(batch, target)
+                batch = self.sample_minibatch()
+
+                loss, _, _ = self.compute_bellman_residual(batch)
                 self.step_optimizer(loss)
                 if self.writer:
                     if self.regression_time % 10 == 0:
@@ -84,7 +86,8 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
             Sample a batch of transitions from memory.
         :return: a batch of the whole memory
         """
-        transitions = self.memory.sample(len(self.memory))
+        transitions = self.memory.sample(64)
+        # transitions = self.memory.sample(len(self.memory))
         return Transition(*zip(*transitions))
 
     def _add_constraint_penalty(self, batch):

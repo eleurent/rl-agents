@@ -37,7 +37,7 @@ class DQNAgent(AbstractDQNAgent):
     def compute_bellman_residual(self, batch, target_state_action_value=None):
         # Compute concatenate the batch elements
         if not isinstance(batch.state, torch.Tensor):
-            logger.info("Casting the batch to torch.tensor")
+            # logger.info("Casting the batch to torch.tensor")
             state = torch.cat(tuple(torch.tensor([batch.state], dtype=torch.float))).to(self.device)
             action = torch.tensor(batch.action, dtype=torch.long).to(self.device)
             reward = torch.tensor(batch.reward, dtype=torch.float).to(self.device)

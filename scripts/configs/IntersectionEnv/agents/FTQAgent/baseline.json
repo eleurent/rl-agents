@@ -7,8 +7,8 @@
     },
     "optimizer":
     {
-        "lr": 1e-3,
-        "weight_decay": 0.0075
+        "lr": 1e-2,
+        "weight_decay": 0.00
     },
     "exploration":
     {
@@ -21,6 +21,6 @@
     "memory_capacity": 50000,
     "gamma": 0.9,
     "value_iteration_epochs": 15,
-    "regression_epochs": 2000,
+    "regression_epochs": 5000,
     "loss_function": "smooth_l1"
 }
