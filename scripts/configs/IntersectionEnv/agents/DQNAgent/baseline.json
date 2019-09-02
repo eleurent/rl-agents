@@ -6,17 +6,14 @@
     },
     "gamma": 0.95,
     "n_steps": 1,
-    "batch_size": 32,
+    "batch_size": 64,
     "memory_capacity": 15000,
-    "target_update": 50,
+    "target_update": 512,
     "exploration": {
         "method": "EpsilonGreedy",
-        "tau": 10000,
+        "tau": 15000,
+
         "temperature": 1.0,
         "final_temperature": 0.05
-    },
-    "optimizer": {
-        "type": "RANGER",
-        "lr": 0.1
     }
 }
