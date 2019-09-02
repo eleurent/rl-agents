@@ -4,6 +4,8 @@ from matplotlib import pyplot as plt, gridspec as gridspec
 import matplotlib as mpl
 import matplotlib.cm as cm
 
+from rl_agents.utils import remap
+
 
 class DQNGraphics(object):
     """
@@ -13,12 +15,13 @@ class DQNGraphics(object):
     BLACK = (0, 0, 0)
 
     @classmethod
-    def display(cls, agent, surface, display_text=True):
+    def display(cls, agent, surface, sim_surface=None, display_text=True):
         """
             Display the action-values for the current state
 
         :param agent: the DQNAgent to be displayed
         :param surface: the pygame surface on which the agent is displayed
+        :param sim_surface: the pygame surface on which the env is rendered
         :param display_text: whether to display the action values as text
         """
         import pygame
@@ -41,6 +44,53 @@ class DQNGraphics(object):
                 text = font.render(text,
                                    1, (10, 10, 10), (255, 255, 255))
                 surface.blit(text, (cell_size[0]*action, 0))
+
+        if sim_surface:
+            try:
+                state = agent.previous_state
+                if (not hasattr(cls, "state")) or (cls.state != state).any():
+                    cls.v_attention = cls.compute_vehicles_attention(agent, state)
+                    cls.state = state
+
+                attention_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA)
+                for vehicle, attention in cls.v_attention.items():
+                    if attention < 0.01:
+                        continue
+                    width = attention * 5
+                    color = (0, min(attention * 180, 255), 0, 128)
+                    if vehicle is agent.env.vehicle:
+                        pygame.draw.circle(attention_surface, color,
+                                           sim_surface.vec2pix(agent.env.vehicle.position),
+                                           max(sim_surface.pix(width / 2), 1))
+                    else:
+                        pygame.draw.line(attention_surface, color,
+                                         sim_surface.vec2pix(agent.env.vehicle.position),
+                                         sim_surface.vec2pix(vehicle.position),
+                                         max(sim_surface.pix(width), 1))
+                sim_surface.blit(attention_surface, (0, 0))
+            except Exception as e:
+                print(e)
+
+    @classmethod
+    def compute_vehicles_attention(cls, agent, state):
+        import torch
+        attention = agent.value_net.get_attention_matrix(torch.tensor([state], dtype=torch.float)) \
+            .squeeze().detach().cpu().numpy()
+        ego, others, mask = agent.value_net.split_input(torch.tensor([state], dtype=torch.float))
+        mask = mask.squeeze()
+        v_attention = {}
+        for v_index in range(state.shape[0]):
+            if mask[v_index]:
+                continue
+            v_position = {}
+            for feature in ["x", "y"]:
+                v_feature = state[v_index, agent.env.observation.features.index(feature)]
+                v_feature = remap(v_feature, [-1, 1], agent.env.observation.features_range[feature])
+                v_position[feature] = v_feature
+            v_position = np.array([v_position["x"], v_position["y"]])
+            vehicle = min(agent.env.road.vehicles, key=lambda v: np.linalg.norm(v.position - v_position))
+            v_attention[vehicle] = attention[v_index]
+        return v_attention
 
 
 class ValueFunctionViewer(object):

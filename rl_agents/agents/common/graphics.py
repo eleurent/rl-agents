@@ -28,7 +28,7 @@ class AgentGraphics(object):
         """
 
         if isinstance(agent, AbstractDQNAgent):
-            DQNGraphics.display(agent, agent_surface)
+            DQNGraphics.display(agent, agent_surface, sim_surface)
         elif isinstance(agent, BFTQAgent):
             BFTQGraphics.display(agent, agent_surface)
         elif isinstance(agent, ValueIterationAgent):
