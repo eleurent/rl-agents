@@ -26,7 +26,7 @@ class Evaluation(object):
 
     OUTPUT_FOLDER = 'out'
     SAVED_MODELS_FOLDER = 'saved_models'
-    RUN_FOLDER = 'run_{}'
+    RUN_FOLDER = 'run_{}_{}'
     METADATA_FILE = 'metadata.{}.json'
     LOGGING_FILE = 'logging.{}.log'
 
@@ -74,7 +74,7 @@ class Evaluation(object):
         self.monitor = MonitorV2(env,
                                  self.run_directory,
                                  video_callable=(None if self.display_env else False))
-        self.writer = SummaryWriter(str(self.run_directory))
+        self.writer = SummaryWriter(str(self.run_directory), filename_suffix=".{}".format(os.getpid()))
         self.agent.set_writer(self.writer)
         self.write_logging()
         self.write_metadata()
@@ -311,7 +311,7 @@ class Evaluation(object):
 
     @property
     def default_run_directory(self):
-        return self.RUN_FOLDER.format(datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
+        return self.RUN_FOLDER.format(datetime.datetime.now().strftime('%Y%m%d-%H%M%S'), os.getpid())
 
     def write_metadata(self):
         metadata = dict(env=serialize(self.env), agent=serialize(self.agent))
