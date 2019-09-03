@@ -74,9 +74,9 @@ class DQNGraphics(object):
     @classmethod
     def compute_vehicles_attention(cls, agent, state):
         import torch
-        attention = agent.value_net.get_attention_matrix(torch.tensor([state], dtype=torch.float)) \
-            .squeeze().detach().cpu().numpy()
-        ego, others, mask = agent.value_net.split_input(torch.tensor([state], dtype=torch.float))
+        state_t = torch.tensor([state], dtype=torch.float).to(agent.device)
+        attention = agent.value_net.get_attention_matrix(state_t).squeeze().detach().cpu().numpy()
+        ego, others, mask = agent.value_net.split_input(state_t)
         mask = mask.squeeze()
         v_attention = {}
         for v_index in range(state.shape[0]):
