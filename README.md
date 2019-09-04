@@ -16,6 +16,7 @@ A collection of Reinforcement Learning agents
       * [Deterministic Optimistic Planning](#opd-optimistic-planning-for-deterministic-systems)
       * [Open Loop Optimistic Planning](#olop-open-loop-optimistic-planning)
       * [Trailblazer](#trailblazer)
+      * [PlaTγPOOS](#plaTγpoos)
   * Safe planning
     * [Robust Value Iteration](#rvi-robust-value-iteration)
     * [Discrete Robust Optimistic Planning](#drop-discrete-robust-optimistic-planning)
@@ -181,6 +182,11 @@ References:
 #### [Trailblazer](rl_agents/agents/tree_search/trailblazer.py)
 
 Reference: [Blazing the trails before beating the path: Sample-efficient Monte-Carlo planning](http://researchers.lille.inria.fr/~valko/hp/serve.php?what=publications/grill2016blazing.pdf), Grill J. B., Valko M., Munos R. (2017).
+
+#### [PlaTγPOOS](rl_agents/agents/tree_search/platypoos.py)
+
+Reference: [Scale-free adaptive planning for deterministic dynamics & discounted rewards](http://researchers.lille.inria.fr/~valko/hp/publications/bartlett2019scale-free.pdf), Bartlett P., Gabillon V., Healey J., Valko M. (2019).
+
 
 ## Safe planning
 
