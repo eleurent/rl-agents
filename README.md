@@ -174,7 +174,9 @@ Reference: [Optimistic Planning for Deterministic Systems](https://hal.inria.fr/
 
 #### [`OLOP` Open Loop Optimistic Planning](rl_agents/agents/tree_search/olop.py)
 
-Reference: [Open Loop Optimistic Planning](http://sbubeck.com/COLT10_BM.pdf), Bubeck S., Munos R. (2010).
+References: 
+* [Open Loop Optimistic Planning](http://sbubeck.com/COLT10_BM.pdf), Bubeck S., Munos R. (2010).
+* [Practical Open-Loop Optimistic Planning](https://arxiv.org/abs/1904.04700), Leurent E., Maillard O.-A. (2019).
 
 #### [Trailblazer](rl_agents/agents/tree_search/trailblazer.py)
 
