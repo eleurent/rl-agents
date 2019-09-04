@@ -6,7 +6,7 @@ Usage:
 
 Options:
   -h --help           Show this screen.
-  --out <path>        Directory to save figures [default: .].
+  --out <path>        Directory to save figures [default: out].
   --first <episodes>  Use only the N first episodes of the runs.
   --last <episodes>   Use only the N last episodes of the runs.
 """
@@ -58,12 +58,12 @@ class RunAnalyzer(object):
     @staticmethod
     def get_run_dataframe(directory, gamma=0.95, subsample=10):
         run_data = MonitorV2.load_results(directory)
-
         data = {x: run_data[x] for x in [
             "episode_rewards",
             "episode_lengths",
         ]}
         df = pd.DataFrame(data)
+
         df["discounted_rewards"] = [np.sum([episode[t]*gamma**t for t in range(len(episode))])
                                     for episode in run_data["episode_rewards_"]]
         df["episode"] = np.arange(df.shape[0])
@@ -71,10 +71,12 @@ class RunAnalyzer(object):
         df["total length"] = df["episode_lengths"].rolling(subsample).mean()
         df["collision"] = df["episode_lengths"] < df["episode_lengths"].max() - 1
         df["collision"] = df["collision"].rolling(subsample).mean()
+        df["directory"] = str(directory.name)
         df = df.iloc[::subsample]
         return df
 
     def analyze(self):
+        self.find_best_run()
         for field in ["total rewards", "total length", "collision"]:
             logging.info("Analyzing {}".format(field))
             fig, ax = plt.subplots()
@@ -83,6 +85,14 @@ class RunAnalyzer(object):
             fig.savefig(field_path, bbox_inches='tight')
             plt.show()
             plt.close()
+
+    def find_best_run(self, criteria="discounted_rewards", ascending=False):
+        """ Maximal final total rewards"""
+        last_episode = self.data["episode"].max()
+        df = (self.data[self.data["episode"] == last_episode].sort_values(criteria, ascending=ascending))
+        with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+            print("Run with highest", criteria)
+            print(df.iloc[0])
 
 
 def rename(name):
