@@ -74,7 +74,7 @@ class Evaluation(object):
         self.monitor = MonitorV2(env,
                                  self.run_directory,
                                  video_callable=(None if self.display_env else False))
-        self.writer = SummaryWriter(str(self.run_directory), filename_suffix=".{}".format(os.getpid()))
+        self.writer = SummaryWriter(str(self.run_directory))
         self.agent.set_writer(self.writer)
         self.write_logging()
         self.write_metadata()
