@@ -5,7 +5,6 @@ Usage:
                                              [--name-from-config]
                                              [--no-display]
                                              [--seed <str>]
-                                             [--analyze]
                                              [--recover]
                                              [--verbose]
   experiments benchmark <benchmark> (--train|--test)
@@ -13,14 +12,12 @@ Usage:
                                     [--name-from-config]
                                     [--no-display]
                                     [--seed <str>]
-                                    [--analyze]
                                     [--verbose]
                                     [--processes <count>]
   experiments -h | --help
 
 Options:
   -h --help            Show this screen.
-  --analyze            Automatically analyze the experiment results.
   --episodes <count>   Number of episodes [default: 5].
   --no-display         Disable environment, agent, and rewards rendering.
   --name-from-config   Name the output folder from the corresponding config files
@@ -41,7 +38,6 @@ from itertools import product
 from multiprocessing.pool import Pool
 
 from rl_agents.trainer import logger
-from rl_agents.trainer.analyzer import RunAnalyzer
 from rl_agents.trainer.evaluation import Evaluation
 from rl_agents.agents.common.factory import load_agent, load_environment
 
@@ -88,8 +84,6 @@ def evaluate(environment_config, agent_config, options):
         evaluation.test()
     else:
         evaluation.close()
-    if options['--analyze'] and not options['<benchmark>']:
-        RunAnalyzer([evaluation.monitor.directory])
     return os.path.relpath(evaluation.monitor.directory)
 
 
@@ -125,9 +119,6 @@ def benchmark(options):
     with open(benchmark_filename, 'w') as f:
         json.dump(results, f, sort_keys=True, indent=4)
         gym.logger.info('Benchmark done. Summary written in: {}'.format(benchmark_filename))
-
-    if options['--analyze']:
-        RunAnalyzer(results)
 
 
 def generate_agent_configs(benchmark_config, clean=False):
