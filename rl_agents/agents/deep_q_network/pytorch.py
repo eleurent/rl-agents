@@ -23,7 +23,7 @@ class DQNAgent(AbstractDQNAgent):
         self.loss_function = loss_function_factory(self.config["loss_function"])
         self.optimizer = optimizer_factory(self.config["optimizer"]["type"],
                                            self.value_net.parameters(),
-                                           **config["optimizer"])
+                                           **self.config["optimizer"])
         self.steps = 0
 
     def step_optimizer(self, loss):
