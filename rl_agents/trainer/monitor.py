@@ -126,19 +126,17 @@ class MonitorV2(Monitor):
 
 
 class StatsRecorderV2(StatsRecorder):
-    gamma = 0.9
-    """ Discount factor in [0, 1]. """
-
-    def __init__(self, directory, file_prefix, autoreset=False, env_id=None):
+    def __init__(self, directory, file_prefix, autoreset=False, env_id=None, log_infos=True):
         super(StatsRecorderV2, self).__init__(directory, file_prefix, autoreset, env_id)
+        self.log_infos = log_infos
 
         # Rewards
         self.rewards_ = []
         self.episode_rewards_ = []
 
-        # Costs
-        self.costs = []
-        self.episode_costs = []
+        # Infos
+        self.infos = {}
+        self.episode_infos = {}
 
         # Seed
         self.seed = None  # Set by the monitor when seeding the wrapped env
@@ -146,21 +144,27 @@ class StatsRecorderV2(StatsRecorder):
 
     def after_reset(self, observation):
         self.rewards_ = []
-        self.costs = []
+        self.infos = {}
         super(StatsRecorderV2, self).after_reset(observation)
 
     def after_step(self, observation, reward, done, info):
         # Aggregate rewards history
         self.rewards_.append(reward)
-        if info and "cost" in info:
-            self.costs.append(info["cost"])
+        if self.log_infos and info:
+            for field, value in info.items():
+                if field not in self.infos:
+                    self.infos[field] = []
+                self.infos[field].append(info[field])
 
         super(StatsRecorderV2, self).after_step(observation, reward, done, info)
 
     def save_complete(self):
         if self.steps is not None:
             self.episode_rewards_.append(self.rewards_)
-            self.episode_costs.append(self.costs)
+            for field, episode_values in self.infos.items():
+                if field not in self.episode_infos:
+                    self.episode_infos[field] = []
+                self.episode_infos[field].append(episode_values)
             self.episode_seeds.append(self.seed)
             super(StatsRecorderV2, self).save_complete()
 
@@ -168,14 +172,17 @@ class StatsRecorderV2(StatsRecorder):
         if self.closed:
             return
 
+        data = {
+            'initial_reset_timestamp': self.initial_reset_timestamp,
+            'timestamps': self.timestamps,
+            'episode_lengths': self.episode_lengths,
+            'episode_rewards': self.episode_rewards,
+            'episode_rewards_': self.episode_rewards_,
+            'episode_seeds': self.episode_seeds,
+            'episode_types': self.episode_types,
+        }
+        for field, value in self.episode_infos.items():
+            data["episode_{}".format(field)] = value
+
         with atomic_write.atomic_write(self.path) as f:
-            json.dump({
-                'initial_reset_timestamp': self.initial_reset_timestamp,
-                'timestamps': self.timestamps,
-                'episode_lengths': self.episode_lengths,
-                'episode_rewards': self.episode_rewards,
-                'episode_rewards_': self.episode_rewards_,
-                'episode_costs': self.episode_costs,
-                'episode_seeds': self.episode_seeds,
-                'episode_types': self.episode_types,
-            }, f, default=json_encode_np)
+            json.dump(data, f, default=json_encode_np)
