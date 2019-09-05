@@ -49,35 +49,49 @@ class RunAnalyzer(object):
 
     def get_data(self, base_directory):
         logging.info("Fetching data in {}".format(base_directory))
-        runs = [self.get_run_dataframe(d) for d in base_directory.glob("*")]
-        for run in runs:
-            run["agent"] = rename(str(base_directory.name))
+        agent_name = rename(str(base_directory.name))
+        runs = [self.get_run_dataframe(d, agent_name=agent_name) for d in base_directory.glob("*")]
         logging.info("Found {} runs.".format(len(runs)))
         self.data = pd.concat([self.data] + runs)
 
     @staticmethod
-    def get_run_dataframe(directory, gamma=0.95, subsample=10):
+    def get_run_dataframe(directory, agent_name='', gamma=0.95, subsample=10):
         run_data = MonitorV2.load_results(directory)
-        data = {x: run_data[x] for x in [
-            "episode_rewards",
-            "episode_lengths",
-        ]}
-        df = pd.DataFrame(data)
 
-        df["discounted_rewards"] = [np.sum([episode[t]*gamma**t for t in range(len(episode))])
-                                    for episode in run_data["episode_rewards_"]]
-        df["episode"] = np.arange(df.shape[0])
-        df["total rewards"] = df["episode_rewards"].rolling(subsample).mean()
-        df["total length"] = df["episode_lengths"].rolling(subsample).mean()
-        df["collision"] = df["episode_lengths"] < df["episode_lengths"].max() - 1
-        df["collision"] = df["collision"].rolling(subsample).mean()
-        df["directory"] = str(directory.name)
+        # Common fields
+        data = {
+            "episode": np.arange(np.size(run_data["episode_rewards"])),
+            "total reward": run_data["episode_rewards"],
+            "discounted rewards": [np.sum([episode[t] * gamma ** t for t in range(len(episode))])
+                                   for episode in run_data["episode_rewards_"]],
+            "length": run_data["episode_lengths"],
+        }
+
+        # Additional highway-env fields
+        try:
+            dt = 1.0
+            data.update({
+                "crashed": [np.any(episode) for episode in run_data["episode_crashed"]],
+                "velocity": [np.mean(episode) for episode in run_data["episode_velocity"]],
+                "distance": [np.sum(episode)*dt for episode in run_data["episode_velocity"]],
+            })
+        except KeyError as e:
+            print(e)
+
+        # Tags
+        df = pd.DataFrame(data)
+        df["run"] = str(directory.name)
+        df["agent"] = agent_name
+
+        # Filtering
+        for field in ["total reward", "discounted rewards", "length", "crashed", "velocity", "distance"]:
+            df[field] = df[field].rolling(subsample).mean()
         df = df.iloc[::subsample]
         return df
 
     def analyze(self):
         self.find_best_run()
-        for field in ["total rewards", "total length", "collision"]:
+        for field in ["total reward", "length", "crashed", "velocity", "distance"]:
             logging.info("Analyzing {}".format(field))
             fig, ax = plt.subplots()
             sns.lineplot(x="episode", y=field, hue="agent", data=self.data, ax=ax, ci=95)
@@ -86,13 +100,14 @@ class RunAnalyzer(object):
             plt.show()
             plt.close()
 
-    def find_best_run(self, criteria="discounted_rewards", ascending=False):
+    def find_best_run(self, criteria="discounted rewards", ascending=False):
         """ Maximal final total rewards"""
         last_episode = self.data["episode"].max()
         df = (self.data[self.data["episode"] == last_episode].sort_values(criteria, ascending=ascending))
         with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-            print("Run with highest", criteria)
+            print("Run with highest {}:".format(criteria))
             print(df.iloc[0])
+        return self.data[self.data["run"] == df.iloc[0]["run"]]
 
 
 def rename(name):
