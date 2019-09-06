@@ -1,0 +1,16 @@
+{
+    "id": "intersection-v0",
+    "import_module": "highway_env",
+    "observation": {
+        "type": "OccupancyGrid",
+        "vehicles_count": 15,
+        "features": ["presence", "vx", "vy", "cos_h", "sin_h"],
+        "features_range": {
+            "x": [-100, 100],
+            "y": [-100, 100],
+            "vx": [-20, 20],
+            "vy": [-20, 20]
+        },
+        "absolute": false
+    }
+}
