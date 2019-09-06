@@ -43,6 +43,7 @@ class RunAnalyzer(object):
     def __init__(self, run_directories, out, episodes_range=None):
         self.data = pd.DataFrame()
         self.out = Path(out)
+        self.episodes_range = episodes_range
         for dir in run_directories:
             self.get_data(Path(dir))
         self.analyze()
@@ -54,9 +55,10 @@ class RunAnalyzer(object):
         logging.info("Found {} runs.".format(len(runs)))
         self.data = pd.concat([self.data] + runs)
 
-    @staticmethod
-    def get_run_dataframe(directory, agent_name='', gamma=0.95, subsample=10):
+    def get_run_dataframe(self, directory, agent_name='', gamma=0.95, subsample=10):
         run_data = MonitorV2.load_results(directory)
+        if not run_data:
+            return pd.DataFrame()
 
         # Common fields
         data = {
@@ -86,7 +88,9 @@ class RunAnalyzer(object):
         # Filtering
         for field in ["total reward", "discounted rewards", "length", "crashed", "velocity", "distance"]:
             df[field] = df[field].rolling(subsample).mean()
-        df = df.iloc[::subsample]
+
+        # Subsample
+        df = df.iloc[self.episodes_range[0]:self.episodes_range[1]:subsample]
         return df
 
     def analyze(self):
@@ -113,7 +117,8 @@ class RunAnalyzer(object):
 def rename(name):
     dictionary = {
         "ego_attention": "Ego-Attention",
-        "mlp": "MLP"
+        "mlp": "MLP Coordinates",
+        "grid": "MLP Grid"
     }
     return dictionary.get(name, name)
 
