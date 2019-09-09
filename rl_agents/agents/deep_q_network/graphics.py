@@ -68,14 +68,15 @@ class DQNGraphics(object):
                                          sim_surface.vec2pix(vehicle.position),
                                          max(sim_surface.pix(width), 1))
                 sim_surface.blit(attention_surface, (0, 0))
-            except Exception as e:
-                print(e)
+            except ValueError as e:
+                print("Unable to display vehicles attention", e)
 
     @classmethod
-    def compute_vehicles_attention(cls, agent, state):
+    def compute_vehicles_attention(cls, agent, state, head_index=1):
         import torch
         state_t = torch.tensor([state], dtype=torch.float).to(agent.device)
-        attention = agent.value_net.get_attention_matrix(state_t).squeeze().detach().cpu().numpy()
+        attention = agent.value_net.get_attention_matrix(state_t).squeeze(0).squeeze(1).detach().cpu().numpy()
+        attention = attention[head_index]
         ego, others, mask = agent.value_net.split_input(state_t)
         mask = mask.squeeze()
         v_attention = {}

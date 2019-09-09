@@ -4,21 +4,21 @@
         "type": "EgoAttentionNetwork",
         "embedding_layer": {
             "type": "MultiLayerPerceptron",
-            "layers": [64, 64],
+            "layers": [64, 128],
             "reshape": false,
             "in": 7
         },
         "others_embedding_layer": {
             "type": "MultiLayerPerceptron",
-            "layers": [64, 64],
+            "layers": [64, 128],
             "reshape": false,
             "in": 7
         },
         "self_attention_layer": null,
         "attention_layer": {
             "type": "EgoAttention",
-            "feature_size": 64,
-            "heads": 1
+            "feature_size": 128,
+            "heads": 2
         },
         "output_layer": {
             "type": "MultiLayerPerceptron",

@@ -137,6 +137,46 @@ class EgoAttention(BaseModule, Configurable):
         return result, attention_matrix
 
 
+class SelfAttention(BaseModule, Configurable):
+    def __init__(self, config):
+        super().__init__()
+        Configurable.__init__(self, config)
+        self.features_per_head = int(self.config["feature_size"] / self.config["heads"])
+
+        self.value_all = nn.Linear(self.config["feature_size"], self.config["feature_size"], bias=False)
+        self.key_all = nn.Linear(self.config["feature_size"], self.config["feature_size"], bias=False)
+        self.query_all = nn.Linear(self.config["feature_size"], self.config["feature_size"], bias=False)
+        self.attention_combine = nn.Linear(self.config["feature_size"], self.config["feature_size"], bias=False)
+
+    @classmethod
+    def default_config(cls):
+        return {
+            "feature_size": 64,
+            "heads": 4,
+            "dropout_factor": 0,
+        }
+
+    def forward(self, ego, others, mask=None):
+        batch_size = others.shape[0]
+        n_entities = others.shape[1] + 1
+        input_all = torch.cat((ego.view(batch_size, 1, self.config["feature_size"]), others), dim=1)
+        # Dimensions: Batch, entity, head, feature_per_head
+        key_all = self.key_all(input_all).view(batch_size, n_entities, self.config["heads"], self.features_per_head)
+        value_all = self.value_all(input_all).view(batch_size, n_entities, self.config["heads"], self.features_per_head)
+        query_all = self.query_all(input_all).view(batch_size, n_entities, self.config["heads"], self.features_per_head)
+
+        # Dimensions: Batch, head, entity, feature_per_head
+        key_all = key_all.permute(0, 2, 1, 3)
+        value_all = value_all.permute(0, 2, 1, 3)
+        query_all = query_all.permute(0, 2, 1, 3)
+        if mask is not None:
+            mask = mask.view((batch_size, 1, 1, n_entities)).repeat((1, self.config["heads"], 1, 1))
+        value, attention_matrix = attention(query_all, key_all, value_all, mask,
+                                            nn.Dropout(self.config["dropout_factor"]))
+        result = (self.attention_combine(value.reshape((batch_size, n_entities, self.config["feature_size"]))) + input_all)/2
+        return result, attention_matrix
+
+
 class EgoAttentionNetwork(BaseModule, Configurable):
     def __init__(self, config):
         super().__init__()
@@ -151,6 +191,9 @@ class EgoAttentionNetwork(BaseModule, Configurable):
 
         self.ego_embedding = model_factory(self.config["embedding_layer"])
         self.others_embedding = model_factory(self.config["others_embedding_layer"])
+        self.self_attention_layer = None
+        if self.config["self_attention_layer"]:
+            self.self_attention_layer = SelfAttention(self.config["self_attention_layer"])
         self.attention_layer = EgoAttention(self.config["attention_layer"])
         self.output_layer = model_factory(self.config["output_layer"])
 
@@ -171,6 +214,11 @@ class EgoAttentionNetwork(BaseModule, Configurable):
                 "layers": [128, 128, 128],
                 "reshape": False
             },
+            "self_attention_layer": {
+                "type": "SelfAttention",
+                "feature_size": 128,
+                "heads": 4
+            },
             "attention_layer": {
                 "type": "EgoAttention",
                 "feature_size": 128,
@@ -185,7 +233,72 @@ class EgoAttentionNetwork(BaseModule, Configurable):
 
     def forward(self, x):
         ego, others, mask = self.split_input(x)
-        ego_embedded_att, _ = self.attention_layer(self.ego_embedding(ego), self.others_embedding(others), mask)
+        ego, others = self.ego_embedding(ego), self.others_embedding(others)
+        if self.self_attention_layer:
+            self_att, _ = self.self_attention_layer(ego, others, mask)
+            ego, others, mask = self.split_input(self_att, mask=mask)
+        ego_embedded_att, _ = self.attention_layer(ego, others, mask)
+        return self.output_layer(ego_embedded_att)
+
+    def split_input(self, x, mask=None):
+        # Dims: batch, entities, features
+        ego = x[:, 0:1, :]
+        others = x[:, 1:, :]
+        if mask is None:
+            mask = x[:, :, self.config["presence_feature_idx"]:self.config["presence_feature_idx"] + 1] < 0.5
+        return ego, others, mask
+
+    def get_attention_matrix(self, x):
+        ego, others, mask = self.split_input(x)
+        ego, others = self.ego_embedding(ego), self.others_embedding(others)
+        if self.self_attention_layer:
+            self_att, _ = self.self_attention_layer(ego, others, mask)
+            ego, others, mask = self.split_input(self_att, mask=mask)
+        _, attention_matrix = self.attention_layer(ego, others, mask)
+        return attention_matrix
+
+
+class AttentionNetwork(BaseModule, Configurable):
+    def __init__(self, config):
+        super().__init__()
+        Configurable.__init__(self, config)
+        self.config = config
+        if not self.config["embedding_layer"]["in"]:
+            self.config["embedding_layer"]["in"] = self.config["in"]
+        self.config["output_layer"]["in"] = self.config["attention_layer"]["feature_size"]
+        self.config["output_layer"]["out"] = self.config["out"]
+
+        self.embedding = model_factory(self.config["embedding_layer"])
+        self.attention_layer = SelfAttention(self.config["attention_layer"])
+        self.output_layer = model_factory(self.config["output_layer"])
+
+    @classmethod
+    def default_config(cls):
+        return {
+            "in": None,
+            "out": None,
+            "n_head": 4,
+            "presence_feature_idx": 0,
+            "embedding_layer": {
+                "type": "MultiLayerPerceptron",
+                "layers": [128, 128, 128],
+                "reshape": False
+            },
+            "attention_layer": {
+                "type": "SelfAttention",
+                "feature_size": 128,
+                "heads": 4
+            },
+            "output_layer": {
+                "type": "MultiLayerPerceptron",
+                "layers": [128, 128, 128],
+                "reshape": False
+            },
+        }
+
+    def forward(self, x):
+        ego, others, mask = self.split_input(x)
+        ego_embedded_att, _ = self.attention_layer(self.embedding(ego), self.others_embedding(others), mask)
         return self.output_layer(ego_embedded_att)
 
     def split_input(self, x):
@@ -197,7 +310,7 @@ class EgoAttentionNetwork(BaseModule, Configurable):
 
     def get_attention_matrix(self, x):
         ego, others, mask = self.split_input(x)
-        _, attention_matrix = self.attention_layer(self.ego_embedding(ego), self.others_embedding(others), mask)
+        _, attention_matrix = self.attention_layer(self.embedding(ego), self.others_embedding(others), mask)
         return attention_matrix
 
 

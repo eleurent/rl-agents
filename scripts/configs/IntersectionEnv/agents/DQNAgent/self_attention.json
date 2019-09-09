@@ -14,7 +14,11 @@
             "reshape": false,
             "in": 7
         },
-        "self_attention_layer": null,
+        "self_attention_layer": {
+            "type": "SelfAttention",
+            "feature_size": 64,
+            "heads": 1
+        },
         "attention_layer": {
             "type": "EgoAttention",
             "feature_size": 64,
