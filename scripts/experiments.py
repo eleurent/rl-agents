@@ -1,32 +1,22 @@
 """
 Usage:
-  experiments evaluate <environment> <agent> (--train|--test)
-                                             [--episodes <count>]
-                                             [--name-from-config]
-                                             [--no-display]
-                                             [--seed <str>]
-                                             [--recover]
-                                             [--verbose]
-  experiments benchmark <benchmark> (--train|--test)
-                                    [--episodes <count>]
-                                    [--name-from-config]
-                                    [--no-display]
-                                    [--seed <str>]
-                                    [--verbose]
-                                    [--processes <count>]
+  experiments evaluate <environment> <agent> (--train|--test) [options]
+  experiments benchmark <benchmark> (--train|--test) [options]
   experiments -h | --help
 
 Options:
-  -h --help            Show this screen.
-  --episodes <count>   Number of episodes [default: 5].
-  --no-display         Disable environment, agent, and rewards rendering.
-  --name-from-config   Name the output folder from the corresponding config files
-  --processes <count>  Number of running processes [default: 4].
-  --recover            Load model from latest checkpoint.
-  --seed <str>         Seed the environments and agents.
-  --train              Train the agent.
-  --test               Test the agent.
-  --verbose            Set log level to debug instead of info.
+  -h --help              Show this screen.
+  --episodes <count>     Number of episodes [default: 5].
+  --no-display           Disable environment, agent, and rewards rendering.
+  --name-from-config     Name the output folder from the corresponding config files
+  --processes <count>    Number of running processes [default: 4].
+  --recover              Load model from the latest checkpoint.
+  --recover-from <file>  Load model from a given checkpoint.
+  --seed <str>           Seed the environments and agents.
+  --train                Train the agent.
+  --test                 Test the agent.
+  --verbose              Set log level to debug instead of info.
+  --repeat <times>       Repeat several times [default: 1].
 """
 import datetime
 import os
@@ -49,7 +39,8 @@ VERBOSE_CONFIG = 'configs/verbose.json'
 def main():
     opts = docopt(__doc__)
     if opts['evaluate']:
-        evaluate(opts['<environment>'], opts['<agent>'], opts)
+        for _ in range(int(opts['--repeat'])):
+            evaluate(opts['<environment>'], opts['<agent>'], opts)
     elif opts['benchmark']:
         benchmark(opts)
 
@@ -74,7 +65,7 @@ def evaluate(environment_config, agent_config, options):
                             run_directory=run_directory,
                             num_episodes=int(options['--episodes']),
                             sim_seed=options['--seed'],
-                            recover=options['--recover'],
+                            recover=options['--recover'] or options['--recover-from'],
                             display_env=not options['--no-display'],
                             display_agent=not options['--no-display'],
                             display_rewards=not options['--no-display'])

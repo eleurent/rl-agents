@@ -282,6 +282,10 @@ class Evaluation(object):
     def load_agent_model(self, model_path):
         if model_path is True:
             model_path = self.directory / self.SAVED_MODELS_FOLDER / "latest.tar"
+        if isinstance(model_path, str):
+            model_path = Path(model_path)
+            if not model_path.exists():
+                model_path = self.directory / self.SAVED_MODELS_FOLDER / model_path
         try:
             self.agent.load(filename=model_path)
             logger.info("Load {} model from {}".format(self.agent.__class__.__name__, model_path))
