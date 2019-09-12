@@ -63,12 +63,6 @@ class DQNAgent(AbstractDQNAgent):
                 target_state_action_value = batch.reward + self.config["gamma"] * next_state_values
 
         # Compute loss
-        # print("saving state_action_values.pt...")
-        # torch.save(state_action_values, 'state_action_values.pt')
-        # print("saving target_state_action_value.pt...")
-        # torch.save(target_state_action_value, 'target_state_action_value.pt')
-        # print("model min", torch.min(state_action_values), "max", torch.max(state_action_values), "nan", torch.isnan(state_action_values).any())
-        # print("target min", torch.min(target_state_action_value), "max", torch.max(target_state_action_value), "nan", torch.isnan(target_state_action_value).any())
         loss = self.loss_function(state_action_values, target_state_action_value)
         return loss, target_state_action_value, batch
 
