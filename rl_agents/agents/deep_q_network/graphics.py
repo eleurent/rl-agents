@@ -54,29 +54,30 @@ class DQNGraphics(object):
 
                 attention_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA)
                 for vehicle, attention in cls.v_attention.items():
-                    if attention < 0.01:
-                        continue
-                    width = attention * 5
-                    color = (0, min(attention * 180, 255), 0, 128)
-                    if vehicle is agent.env.vehicle:
-                        pygame.draw.circle(attention_surface, color,
-                                           sim_surface.vec2pix(agent.env.vehicle.position),
-                                           max(sim_surface.pix(width / 2), 1))
-                    else:
-                        pygame.draw.line(attention_surface, color,
-                                         sim_surface.vec2pix(agent.env.vehicle.position),
-                                         sim_surface.vec2pix(vehicle.position),
-                                         max(sim_surface.pix(width), 1))
+                    for head, attention_head in enumerate(attention):
+                        if attention_head < 0.01:
+                            continue
+                        width = attention_head * 5
+                        colors = [(0, min(attention_head * 180, 255), 0, 128),
+                                  (0, 0, min(attention_head * 180, 255), 128)]
+                        if vehicle is agent.env.vehicle:
+                            pygame.draw.circle(attention_surface, colors[head],
+                                               sim_surface.vec2pix(agent.env.vehicle.position),
+                                               max(sim_surface.pix(width / 2), 1))
+                        else:
+                            pygame.draw.line(attention_surface, colors[head],
+                                             sim_surface.vec2pix(agent.env.vehicle.position),
+                                             sim_surface.vec2pix(vehicle.position),
+                                             max(sim_surface.pix(width), 1))
                 sim_surface.blit(attention_surface, (0, 0))
             except ValueError as e:
                 print("Unable to display vehicles attention", e)
 
     @classmethod
-    def compute_vehicles_attention(cls, agent, state, head_index=1):
+    def compute_vehicles_attention(cls, agent, state):
         import torch
         state_t = torch.tensor([state], dtype=torch.float).to(agent.device)
         attention = agent.value_net.get_attention_matrix(state_t).squeeze(0).squeeze(1).detach().cpu().numpy()
-        attention = attention[head_index]
         ego, others, mask = agent.value_net.split_input(state_t)
         mask = mask.squeeze()
         v_attention = {}
@@ -90,7 +91,7 @@ class DQNGraphics(object):
                 v_position[feature] = v_feature
             v_position = np.array([v_position["x"], v_position["y"]])
             vehicle = min(agent.env.road.vehicles, key=lambda v: np.linalg.norm(v.position - v_position))
-            v_attention[vehicle] = attention[v_index]
+            v_attention[vehicle] = attention[:, v_index]
         return v_attention
 
 
