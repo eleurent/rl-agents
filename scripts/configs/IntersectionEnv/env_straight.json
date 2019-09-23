@@ -1,0 +1,5 @@
+{
+    "id": "intersection-v0",
+    "import_module": "highway_env",
+    "destination": "o2"
+}

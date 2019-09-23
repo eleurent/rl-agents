@@ -2,6 +2,6 @@
     "id": "intersection-v0",
     "import_module": "highway_env",
     "policy_frequency": 5,
-    "show_history": false,
-    "destination": "o3"
+    "duration": 14,
+    "show_history": true
 }
