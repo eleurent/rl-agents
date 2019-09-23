@@ -20,8 +20,11 @@ def wrap_to_pi(x):
     return ((x+np.pi) % (2*np.pi)) - np.pi
 
 
-def remap(v, x, y):
-    return y[0] + (v-x[0])*(y[1]-y[0])/(x[1]-x[0])
+def remap(v, x, y, clip=False):
+    out = y[0] + (v-x[0])*(y[1]-y[0])/(x[1]-x[0])
+    if clip:
+        out = constrain(out, y[0], y[1])
+    return out
 
 
 def near_split(x, num_bins=None, size_bins=None):
