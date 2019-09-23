@@ -104,21 +104,24 @@ class RunAnalyzer(object):
             plt.show()
             plt.close()
 
-    def find_best_run(self, criteria="discounted rewards", ascending=False):
+    def find_best_run(self, criteria="total reward", ascending=False):
         """ Maximal final total rewards"""
-        last_episode = self.data["episode"].max()
-        df = (self.data[self.data["episode"] == last_episode].sort_values(criteria, ascending=ascending))
-        with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-            print("Run with highest {}:".format(criteria))
-            print(df.iloc[0])
+        df = self.data
+        try:
+            df = df[df["episode"] == df["episode"].max()].sort_values(criteria, ascending=ascending)
+            with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                print("Run with highest {}:".format(criteria))
+                print(df.iloc[0])
+        except IndexError:
+            print("Could not find run matching desired criteria.")
         return self.data[self.data["run"] == df.iloc[0]["run"]]
 
 
 def rename(name):
     dictionary = {
         "ego_attention": "Ego-Attention",
-        "mlp": "MLP Coordinates",
-        "grid": "MLP Grid"
+        "mlp": "MLP/List",
+        "grid": "MLP/Grid"
     }
     return dictionary.get(name, name)
 
