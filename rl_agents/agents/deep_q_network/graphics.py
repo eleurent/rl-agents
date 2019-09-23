@@ -1,10 +1,10 @@
 import numpy as np
 from matplotlib import pyplot as plt, gridspec as gridspec
-
+import seaborn as sns
 import matplotlib as mpl
 import matplotlib.cm as cm
 
-from rl_agents.utils import remap
+from rl_agents.utils import remap, constrain
 
 
 class DQNGraphics(object):
@@ -13,6 +13,7 @@ class DQNGraphics(object):
     """
     RED = (255, 0, 0)
     BLACK = (0, 0, 0)
+    MIN_ATTENTION = 0.01
 
     @classmethod
     def display(cls, agent, surface, sim_surface=None, display_text=True):
@@ -52,24 +53,26 @@ class DQNGraphics(object):
                     cls.v_attention = cls.compute_vehicles_attention(agent, state)
                     cls.state = state
 
-                attention_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA)
-                for vehicle, attention in cls.v_attention.items():
-                    for head, attention_head in enumerate(attention):
-                        if attention_head < 0.01:
+                for head in range(list(cls.v_attention.values())[0].shape[0]):
+                    attention_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA)
+                    for vehicle, attention in cls.v_attention.items():
+                        if attention[head] < cls.MIN_ATTENTION:
                             continue
-                        width = attention_head * 5
-                        colors = [(0, min(attention_head * 180, 255), 0, 128),
-                                  (0, 0, min(attention_head * 180, 255), 128)]
+                        width = attention[head] * 5
+                        desat = remap(attention[head], (0, 0.5), (0.7, 1), clip=True)
+                        colors = sns.color_palette("dark", desat=desat)
+                        color = np.array(colors[2-2*head]) * 255
+                        color = (*color, remap(attention[head], (0, 0.5), (100, 200), clip=True))
                         if vehicle is agent.env.vehicle:
-                            pygame.draw.circle(attention_surface, colors[head],
+                            pygame.draw.circle(attention_surface, color,
                                                sim_surface.vec2pix(agent.env.vehicle.position),
                                                max(sim_surface.pix(width / 2), 1))
                         else:
-                            pygame.draw.line(attention_surface, colors[head],
+                            pygame.draw.line(attention_surface, color,
                                              sim_surface.vec2pix(agent.env.vehicle.position),
                                              sim_surface.vec2pix(vehicle.position),
                                              max(sim_surface.pix(width), 1))
-                sim_surface.blit(attention_surface, (0, 0))
+                    sim_surface.blit(attention_surface, (0, 0))
             except ValueError as e:
                 print("Unable to display vehicles attention", e)
 
