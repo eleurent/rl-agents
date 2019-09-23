@@ -79,8 +79,9 @@ class Evaluation(object):
         self.write_logging()
         self.write_metadata()
 
-        if recover:
-            self.load_agent_model(recover)
+        self.recover = recover
+        if self.recover:
+            self.load_agent_model(self.recover)
 
         if display_agent:
             try:
@@ -103,9 +104,10 @@ class Evaluation(object):
             self.run_episodes()
         self.close()
 
-    def test(self, model_path=True):
+    def test(self):
         self.training = False
-        self.load_agent_model(model_path)
+        if not self.recover:
+            logger.warning("No pre-trained model has been loaded.")
         if self.display_env:
             self.monitor.video_callable = MonitorV2.always_call_video
         try:
