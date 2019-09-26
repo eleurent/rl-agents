@@ -3,7 +3,7 @@
     "gamma": 0.9,
     "gamma_c": 0.9,
     "epochs": 15,
-    "samples_per_batch": 1000,
+    "batch_size": 1000,
     "betas_for_discretisation": "np.arange(0, 1, 0.01)",
     "exploration": {
         "tau": 3000
@@ -13,7 +13,7 @@
     "regression_epochs": 5000,
     "clamp_qc": [0, 1.5],
     "split_batches": 4,
-    "cpu_processes": 20,
+    "processes": null,
     "network": {
         "size_beta_encoder": 50,
         "layers": [

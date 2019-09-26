@@ -39,9 +39,10 @@ class BudgetedFittedQ(object):
         self.n_actions = self._value_network.predict.out_features // 2
 
         self.writer = writer
-        self.writer.add_graph(self._value_network,
-                              input_to_model=torch.tensor(np.zeros((1, 1, self._value_network.size_state + 1),
-                                                                   dtype=np.float32)).to(self.device))
+        if writer:
+            self.writer.add_graph(self._value_network,
+                                  input_to_model=torch.tensor(np.zeros((1, 1, self._value_network.size_state + 1),
+                                                                       dtype=np.float32)).to(self.device))
 
         self.memory = ReplayMemory(transition_type=TransitionBFTQ, config=self.config)
         self.optimizer = None
@@ -223,10 +224,10 @@ class BudgetedFittedQ(object):
                         self.config["hull_options"],
                         self.config["clamp_qc"])
                        for state in range(states_count)]
-        if self.config["cpu_processes"] == 1:
+        if self.config["processes"] == 1:
             results = [pareto_frontier(*param) for param in hull_params]
         else:
-            with Pool(self.config["cpu_processes"]) as p:
+            with Pool(self.config["processes"]) as p:
                 results = p.starmap(pareto_frontier, hull_params)
         frontiers, all_points = zip(*results)
 
@@ -241,10 +242,10 @@ class BudgetedFittedQ(object):
         """
         logger.debug("-Compute optimal mixtures")
         params = [(frontiers[i], beta.detach().item()) for i, beta in enumerate(betas)]
-        if self.config["cpu_processes"] == 1:
+        if self.config["processes"] == 1:
             optimal_policies = [optimal_mixture(*param) for param in params]
         else:
-            with Pool(self.config["cpu_processes"]) as p:
+            with Pool(self.config["processes"]) as p:
                 optimal_policies = p.starmap(optimal_mixture, params)
         return optimal_policies
 

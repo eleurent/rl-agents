@@ -4,6 +4,7 @@ import torch
 import numpy as np
 
 from rl_agents.agents.budgeted_ftq.greedy_policy import optimal_mixture, pareto_frontier_at
+from rl_agents.agents.common.exploration.epsilon_greedy import EpsilonGreedy
 from rl_agents.agents.common.utils import sample_simplex
 
 
@@ -17,21 +18,25 @@ class BudgetedPolicy:
 
 class EpsilonGreedyBudgetedPolicy(BudgetedPolicy):
     def __init__(self, pi_greedy, pi_random, config, np_random=np.random):
+        super().__init__()
         self.pi_greedy = pi_greedy
         self.pi_random = pi_random
         self.config = config
         self.np_random = np_random
-        self.steps_done = 0
+        self.time = 0
 
     def execute(self, state, beta):
         epsilon = self.config['final_temperature'] + (self.config['temperature'] - self.config['final_temperature']) * \
-                       np.exp(- self.steps_done / self.config['tau'])
-        self.steps_done += 1
+                       np.exp(- self.time / self.config['tau'])
+        self.time += 1
 
         if self.np_random.random_sample() > epsilon:
             return self.pi_greedy.execute(state, beta)
         else:
             return self.pi_random.execute(state, beta)
+
+    def set_time(self, time):
+        self.time = time
 
 
 class RandomBudgetedPolicy(BudgetedPolicy):

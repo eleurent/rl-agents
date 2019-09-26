@@ -17,7 +17,6 @@ class AbstractFTQAgent(AbstractDQNAgent, ABC):
         self.iterations_time = 0
         self.regression_time = 0
         self.batch_time = 0
-        time = 0
 
     @classmethod
     def default_config(cls):

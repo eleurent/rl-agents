@@ -8,6 +8,7 @@ from rl_agents.agents.budgeted_ftq.bftq import BudgetedFittedQ
 from rl_agents.agents.budgeted_ftq.models import BudgetedMLP
 from rl_agents.agents.budgeted_ftq.policies import PytorchBudgetedFittedPolicy, RandomBudgetedPolicy, \
     EpsilonGreedyBudgetedPolicy
+from rl_agents.agents.common.utils import load_pytorch
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 class BFTQAgent(AbstractAgent):
     def __init__(self, env, config=None):
         super(BFTQAgent, self).__init__(config)
+        self.batched = True
         if not self.config["epochs"]:
             self.config["epochs"] = int(1 / np.log(1 / self.config["gamma"]))
         self.env = env
@@ -24,6 +26,8 @@ class BFTQAgent(AbstractAgent):
         self.beta = self.previous_beta = 0
         self.training = True
         self.previous_state = None
+
+        load_pytorch()
 
     @classmethod
     def default_config(cls):
@@ -53,7 +57,7 @@ class BFTQAgent(AbstractAgent):
             "nn_loss_stop_condition": 0.0,
             "weights_losses": [1., 1.],
             "split_batches": 1,
-            "cpu_processes": 1,
+            "processes": 1,
             "samples_per_batch": 500,
             "device": "cuda:best",
             "hull_options": {
@@ -79,6 +83,9 @@ class BFTQAgent(AbstractAgent):
         """
             Run the exploration policy to pick actions and budgets
         """
+        # TODO: Choose the initial budget for the next episode and not at each step
+        self.beta = self.np_random.rand() if self.training else self.config["beta"]
+
         state = state.flatten()
         self.previous_state, self.previous_beta = state, self.beta
         action, self.beta = self.exploration_policy.execute(state, self.beta)
@@ -90,17 +97,12 @@ class BFTQAgent(AbstractAgent):
 
             When enough experience is collected, fit the model to the batch.
         """
+        if not self.training:
+            return
+        # Store transition to memory
         self.bftq.push(state.flatten(), action, reward, next_state.flatten(), done, info["cost"])
 
-        minibatch_complete = self.training and not self.bftq.memory.is_empty() and \
-            len(self.bftq.memory) % (self.config["samples_per_batch"] * len(self.bftq.betas_for_duplication)) == 0
-        if minibatch_complete:
-            self.fit()
-        if self.bftq.memory.is_full():
-            logger.info("Memory is full, switching to evaluation mode.")
-            self.eval()
-
-    def fit(self):
+    def update(self):
         """
             Fit a budgeted policy on the batch by running the BFTQ algorithm.
         """
@@ -111,29 +113,28 @@ class BFTQAgent(AbstractAgent):
         self.exploration_policy.pi_greedy.set_network(network)
 
     def reset(self):
-        if not self.bftq:  # Do not reset the bftq replay memory at each episode
-            if not self.np_random:
-                self.seed()
-            network = BudgetedMLP(size_state=np.prod(self.env.observation_space.shape),
-                                  n_actions=self.env.action_space.n,
-                                  **self.config["network"])
-            self.bftq = BudgetedFittedQ(value_network=network, config=self.config, writer=self.writer)
-            self.exploration_policy = EpsilonGreedyBudgetedPolicy(
-                pi_greedy=PytorchBudgetedFittedPolicy(
-                    network,
-                    self.bftq.betas_for_discretisation,
-                    self.bftq.device,
-                    self.config["hull_options"],
-                    self.config["clamp_qc"],
-                    np_random=self.np_random
-                ),
-                pi_random=RandomBudgetedPolicy(n_actions=self.env.action_space.n, np_random=self.np_random),
-                config=self.config["exploration"],
+        if not self.np_random:
+            self.seed()
+        network = BudgetedMLP(size_state=np.prod(self.env.observation_space.shape),
+                              n_actions=self.env.action_space.n,
+                              **self.config["network"])
+        self.bftq = BudgetedFittedQ(value_network=network, config=self.config, writer=self.writer)
+        self.exploration_policy = EpsilonGreedyBudgetedPolicy(
+            pi_greedy=PytorchBudgetedFittedPolicy(
+                network,
+                self.bftq.betas_for_discretisation,
+                self.bftq.device,
+                self.config["hull_options"],
+                self.config["clamp_qc"],
                 np_random=self.np_random
-            )
+            ),
+            pi_random=RandomBudgetedPolicy(n_actions=self.env.action_space.n, np_random=self.np_random),
+            config=self.config["exploration"],
+            np_random=self.np_random
+        )
 
-        # Choose the budget for the next episode
-        self.beta = self.np_random.rand() if self.training else self.config["beta"]
+    def set_time(self, time):
+        self.exploration_policy.set_time(time)
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -154,3 +155,8 @@ class BFTQAgent(AbstractAgent):
         self.config['exploration']['temperature'] = 0
         self.config['exploration']['final_temperature'] = 0
         self.exploration_policy.config = self.config["exploration"]
+
+    @property
+    def memory(self):
+        return self.bftq.memory
+

@@ -177,6 +177,7 @@ class Evaluation(object):
         episode = 0
         episode_duration = 14  # TODO: use a fixed number of samples instead
         batch_sizes = near_split(self.num_episodes * episode_duration, size_bins=self.agent.config["batch_size"])
+        self.agent.reset()
         for batch, batch_size in enumerate(batch_sizes):
             logger.info("[BATCH={}/{}]---------------------------------------".format(batch+1, len(batch_sizes)))
             logger.info("[BATCH={}/{}][run_batched_episodes] #samples={}".format(batch+1, len(batch_sizes),
@@ -187,7 +188,7 @@ class Evaluation(object):
 
             # Prepare workers
             env_config, agent_config = serialize(self.env), serialize(self.agent)
-            cpu_processes = self.agent.config["processes"]
+            cpu_processes = self.agent.config["processes"] or os.cpu_count()
             workers_sample_counts = near_split(batch_size, cpu_processes)
             workers_starts = list(np.cumsum(np.insert(workers_sample_counts[:-1], 0, 0)) + np.sum(batch_sizes[:batch]))
             base_seed = self.seed(batch * cpu_processes)[0]
@@ -240,7 +241,7 @@ class Evaluation(object):
 
         if batch == 0:  # Force pure exploration during first batch
             agent_config["exploration"]["final_temperature"] = 1
-        agent_config["device"] = "cuda:1"
+        agent_config["device"] = "cpu"
         agent = load_agent(agent_config, env)
         agent.load(model_path)
         agent.seed(seed)
