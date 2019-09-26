@@ -55,7 +55,7 @@ class BFTQAgent(AbstractAgent):
             "split_batches": 1,
             "cpu_processes": 1,
             "samples_per_batch": 500,
-            "device": "cpu",
+            "device": "cuda:best",
             "hull_options": {
                 "decimals": None,
                 "qhull_options": "",

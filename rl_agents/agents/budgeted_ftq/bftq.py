@@ -2,6 +2,7 @@
     Adapted from the original implementation by Nicolas Carrara <https://github.com/ncarrara>.
 """
 from rl_agents.agents.budgeted_ftq.graphics import plot_values_histograms, plot_frontier
+from rl_agents.agents.common.utils import choose_device
 
 __author__ = "Edouard Leurent"
 __credits__ = ["Nicolas Carrara"]
@@ -30,7 +31,7 @@ class BudgetedFittedQ(object):
         self.betas_for_discretisation = parse(self.config["betas_for_discretisation"])
         self.loss_function = loss_function_factory(self.config["loss_function"])
         self.loss_function_c = loss_function_factory(self.config["loss_function_c"])
-        self.device = self.config["device"]
+        self.device = choose_device(self.config["device"])
 
         # Load network
         self._value_network = value_network
