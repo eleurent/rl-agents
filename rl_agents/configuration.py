@@ -96,5 +96,6 @@ def serialize(obj):
     d['__class__'] = repr(obj.__class__)
     if isinstance(obj, Env):
         d['id'] = obj.spec.id
+        d['import_module'] = obj.import_module
     return d
 
