@@ -56,7 +56,7 @@ def load_environment(env_config):
             env_config = json.loads(f.read())
 
     # Make the environment
-    if "import_module" in env_config:
+    if env_config.get("import_module", None):
         __import__(env_config["import_module"])
     try:
         env = gym.make(env_config['id'])
