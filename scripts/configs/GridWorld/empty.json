@@ -1,0 +1,4 @@
+{
+    "id": "MiniGrid-Empty-16x16-v0",
+    "import_module": "gym_minigrid"
+}
