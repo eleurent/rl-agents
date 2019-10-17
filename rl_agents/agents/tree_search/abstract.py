@@ -185,24 +185,25 @@ class Node(object):
         raise NotImplementedError()
 
     @staticmethod
-    def breadth_first_search(root, operator=None, condition=None):
+    def breadth_first_search(root, operator=None, condition=None, condition_blocking=True):
         """
             Breadth-first search of all paths to nodes that meet a given condition
 
         :param root: starting node
         :param operator: will be applied to all traversed nodes
         :param condition: nodes meeting that condition will be returned
+        :param condition_blocking: do not explore a node which met the condition
         :return: list of paths to nodes that met the condition
         """
         queue = [(root, [])]
         while queue:
             (node, path) = queue.pop(0)
-            for next_key, next_node in node.children.items():
-                if (condition is None) or condition(next_node):
-                        returned = operator(next_node, path + [next_key]) if operator else (next_node, path + [next_key])
-                        yield returned
-                if (condition is None) or not condition(next_node):
-                        queue.append((next_node, path + [next_key]))
+            if (condition is None) or condition(node):
+                returned = operator(node, path) if operator else (node, path)
+                yield returned
+            if (condition is None) or not condition_blocking or not condition(next_node):
+                for next_key, next_node in node.children.items():
+                    queue.append((next_node, path + [next_key]))
 
     def is_leaf(self):
         return not self.children
