@@ -25,7 +25,7 @@ class GridEnv(Env):
     def __init__(self):
         dt = 0.1
         self.x = np.zeros((2))
-        self.action_space = spaces.Discrete(8)
+        self.action_space = spaces.Discrete(4)
 
     def step(self, action):
         if action == 0:
@@ -51,7 +51,8 @@ class GridEnv(Env):
         return self.x, self.reward(), False, {}
 
     def reward(self):
-        return np.clip((self.x[0] > 3 and self.x[1] > 3) * ((self.x[0] + self.x[1] - 6) / 12), 0, 1)
+        return np.clip(1 - 1/5**2 * ((10 - self.x[0])**2 + (10 - self.x[1])**2),
+                       0, 1)
 
     def reset(self):
         self.x = np.array([0, 0])
