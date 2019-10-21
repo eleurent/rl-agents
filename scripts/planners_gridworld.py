@@ -10,6 +10,9 @@ from gym import spaces, Env
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import seaborn as sns
+import matplotlib
+
+# matplotlib.use('Qt5Agg')
 
 from rl_agents.agents.tree_search.graphics import TreePlot
 from rl_agents.agents.common.factory import agent_factory, load_environment
@@ -22,7 +25,7 @@ class GridEnv(Env):
     def __init__(self):
         dt = 0.1
         self.x = np.zeros((2))
-        self.action_space = spaces.Discrete(4)
+        self.action_space = spaces.Discrete(8)
 
     def step(self, action):
         if action == 0:
@@ -33,10 +36,22 @@ class GridEnv(Env):
             self.x[0] -= 1
         elif action == 3:
             self.x[1] -= 1
+        elif action == 4:
+            self.x[0] += 1
+            self.x[1] += 1
+        elif action == 5:
+            self.x[0] += 1
+            self.x[1] -= 1
+        elif action == 6:
+            self.x[0] -= 1
+            self.x[1] += 1
+        elif action == 7:
+            self.x[0] -= 1
+            self.x[1] -= 1
         return self.x, self.reward(), False, {}
 
     def reward(self):
-        return (self.x[0] > 10) + (self.x[1] > 10)
+        return np.clip((self.x[0] > 3 and self.x[1] > 3) * ((self.x[0] + self.x[1] - 6) / 12), 0, 1)
 
     def reset(self):
         self.x = np.array([0, 0])
@@ -79,7 +94,7 @@ def get_trajs(node, state, obs=None):
     return trajs
 
 
-def evaluate(env, agent_name, budget=4*(4**4 - 1)/3, seed=None):
+def evaluate(env, agent_name, budget=8*(8**4 - 1)/(8 - 1), seed=None):
     print("Evaluating", agent_name)
     agent_config = agents[agent_name]
     agent_config["budget"] = budget
@@ -114,7 +129,7 @@ def compare_agents(env, seed=0, show_tree=False, show_trajs=False, show_states=T
             for traj in trajs[agent_name]:
                 for s in traj:
                     visits[str(s)] += 1
-            lims = 5
+            lims = 10
             states_freqs[agent_name] = np.zeros((2 * lims + 1, 2 * lims + 1))
             for i, x in enumerate(np.arange(-lims, lims)):
                 for j, y in enumerate(np.arange(-lims, lims)):
@@ -125,12 +140,13 @@ def compare_agents(env, seed=0, show_tree=False, show_trajs=False, show_states=T
         for agent_name, states in states_freqs.items():
             cmap = plt.cm.coolwarm
             fig, ax = plt.subplots()
-            img = ax.imshow(states.T+1,
+            img = ax.imshow(states.T,
                             extent=(-lims, lims, -lims, lims),
-                            norm=colors.LogNorm(vmin=1, vmax=vmax),
+                            norm=colors.LogNorm(vmax=vmax),
                             cmap=cmap)
             fig.colorbar(img, ax=ax)
             plt.title(agent_name)
+            plt.savefig(out / "states_{}.svg".format(agent_name))
             plt.show()
 
     if show_trajs:
