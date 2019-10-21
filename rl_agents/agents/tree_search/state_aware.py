@@ -22,6 +22,7 @@ class StateAwarePlanner(AbstractPlanner):
         super().__init__(config)
         self.env = env
         self.leaves = None
+        self.state_nodes = {}
 
     def make_root(self):
         root = StateAwareNode(None, planner=self)
@@ -41,8 +42,11 @@ class StateAwarePlanner(AbstractPlanner):
     def plan(self, state, observation):
         self.root.state = state
         self.root.observation = observation
+        self.state_nodes[str(observation)] = [self.root]
         for _ in np.arange(self.config["budget"] // state.action_space.n):
             self.run()
+        print(self.config["budget"] // state.action_space.n, "expansions")
+        print(len(self.state_nodes), "states explored")
 
         return self.get_plan()
 
@@ -83,8 +87,6 @@ class StateAwareNode(Node):
             leaves.append(self.children[action])
             self.children[action].update(reward, done, observation, leaves)
 
-
-
     def update(self, reward, done, observation, leaves):
         if not np.all(0 <= reward) or not np.all(reward <= 1):
             raise ValueError("This planner assumes that all rewards are normalized in [0, 1]")
@@ -96,18 +98,19 @@ class StateAwareNode(Node):
         if self.done:
             self.future_value_upper_bound = 0
         else:
-            # Search the tree for similar states to decrease this optimistic UCB for future rewards:
-            is_same_state_node = lambda node: str(node.observation) == str(self.observation)
-            same_state_nodes = list(StateAwareNode.breadth_first_search(self.planner.root, None, is_same_state_node,
-                                                                        condition_blocking=False))
+            if str(observation) not in self.planner.state_nodes:
+                self.planner.state_nodes[str(observation)] = []
+            self.planner.state_nodes[str(observation)].append(self)
+            same_state_nodes = self.planner.state_nodes[str(observation)]
+
             # Set min state UCB for all occurences
-            future_value_upper_bound = min([1/(1 - gamma)] + [node.future_value_upper_bound for node, path in same_state_nodes])
-            for node, _ in same_state_nodes:
+            future_value_upper_bound = min([1/(1 - gamma)] + [node.future_value_upper_bound for node in same_state_nodes])
+            for node in same_state_nodes:
                 node.future_value_upper_bound = future_value_upper_bound
 
             # Pick the one with highest sequence-value, and kill the others
-            best = max([n for n, _ in same_state_nodes], key=lambda n: n.get_value_upper_bound())
-            for node, _ in same_state_nodes:
+            best = max([n for n in same_state_nodes], key=lambda n: n.get_value_upper_bound())
+            for node in same_state_nodes:
                 if node is not best and not node.children and node in leaves:
                     leaves.remove(node)
 
