@@ -2,7 +2,7 @@ import copy
 from collections import defaultdict
 
 import gym
-import highway_env
+# import highway_env
 from pathlib import Path
 import itertools
 import numpy as np
@@ -51,7 +51,7 @@ class GridEnv(Env):
         return self.x, self.reward(), False, {}
 
     def reward(self):
-        return np.clip(1 - 1/5**2 * ((10 - self.x[0])**2 + (10 - self.x[1])**2),
+        return np.clip(1 - 1/5**2 * ((12 - self.x[0])**2 + (12 - self.x[1])**2),
                        0, 1)
 
     def reset(self):
@@ -64,7 +64,7 @@ class GridEnv(Env):
     def seed(self, seed):
         pass
 
-gamma = 0.9
+gamma = 0.95
 
 agents = {
     "deterministic": {
@@ -95,8 +95,22 @@ def get_trajs(node, state, obs=None):
     return trajs
 
 
-def evaluate(env, agent_name, budget=8*(8**4 - 1)/(8 - 1), seed=None):
-    print("Evaluating", agent_name)
+def get_states(node, state, obs=None, expanded_only=True):
+    if obs is None:
+        obs = state.reset()
+    states = [obs.tolist()]
+    if expanded_only and not node.children:
+        states = []
+    if node.children:
+        for action, child in node.children.items():
+            next_state = copy.deepcopy(state)
+            next_obs, _, _, _ = next_state.step(action)
+            states.extend(get_states(child, next_state, next_obs))
+    return states
+
+
+def evaluate(env, agent_name, budget=4*(4**6 - 1)/(4 - 1), seed=None):
+    print("Evaluating", agent_name, "with budget", budget)
     agent_config = agents[agent_name]
     agent_config["budget"] = budget
     agent = agent_factory(env, agent_config)
@@ -121,16 +135,18 @@ def compare_agents(env, seed=0, show_tree=False, show_trajs=False, show_states=T
     states_freqs = {}
     for agent, agent_name in evaluate_agents(env, seed):
         if show_tree:
-            TreePlot(agent.planner, max_depth=100).plot(out / "{}.svg".format(agent_name), title=agent_name)
+            TreePlot(agent.planner, max_depth=100).plot(out / "{}.pdf".format(agent_name), title=agent_name)
             plt.show()
         if show_trajs or show_states:
             trajs[agent_name] = get_trajs(agent.planner.root, env)
             # Aggregate visits
             visits = defaultdict(int)
-            for traj in trajs[agent_name]:
-                for s in traj:
-                    visits[str(s)] += 1
-            lims = 10
+            # for traj in trajs[agent_name]:
+            #     for state in traj:
+            #         visits[str(state)] += 1
+            for state in get_states(agent.planner.root, env):
+                visits[str(state)] += 1
+            lims = 20
             states_freqs[agent_name] = np.zeros((2 * lims + 1, 2 * lims + 1))
             for i, x in enumerate(np.arange(-lims, lims)):
                 for j, y in enumerate(np.arange(-lims, lims)):
@@ -147,7 +163,7 @@ def compare_agents(env, seed=0, show_tree=False, show_trajs=False, show_states=T
                             cmap=cmap)
             fig.colorbar(img, ax=ax)
             plt.title(agent_name)
-            plt.savefig(out / "states_{}.svg".format(agent_name))
+            plt.savefig(out / "states_{}.pdf".format(agent_name))
             plt.show()
 
     if show_trajs:
