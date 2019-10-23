@@ -33,9 +33,9 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
             Run an OptimisticDeterministicPlanner episode
         """
         leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
-        if not leaf_to_expand.done:
-            leaf_to_expand.expand(self.leaves)
-
+        if leaf_to_expand.done:
+            logger.warning("Expanding a terminal state")
+        leaf_to_expand.expand()
         leaf_to_expand.backup_to_root()
 
     def plan(self, state, observation):
@@ -73,7 +73,8 @@ class DeterministicNode(Node):
         index = self.random_argmax([self.children[a].get_value() for a in actions])
         return actions[index]
 
-    def expand(self, leaves):
+    def expand(self):
+        self.planner.leaves.remove(self)
         if self.state is None:
             raise Exception("The state should be set before expanding a node")
         try:
@@ -85,13 +86,11 @@ class DeterministicNode(Node):
                                                self.planner,
                                                state=safe_deepcopy_env(self.state),
                                                depth=self.depth + 1)
-            _, reward, done, _ = self.children[action].state.step(action)
-            self.children[action].update(reward, done)
+            observation, reward, done, _ = self.children[action].state.step(action)
+            self.planner.leaves.append(self.children[action])
+            self.children[action].update(reward, done, observation)
 
-        leaves.remove(self)
-        leaves.extend(self.children.values())
-
-    def update(self, reward, done):
+    def update(self, reward, done, observation=None):
         if not np.all(0 <= reward) or not np.all(reward <= 1):
             raise ValueError("This planner assumes that all rewards are normalized in [0, 1]")
         gamma = self.planner.config["gamma"]
