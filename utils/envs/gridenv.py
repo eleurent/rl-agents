@@ -16,9 +16,9 @@ class GridEnv(Env):
         if action == 0:
             self.x[0] += 1
         elif action == 1:
-            self.x[1] += 1
-        elif action == 2:
             self.x[0] -= 1
+        elif action == 2:
+            self.x[1] += 1
         elif action == 3:
             self.x[1] -= 1
         elif action == 4:
