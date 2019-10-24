@@ -1,59 +1,30 @@
-import copy
-
+from collections import defaultdict
 import gym
-import highway_env
 from pathlib import Path
 import itertools
 import numpy as np
-from gym import spaces, Env
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import seaborn as sns
+import logging
 
 from rl_agents.agents.tree_search.graphics import TreePlot
 from rl_agents.agents.common.factory import agent_factory, load_environment
+from utils.envs import GridEnv
 
 sns.set()
+logger = logging.getLogger(__name__)
+
 out = Path("out/planners")
+gamma = 0.95
 
-
-class DynamicsEnv(Env):
-    def __init__(self):
-        dt = 0.1
-        self.x = np.random.random((2, 1))
-        self.A = np.array([[1, dt], [0, 1]])
-        self.B = np.array([[0], [dt]])
-        self.action_space = spaces.Discrete(2)
-
-    def step(self, action):
-        u = np.array([[2*action - 1]])
-        self.x = self.A @ self.x + self.B @ u
-        return self.x, self.reward(), False, {}
-
-    def reward(self):
-        return max(1 - self.x[0, 0]**2, 0)
-
-    def reset(self):
-        # self.x = np.random.random((2, 1))
-        self.x = np.array([[-1], [0]])
-
-    def simplify(self):
-        return self
-
-    def seed(self, seed):
-        pass
-
-
-env_zero_one = {
-    "id": "finite-mdp-v0",
-    "import_module": "finite_mdp",
-    "mode": "deterministic",
-    "transition": [[0, 0]],
-    "reward": [[0, 0.7]],
-    "terminal": [0,
-                 0]
+envs = {
+    "highway": Path("configs") / "HighwayEnv" / "env.json",
+    "bandit": Path("configs") / "FiniteMDPEnv" / "env_bandit.json",
+    "gridenv": Path("configs") / "DummyEnv" / "gridenv.json",
+    "dynamics": Path("configs") / "DummyEnv" / "dynamics.json",
 }
 
-gamma = 0.9
 agents = {
     "olop": {
         "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -64,7 +35,6 @@ agents = {
         },
         "lazy_tree_construction": True,
         "continuation_type": "uniform",
-        "env_preprocessors": [{"method": "simplify"}]
     },
     "kl-olop": {
         "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -75,7 +45,6 @@ agents = {
         },
         "lazy_tree_construction": True,
         "continuation_type": "uniform",
-        "env_preprocessors": [{"method": "simplify"}]
     },
     "kl-olop-1": {
         "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -86,7 +55,6 @@ agents = {
         },
         "lazy_tree_construction": True,
         "continuation_type": "uniform",
-        "env_preprocessors": [{"method": "simplify"}]
     },
     "laplace": {
         "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -97,74 +65,99 @@ agents = {
         },
         "lazy_tree_construction": True,
         "continuation_type": "uniform",
-        "env_preprocessors": [{"method": "simplify"}]
     },
     "deterministic": {
         "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
         "gamma": gamma,
-        "env_preprocessors": [{"method": "simplify"}]
-    }
+    },
+    "state_aware": {
+        "__class__": "<class 'rl_agents.agents.tree_search.state_aware.StateAwarePlannerAgent'>",
+        "gamma": gamma,
+    },
 }
 
 
-def get_trajs(node, env):
-    trajs = []
-    if not isinstance(env, DynamicsEnv):
-        return trajs
-    if node.children:
-        for action, child in node.children.items():
-            state = copy.deepcopy(env)
-            x, _, _, _ = state.step(action)
-            child_trajs = get_trajs(child, state)
-            if child_trajs:
-                trajs.extend([[x.tolist()] + t for t in child_trajs])
-            else:
-                trajs.append([x.tolist()])
-    return trajs
-
-
-def evaluate(env, agent_name, budget=2000, seed=None):
-    print("Evaluating", agent_name)
+def evaluate(env, agent_name, budget, seed=None):
+    print("Evaluating", agent_name, "with budget", budget)
     agent_config = agents[agent_name]
     agent_config["budget"] = budget
     agent = agent_factory(env, agent_config)
     if seed is not None:
         agent.seed(seed)
-    agent.act(env)
+        env.seed(seed)
+        obs = env.reset()
+    agent.act(obs)
     return agent
 
 
-def compare_trees(env, seed=0):
+def evaluate_agents(env, agents, budget, seed):
     for agent_name in agents.keys():
         env.seed(seed)
         env.reset()
-        agent = evaluate(env, agent_name, seed=seed)
-        TreePlot(agent.planner, max_depth=100).plot(out / "{}.svg".format(agent_name), title=agent_name)
+        agent = evaluate(env, agent_name, budget, seed=seed)
+        yield agent, agent_name
+
+
+def compare_agents(env, agents, budget, seed=0, show_tree=False, show_trajs=False, show_states=False):
+    trajectories = {}
+    state_occupations = {}
+    state_limits = 20
+    for agent, agent_name in evaluate_agents(env, agents, budget, seed):
+        trajectories[agent_name] = agent.planner.root.get_trajectories(env)
+        # Aggregate visits
+        visits = defaultdict(int)
+        for state in agent.planner.root.get_trajectories(env, as_sequences=False, include_leaves=False):
+            visits[str(state)] += 1
+
+        if isinstance(env, GridEnv):
+            state_occupations[agent_name] = np.zeros((2 * state_limits + 1, 2 * state_limits + 1))
+            for i, x in enumerate(np.arange(-state_limits, state_limits)):
+                for j, y in enumerate(np.arange(-state_limits, state_limits)):
+                    state_occupations[agent_name][i, j] = visits[str(np.array([x, y]))]
+
+        if show_tree:
+            TreePlot(agent.planner, max_depth=100).plot(out / "{}.pdf".format(agent_name), title=agent_name)
+            plt.show()
+
+    if show_states:
+        v_max = max([st.max() for st in state_occupations.values()])
+        for agent_name, occupations in state_occupations.items():
+            show_state_occupations(agent_name,  occupations, state_limits, v_max)
+
+    if show_trajs:
+        axes = None
+        palette = itertools.cycle(sns.color_palette())
+        for agent_name, agent_trajectories in trajectories.items():
+            axes = show_trajectories(agent_name, agent_trajectories, axes=axes, color=next(palette))
         plt.show()
+        plt.savefig(out / "trajectories.png")
 
 
-def compare_trajs(env, seed=0):
-    trajs = {}
-    for agent_name in agents.keys():
-        env.seed(seed)
-        env.reset()
-        agent = evaluate(env, agent_name, seed=seed)
-        trajs[agent_name] = get_trajs(agent.planner.root, env)
-
-    palette = itertools.cycle(sns.color_palette())
-    for agent, agent_trajs in trajs.items():
-        color = next(palette)
-        for traj in agent_trajs:
-            x, y = zip(*traj)
-            plt.plot(x, y, color=color, linestyle='dotted', linewidth=0.5)
-    plt.savefig(out / "trajectories.png")
+def show_state_occupations(agent_name, state_occupations, state_limits, v_max=None):
+    fig, ax = plt.subplots()
+    img = ax.imshow(state_occupations.T,
+                    extent=(-state_limits, state_limits, -state_limits, state_limits),
+                    norm=colors.LogNorm(vmax=v_max),
+                    cmap=plt.cm.coolwarm)
+    fig.colorbar(img, ax=ax)
+    plt.title(agent_name)
+    plt.savefig(out / "states_{}.pdf".format(agent_name))
     plt.show()
+
+
+def show_trajectories(agent_name, trajectories, axes=None, color=None):
+    if not axes:
+        fig, axes = plt.subplots()
+        for trajectory in trajectories:
+            x, y = zip(*trajectory)
+            plt.plot(x, y, linestyle='dotted', linewidth=0.5, label=agent_name, color=color)
+    return axes
 
 
 if __name__ == "__main__":
     gym.logger.set_level(gym.logger.DEBUG)
-
-    # env = DynamicsEnv()
-    # env = gym.make("highway-v0")
-    env = load_environment(env_zero_one)
-    compare_trees(env, seed=5)
+    selected_env = load_environment(envs["gridenv"])
+    selected_agents = ["deterministic", "state_aware", "kl-olop"]
+    selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
+    compare_agents(selected_env, selected_agents, budget=4 * (4 ** 6 - 1) / (4 - 1),
+                   show_tree=True, show_states=True, show_trajs=False)

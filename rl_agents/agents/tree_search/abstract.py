@@ -3,7 +3,7 @@ import numpy as np
 from gym.utils import seeding
 
 from rl_agents.agents.common.abstract import AbstractAgent
-from rl_agents.agents.common.factory import preprocess_env
+from rl_agents.agents.common.factory import preprocess_env, safe_deepcopy_env
 from rl_agents.configuration import Configurable
 
 logger = logging.getLogger(__name__)
@@ -249,3 +249,31 @@ class Node(object):
 
     def __repr__(self):
         return '<tree node representation>'
+
+    def get_trajectories(self, initial_state, initial_observation=None, as_sequences=True, include_leaves=True):
+        """
+            Get the list of trajectories corresponding to the node subtree
+
+        :param initial_state: the state at the root
+        :param initial_observation: the observation for the root state
+        :param as_sequences: return a list of observation sequences, else a list of observations
+        :param include_leaves: include leaves or only expanded nodes
+        :return: the list of trajectoris
+        """
+        trajectories = []
+        if initial_observation is None:
+            initial_observation = initial_state.reset()
+        if self.children:
+            for action, child in self.children.items():
+                next_state = safe_deepcopy_env(initial_state)
+                next_observation, _, _, _ = next_state.step(action)
+                child_trajectories = child.get_trajectories(next_state, next_observation, as_sequences, include_leaves)
+                if as_sequences:
+                    trajectories.extend([[initial_observation] + trajectory for trajectory in child_trajectories])
+                else:
+                    trajectories.extend(child_trajectories)
+            if not as_sequences:
+                trajectories.append(initial_observation)
+        elif include_leaves:
+            trajectories = [[initial_observation]] if as_sequences else [initial_observation]
+        return trajectories

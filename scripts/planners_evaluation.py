@@ -1,6 +1,6 @@
 """Usage: planners_evaluation.py [options]
 
-Compare performances of several planners on random MDPs
+Compare performances of several planners
 
 Options:
   -h --help

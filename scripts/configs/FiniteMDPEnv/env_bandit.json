@@ -1,0 +1,9 @@
+{
+    "id": "finite-mdp-v0",
+    "import_module": "finite_mdp",
+    "mode": "deterministic",
+    "transition": [[0, 0]],
+    "reward": [[0, 0.7]],
+    "terminal": [0,
+                 0]
+}
