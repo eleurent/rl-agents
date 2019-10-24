@@ -16,11 +16,12 @@ sns.set()
 logger = logging.getLogger(__name__)
 
 out = Path("out/planners")
-gamma = 0.95
+gamma = 0.99
 
 envs = {
     "highway": Path("configs") / "HighwayEnv" / "env.json",
     "bandit": Path("configs") / "FiniteMDPEnv" / "env_bandit.json",
+    "env_loop": Path("configs") / "FiniteMDPEnv" / "env_loop.json",
     "gridenv": Path("configs") / "DummyEnv" / "gridenv.json",
     "dynamics": Path("configs") / "DummyEnv" / "dynamics.json",
 }
@@ -83,22 +84,20 @@ def evaluate(env, agent_name, budget, seed=None):
     agent_config["budget"] = budget
     agent = agent_factory(env, agent_config)
     if seed is not None:
-        agent.seed(seed)
         env.seed(seed)
-        obs = env.reset()
+        agent.seed(seed)
+    obs = env.reset()
     agent.act(obs)
     return agent
 
 
-def evaluate_agents(env, agents, budget, seed):
+def evaluate_agents(env, agents, budget, seed=None):
     for agent_name in agents.keys():
-        env.seed(seed)
-        env.reset()
         agent = evaluate(env, agent_name, budget, seed=seed)
         yield agent, agent_name
 
 
-def compare_agents(env, agents, budget, seed=0, show_tree=False, show_trajs=False, show_states=False):
+def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=False, show_states=False):
     trajectories = {}
     state_occupations = {}
     state_limits = 20
@@ -122,6 +121,7 @@ def compare_agents(env, agents, budget, seed=0, show_tree=False, show_trajs=Fals
     if show_states:
         v_max = max([st.max() for st in state_occupations.values()])
         for agent_name, occupations in state_occupations.items():
+            v_max = occupations.max()
             show_state_occupations(agent_name,  occupations, state_limits, v_max)
 
     if show_trajs:
@@ -156,8 +156,9 @@ def show_trajectories(agent_name, trajectories, axes=None, color=None):
 
 if __name__ == "__main__":
     gym.logger.set_level(gym.logger.DEBUG)
-    selected_env = load_environment(envs["gridenv"])
-    selected_agents = ["deterministic", "state_aware", "kl-olop"]
+    selected_env = load_environment(envs["bandit"])
+    selected_agents = ["deterministic", "state_aware"]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
-    compare_agents(selected_env, selected_agents, budget=4 * (4 ** 6 - 1) / (4 - 1),
-                   show_tree=True, show_states=True, show_trajs=False)
+    budget = 4 * (4 ** 5 - 1) / (4 - 1)
+    compare_agents(selected_env, selected_agents, budget=budget,
+                   show_tree=True, show_states=False, show_trajs=False)
