@@ -78,7 +78,7 @@ class OLOP(AbstractPlanner):
         """
         if self.config["budget"] < self.env.action_space.n:
             self.config["budget"] = self.env.action_space.n
-        for episodes in range(1, self.config["budget"]):
+        for episodes in range(1, int(self.config["budget"])):
             if episodes * OLOP.horizon(episodes, self.config["gamma"]) > self.config["budget"]:
                 self.config["episodes"] = max(episodes - 1, 1)
                 self.config["horizon"] = OLOP.horizon(self.config["episodes"], self.config["gamma"])
