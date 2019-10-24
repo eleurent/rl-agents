@@ -1,7 +1,5 @@
 import numpy as np
 import logging
-from rl_agents.agents.common.factory import safe_deepcopy_env
-from rl_agents.agents.tree_search.abstract import Node, AbstractPlanner
 from rl_agents.agents.tree_search.deterministic import DeterministicPlannerAgent, OptimisticDeterministicPlanner, \
     DeterministicNode
 
@@ -79,10 +77,10 @@ class StateAwareNode(DeterministicNode):
         self.planner.update_value(observation, future_value_ucb)  # Aggregate with other nodes
 
         # Among sequences that lead to this state, remove all suboptimal leaves
-        best = max([n for n in self.planner.state_nodes[str(observation)]], key=lambda n: n.get_value_upper_bound())
-        for node in self.planner.state_nodes[str(observation)]:
-            if node is not best and not node.children and node in self.planner.leaves:
-                self.planner.leaves.remove(node)
+        state_leaves = [node for node in self.planner.state_nodes[str(observation)]
+                        if not node.children and node in self.planner.leaves]
+        best = max(state_leaves, key=lambda n: n.get_value_upper_bound())
+        [self.planner.leaves.remove(node) for node in state_leaves if node is not best]
 
     def backup_to_root(self):
         if self.parent:
