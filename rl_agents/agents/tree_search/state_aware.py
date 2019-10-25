@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class StateAwarePlannerAgent(DeterministicPlannerAgent):
     """
-        An agent that performs optimistic planning in deterministic MDPs with states.
+        An agent that performs state-aware optimistic planning in deterministic MDPs.
     """
     def make_planner(self):
         return StateAwarePlanner(self.env, self.config)
@@ -21,7 +21,7 @@ class StateAwarePlanner(OptimisticDeterministicPlanner):
     def __init__(self, env, config=None):
         super().__init__(env, config)
         self.state_nodes = {}  # Mapping of states to tree nodes that lead to this state
-        self.state_values = {}  # Mapping of states to upper confidence bounds of the state-value
+        self.state_values = {}  # Mapping of states to an upper confidence bound of the state-value
 
     def make_root(self):
         root = StateAwareNode(None, planner=self)

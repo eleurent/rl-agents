@@ -121,7 +121,6 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
     if show_states:
         v_max = max([st.max() for st in state_occupations.values()])
         for agent_name, occupations in state_occupations.items():
-            v_max = occupations.max()
             show_state_occupations(agent_name,  occupations, state_limits, v_max)
 
     if show_trajs:
@@ -157,8 +156,9 @@ def show_trajectories(agent_name, trajectories, axes=None, color=None):
 if __name__ == "__main__":
     gym.logger.set_level(gym.logger.DEBUG)
     selected_env = load_environment(envs["gridenv"])
-    selected_agents = ["deterministic", "state_aware"]
+    selected_agents = ["deterministic", "state_aware", "kl-olop"]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
-    budget = 4 * (4 ** 6 - 1) / (4 - 1)
+    budget = 8 * (8 ** 4 - 1) / (8 - 1)
+    # budget = 200
     compare_agents(selected_env, selected_agents, budget=budget,
                    show_tree=True, show_states=True, show_trajs=False)
