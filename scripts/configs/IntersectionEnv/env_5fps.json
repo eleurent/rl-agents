@@ -3,5 +3,6 @@
     "import_module": "highway_env",
     "policy_frequency": 5,
     "show_history": false,
-    "destination": "o3"
+    "destination": "o1",
+    "duration": 15
 }
