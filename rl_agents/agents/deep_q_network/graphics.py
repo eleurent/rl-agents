@@ -46,35 +46,40 @@ class DQNGraphics(object):
                                    1, (10, 10, 10), (255, 255, 255))
                 surface.blit(text, (cell_size[0]*action, 0))
 
-        if sim_surface:
-            try:
-                state = agent.previous_state
-                if (not hasattr(cls, "state")) or (cls.state != state).any():
-                    cls.v_attention = cls.compute_vehicles_attention(agent, state)
-                    cls.state = state
+        # if sim_surface:
+        #     cls.display_vehicles_attention(agent, sim_surface)
 
-                for head in range(list(cls.v_attention.values())[0].shape[0]):
-                    attention_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA)
-                    for vehicle, attention in cls.v_attention.items():
-                        if attention[head] < cls.MIN_ATTENTION:
-                            continue
-                        width = attention[head] * 5
-                        desat = remap(attention[head], (0, 0.5), (0.7, 1), clip=True)
-                        colors = sns.color_palette("dark", desat=desat)
-                        color = np.array(colors[2-2*head]) * 255
-                        color = (*color, remap(attention[head], (0, 0.5), (100, 200), clip=True))
-                        if vehicle is agent.env.vehicle:
-                            pygame.draw.circle(attention_surface, color,
-                                               sim_surface.vec2pix(agent.env.vehicle.position),
-                                               max(sim_surface.pix(width / 2), 1))
-                        else:
-                            pygame.draw.line(attention_surface, color,
-                                             sim_surface.vec2pix(agent.env.vehicle.position),
-                                             sim_surface.vec2pix(vehicle.position),
-                                             max(sim_surface.pix(width), 1))
-                    sim_surface.blit(attention_surface, (0, 0))
-            except ValueError as e:
-                print("Unable to display vehicles attention", e)
+    @classmethod
+    def display_vehicles_attention(cls, agent, sim_surface):
+        import pygame
+        try:
+            state = agent.previous_state
+            if (not hasattr(cls, "state")) or (cls.state != state).any():
+                cls.v_attention = cls.compute_vehicles_attention(agent, state)
+                cls.state = state
+
+            for head in range(list(cls.v_attention.values())[0].shape[0]):
+                attention_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA)
+                for vehicle, attention in cls.v_attention.items():
+                    if attention[head] < cls.MIN_ATTENTION:
+                        continue
+                    width = attention[head] * 5
+                    desat = remap(attention[head], (0, 0.5), (0.7, 1), clip=True)
+                    colors = sns.color_palette("dark", desat=desat)
+                    color = np.array(colors[2-2*head]) * 255
+                    color = (*color, remap(attention[head], (0, 0.5), (100, 200), clip=True))
+                    if vehicle is agent.env.vehicle:
+                        pygame.draw.circle(attention_surface, color,
+                                           sim_surface.vec2pix(agent.env.vehicle.position),
+                                           max(sim_surface.pix(width / 2), 1))
+                    else:
+                        pygame.draw.line(attention_surface, color,
+                                         sim_surface.vec2pix(agent.env.vehicle.position),
+                                         sim_surface.vec2pix(vehicle.position),
+                                         max(sim_surface.pix(width), 1))
+                sim_surface.blit(attention_surface, (0, 0))
+        except ValueError as e:
+            print("Unable to display vehicles attention", e)
 
     @classmethod
     def compute_vehicles_attention(cls, agent, state):
