@@ -34,9 +34,8 @@ class OLOP(AbstractPlanner):
                 {
                     "type": "hoeffding",
                     "time": "global",
-                    "c": 4
+                    "threshold": "4*np.log(time)"
                 },
-                "lazy_tree_construction": True,
                 "continuation_type": "zeros"
             }
         )
@@ -47,26 +46,7 @@ class OLOP(AbstractPlanner):
         self.leaves = [root]
         if "horizon" not in self.config:
             self.allocate_budget()
-
-        if not self.config["lazy_tree_construction"]:
-            self.prebuild_tree(self.env.action_space.n)
-
         return root
-
-    def prebuild_tree(self, branching_factor):
-        """
-            Build a full search tree with a given branching factor and depth.
-
-            In the original OLOP paper, the tree is built in advance so that leaves at depth L can be seen
-            as arms of a structured bandit problem.
-        :param branching_factor: The number of actions in each state
-        """
-        for _ in range(self.config["horizon"]):
-            next_leaves = []
-            for leaf in self.leaves:
-                super(OLOPNode, leaf).expand(branching_factor)
-                next_leaves += leaf.children.values()
-            self.leaves = next_leaves
 
     @staticmethod
     def horizon(episodes, gamma):
@@ -95,7 +75,9 @@ class OLOP(AbstractPlanner):
         :param state: the initial environment state
         """
         # Compute B-values
+        # TODO: Remove deprecated local times
         list(Node.breadth_first_search(self.root, operator=self.compute_ucbs, condition=None))
+        # TODO: For KL-OLOP only, this could be updated after expansion along the sequence
         list(Node.breadth_first_search(self.root, operator=self.compute_u_values, condition=None))
         sequences_upper_bounds = list(map(OLOP.sharpen_b_values, self.leaves))
 
@@ -117,14 +99,12 @@ class OLOP(AbstractPlanner):
         node = self.root
         for action in best_sequence:
             if not node.children:
-                self.leaves = node.expand(state, self.leaves, update_children=False)
+                node.expand(state)
             if action not in node.children:  # Default action may not be available
                 action = list(node.children.keys())[0]  # Pick first available action instead
             observation, reward, done, _ = state.step(action)
             node = node.children[action]
             node.update(reward, done)
-            # if node.done:
-            #     break
 
     def compute_ucbs(self, node, path):
         """
@@ -229,6 +209,7 @@ class OLOPNode(Node):
         elif self.planner.config["upper_bound"]["time"] == "global":
             time = self.planner.config["episodes"]
         else:
+            time = np.nan
             logger.error("Unknown upper-bound time reference")
 
         if self.planner.config["upper_bound"]["type"] == "hoeffding":
@@ -239,11 +220,11 @@ class OLOPNode(Node):
                                               c=self.planner.config["upper_bound"]["c"])
         elif self.planner.config["upper_bound"]["type"] == "kullback-leibler":
             self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, time,
-                                         c=self.planner.config["upper_bound"]["c"])
+                                         threshold=self.planner.config["upper_bound"]["threshold"])
         else:
             logger.error("Unknown upper-bound type")
 
-    def expand(self, state, leaves, update_children=False):
+    def expand(self, state):
         if state is None:
             raise Exception("The state should be set before expanding a node")
         try:
@@ -253,10 +234,9 @@ class OLOPNode(Node):
         for action in actions:
             self.children[action] = type(self)(self,
                                                self.planner)
-            if update_children:
-                _, reward, done, _ = safe_deepcopy_env(state).step(action)
-                self.children[action].update(reward, done)
 
-        idx = leaves.index(self)
-        leaves = leaves[:idx] + list(self.children.values()) + leaves[idx+1:]
-        return leaves
+        # Replace the former leaf by its children, but keep the ordering
+        idx = self.planner.leaves.index(self)
+        self.planner.leaves = self.planner.leaves[:idx] + \
+                              list(self.children.values()) + \
+                              self.planner.leaves[idx+1:]

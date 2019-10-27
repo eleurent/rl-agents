@@ -6,8 +6,7 @@
     "max_depth": 4,
     "upper_bound": {
         "type": "kullback-leibler",
-        "c": 2
+        "threshold": "2*np.log(time)"
     },
-    "lazy_tree_construction": true,
     "continuation_type": "uniform"
 }

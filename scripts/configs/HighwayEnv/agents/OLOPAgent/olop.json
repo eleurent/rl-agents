@@ -6,8 +6,7 @@
     "max_depth": 4,
     "upper_bound": {
         "type": "hoeffding",
-        "c": 4
+        "threshold": "4*np.log(time)"
     },
-    "lazy_tree_construction": true,
     "continuation_type": "uniform"
 }

@@ -116,7 +116,7 @@ def laplace_upper_bound(_sum, count, time, c=2):
     return _sum / count + np.sqrt((1 + 1 / count) * c * np.log(np.sqrt(count + 1) * time) / (2 * count))
 
 
-def kl_upper_bound(_sum, count, time, c=2, eps=1e-2):
+def kl_upper_bound(_sum, count, time, threshold="2*np.log(time)", eps=1e-2, lower=False):
     """
         Upper Confidence Bound of the empirical mean built on the Kullback-Leibler divergence.
 
@@ -125,15 +125,16 @@ def kl_upper_bound(_sum, count, time, c=2, eps=1e-2):
     :param _sum: Sum of sample values
     :param count: Number of samples
     :param time: Allows to set the bound confidence level
-    :param c: Coefficient before the log(t) in the maximum divergence
+    :param threshold: expression to define the maximum kl-divergence
     :param eps: Absolute accuracy of the Netwon Iteration
+    :param lower: Whether to compute a lower-bound instead of upper-bound
     """
     mu = _sum/count
-    max_div = c*np.log(time)/count
+    max_div = eval(threshold)/count
 
     # Solve KL(mu, q) = max_div
     q = mu
-    next_q = (1 + mu)/2
+    next_q = (1 + mu)/2 if not lower else mu/2
     while abs(q - next_q) > eps:
         q = next_q
 
@@ -146,7 +147,9 @@ def kl_upper_bound(_sum, count, time, c=2, eps=1e-2):
         weight = 0.9
         if next_q > 1:
             next_q = weight*1 + (1 - weight)*q
-        elif next_q < mu:
+        elif next_q < 0:
+            next_q = weight*0 + (1 - weight)*q
+        elif (next_q < mu and not lower) or (next_q > mu and lower):
             next_q = weight*mu + (1 - weight)*q
 
-    return constrain(q, 0, 1)
+    return constrain(next_q, 0, 1)
