@@ -1,0 +1,15 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
+    "env_preprocessors": [{"method":"simplify"}],
+    "gamma": 0.7,
+    "max_depth": 4,
+    "accuracy": 0.5,
+    "confidence": 0.9,
+    "upper_bound":
+    {
+        "type": "kullback-leibler",
+        "time": "global",
+        "threshold": "3*np.log(1 + np.log(count)) + horizon*np.log(actions) - np.log(confidence)"
+    },
+    "continuation_type": "uniform"
+}

@@ -37,8 +37,8 @@ SEED_MAX = 1e9
 
 def env_configs():
     # return ['configs/CartPoleEnv/env.json']
-    # return ['configs/HighwayEnv/env_medium.json']
-    return ['configs/GridWorld/collect.json']
+    return ['configs/HighwayEnv/env_medium.json']
+    # return ['configs/GridWorld/collect.json']
 
 
 def agent_configs():
