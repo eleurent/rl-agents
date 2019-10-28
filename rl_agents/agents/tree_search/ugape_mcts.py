@@ -31,7 +31,7 @@ class UgapEMCTS(OLOP):
         cfg = super(OLOP, cls).default_config()
         cfg.update(
             {
-                "accuracy": 0.5,
+                "accuracy": 1.0,
                 "confidence": 0.9,
                 "upper_bound":
                 {
@@ -39,7 +39,7 @@ class UgapEMCTS(OLOP):
                     "time": "global",
                     "threshold": "3*np.log(1 + np.log(count))"
                                  "+ horizon*np.log(actions)"
-                                 "- np.log(confidence)"
+                                 "+ np.log(1/(1-confidence))"
                 },
                 "continuation_type": "uniform"
             }
@@ -69,6 +69,8 @@ class UgapEMCTS(OLOP):
         :param state: the initial environment state
         """
         if self.root.children:
+            logger.debug(" / ".join(["a{} ({}): [{:.3f}, {:.3f}]".format(k, n.count, n.value_lower, n.value)
+                                   for k, n in self.root.children.items()]))
             # Run UGapE for first action selection
             selected_child, best, challenger = self.root.best_arm_identification_selection()
             selected_action = next(selected_child.path())
@@ -113,6 +115,7 @@ class UgapEMCTS(OLOP):
 
             # Stopping rule
             done = challenger.value - best.value_lower < self.config["accuracy"] if best is not None else False
+            done = done or episode * self.config["horizon"] > self.config["budget"]
 
             episode += 1
             if episode % 10 == 0:
@@ -148,18 +151,19 @@ class UGapEMCTSNode(OLOPNode):
     def selection_rule(self):
         # Best arm identification at the root
         if self.planner.root == self:
-            selected_node, _, _ = self.best_arm_identification_selection()
-            return next(selected_node.path())
+            _, best_node, _ = self.best_arm_identification_selection()
+            return next(best_node.path())
 
         # Then follow the optimistic values
         actions = list(self.children.keys())
-        index = Node.random_argmax([self.children[a].value for a in actions])
+        index = self.random_argmax([self.children[a].value for a in actions])
         return actions[index]
 
     def compute_ucb(self):
         if self.planner.config["upper_bound"]["type"] == "kullback-leibler":
+            # Variables available for threshold evaluation
             horizon = self.planner.config["horizon"]
-            actions = len(self.planner.root.children)
+            actions = self.planner.env.action_space.n
             confidence = self.planner.config["confidence"]
             count = self.count
             threshold = eval(self.planner.config["upper_bound"]["threshold"])
@@ -194,6 +198,7 @@ class UGapEMCTSNode(OLOPNode):
         :return: selected arm, best candidate, challenger
         """
         # Best candidate child has the lowest potential gap
+        self.compute_children_gaps()
         best = min(self.children.values(), key=lambda c: c.gap)
         # Challenger: not best and highest value upper bound
         challenger = max([c for c in self.children.values() if c is not best], key=lambda c: c.value)
