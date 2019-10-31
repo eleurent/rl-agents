@@ -103,10 +103,16 @@ def safe_deepcopy_env(obj):
     cls = obj.__class__
     result = cls.__new__(cls)
     memo = {id(obj): result}
+
     for k, v in obj.__dict__.items():
-        if k not in ['viewer', 'automatic_rendering_callback', 'grid_render']:
+        if k not in ['viewer', 'automatic_rendering_callback', 'grid_render', 'rootNode', 'scene']:
             if isinstance(v, gym.Env):
                 setattr(result, k, safe_deepcopy_env(v))
+            if k == 'past_actions':
+                # Environment is using a Sofa Simulation and needs special treatment
+                setattr(result, k, copy.deepcopy(v, memo=memo))
+                rootNode = obj.mycopy(v)
+                setattr(result, 'rootNode', rootNode)
             else:
                 setattr(result, k, copy.deepcopy(v, memo=memo))
         else:
