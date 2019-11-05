@@ -11,8 +11,8 @@
             "vx": [-20, 20],
             "vy": [-20, 20]
         },
-        "grid_size": [[-27.5, 27.5], [-27.5, 27.5]],
-        "grid_step": [5, 5],
+        "grid_size": [[-32, 32], [-32, 32]],
+        "grid_step":  [2, 2],
         "absolute": false,
         "destination": "o1"
     }
