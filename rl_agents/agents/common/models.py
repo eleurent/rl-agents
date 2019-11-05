@@ -115,7 +115,7 @@ class ConvolutionalNetwork(nn.Module, Configurable):
             return (size - (kernel_size - 1) - 1) // stride  + 1
         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(self.config["in_width"])))
         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(self.config["in_height"])))
-        linear_input_size = convw * convh * 32
+        linear_input_size = convw * convh * 64
         self.head = nn.Linear(linear_input_size, self.config["out"])
 
     @classmethod
