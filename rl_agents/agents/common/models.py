@@ -97,6 +97,48 @@ class DuelingNetwork(BaseModule, Configurable):
         return value + advantage - advantage.mean(1).unsqueeze(1).expand(-1,  self.config["out"])
 
 
+class ConvolutionalNetwork(nn.Module, Configurable):
+    def __init__(self, config):
+        super().__init__()
+        Configurable.__init__(self, config)
+        self.activation = activation_factory(self.config["activation"])
+        self.conv1 = nn.Conv2d(self.config["in_channels"], 16, kernel_size=3, stride=2)
+        self.bn1 = nn.BatchNorm2d(16)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=2)
+        self.bn2 = nn.BatchNorm2d(32)
+        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, stride=2)
+        self.bn3 = nn.BatchNorm2d(64)
+
+        # Number of Linear input connections depends on output of conv2d layers
+        # and therefore the input image size, so compute it.
+        def conv2d_size_out(size, kernel_size=3, stride=2):
+            return (size - (kernel_size - 1) - 1) // stride  + 1
+        convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(self.config["in_width"])))
+        convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(self.config["in_height"])))
+        linear_input_size = convw * convh * 32
+        self.head = nn.Linear(linear_input_size, self.config["out"])
+
+    @classmethod
+    def default_config(cls):
+        return {
+            "in_channels": None,
+            "in_height": None,
+            "in_width": None,
+            "activation": "RELU",
+            "out": None
+        }
+
+    def forward(self, x):
+        """
+            Forward convolutional network
+        :param x: tensor of shape BCHW
+        """
+        x = self.activation(self.bn1(self.conv1(x)))
+        x = self.activation(self.bn2(self.conv2(x)))
+        x = self.activation(self.bn3(self.conv3(x)))
+        return self.head(x.view(x.size(0), -1))
+
+
 class EgoAttention(BaseModule, Configurable):
     def __init__(self, config):
         super().__init__()
@@ -202,7 +244,6 @@ class EgoAttentionNetwork(BaseModule, Configurable):
         return {
             "in": None,
             "out": None,
-            "n_head": 4,
             "presence_feature_idx": 0,
             "embedding_layer": {
                 "type": "MultiLayerPerceptron",
@@ -232,12 +273,7 @@ class EgoAttentionNetwork(BaseModule, Configurable):
         }
 
     def forward(self, x):
-        ego, others, mask = self.split_input(x)
-        ego, others = self.ego_embedding(ego), self.others_embedding(others)
-        if self.self_attention_layer:
-            self_att, _ = self.self_attention_layer(ego, others, mask)
-            ego, others, mask = self.split_input(self_att, mask=mask)
-        ego_embedded_att, _ = self.attention_layer(ego, others, mask)
+        ego_embedded_att, _ = self.forward_attention(x)
         return self.output_layer(ego_embedded_att)
 
     def split_input(self, x, mask=None):
@@ -248,13 +284,16 @@ class EgoAttentionNetwork(BaseModule, Configurable):
             mask = x[:, :, self.config["presence_feature_idx"]:self.config["presence_feature_idx"] + 1] < 0.5
         return ego, others, mask
 
-    def get_attention_matrix(self, x):
+    def forward_attention(self, x):
         ego, others, mask = self.split_input(x)
         ego, others = self.ego_embedding(ego), self.others_embedding(others)
         if self.self_attention_layer:
             self_att, _ = self.self_attention_layer(ego, others, mask)
             ego, others, mask = self.split_input(self_att, mask=mask)
-        _, attention_matrix = self.attention_layer(ego, others, mask)
+        return self.attention_layer(ego, others, mask)
+
+    def get_attention_matrix(self, x):
+        _, attention_matrix = self.forward_attention(x)
         return attention_matrix
 
 
@@ -277,7 +316,6 @@ class AttentionNetwork(BaseModule, Configurable):
         return {
             "in": None,
             "out": None,
-            "n_head": 4,
             "presence_feature_idx": 0,
             "embedding_layer": {
                 "type": "MultiLayerPerceptron",
@@ -344,11 +382,35 @@ def activation_factory(activation_type):
         raise ValueError("Unknown activation_type: {}".format(activation_type))
 
 
+def trainable_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+def size_model_config(env, model_config):
+    """
+        Update the configuration of a model depending on the environment observation/action spaces
+
+        Typically, the input/output sizes.
+
+    :param env: an environment
+    :param model_config: a model configuration
+    """
+    if model_config["type"] == "ConvolutionalNetwork":  # Assume CHW observation space
+        model_config["in_channels"] = int(env.observation_space.shape[0])
+        model_config["in_height"] = int(env.observation_space.shape[1])
+        model_config["in_width"] = int(env.observation_space.shape[2])
+    else:
+        model_config["in"] = int(np.prod(env.observation_space.shape))
+    model_config["out"] = env.action_space.n
+
+
 def model_factory(config: dict) -> nn.Module:
     if config["type"] == "MultiLayerPerceptron":
         return MultiLayerPerceptron(config)
     elif config["type"] == "DuelingNetwork":
         return DuelingNetwork(config)
+    elif config["type"] == "ConvolutionalNetwork":
+        return ConvolutionalNetwork(config)
     elif config["type"] == "EgoAttentionNetwork":
         return EgoAttentionNetwork(config)
     else:

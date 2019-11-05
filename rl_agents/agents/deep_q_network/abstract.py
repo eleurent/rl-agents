@@ -12,8 +12,6 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         super(AbstractDQNAgent, self).__init__(config)
         self.env = env
         assert isinstance(env.action_space, spaces.Discrete), "Only compatible with Discrete action spaces."
-        self.config["model"]["in"] = int(np.prod(env.observation_space.shape))
-        self.config["model"]["out"] = env.action_space.n
         self.memory = ReplayMemory(self.config)
         self.exploration_policy = exploration_factory(self.config["exploration"], self.env.action_space)
         self.training = True

@@ -11,6 +11,7 @@
             "vx": [-20, 20],
             "vy": [-20, 20]
         },
-        "absolute": false
+        "absolute": false,
+        "destination": "o1"
     }
 }

@@ -2,7 +2,7 @@ import logging
 import torch
 
 from rl_agents.agents.common.memory import Transition
-from rl_agents.agents.common.models import model_factory
+from rl_agents.agents.common.models import model_factory, size_model_config, trainable_parameters
 from rl_agents.agents.common.optimizers import loss_function_factory, optimizer_factory
 from rl_agents.agents.common.utils import choose_device
 from rl_agents.agents.deep_q_network.abstract import AbstractDQNAgent
@@ -13,10 +13,12 @@ logger = logging.getLogger(__name__)
 class DQNAgent(AbstractDQNAgent):
     def __init__(self, env, config=None):
         super(DQNAgent, self).__init__(env, config)
+        size_model_config(self.env, self.config["model"])
         self.value_net = model_factory(self.config["model"])
         self.target_net = model_factory(self.config["model"])
         self.target_net.load_state_dict(self.value_net.state_dict())
         self.target_net.eval()
+        logger.debug("Number of trainable parameters: {}".format(trainable_parameters(self.value_net)))
         self.device = choose_device(self.config["device"])
         self.value_net.to(self.device)
         self.target_net.to(self.device)
@@ -94,6 +96,4 @@ class DQNAgent(AbstractDQNAgent):
         self.writer.add_graph(self.value_net,
                               input_to_model=torch.zeros((1, *self.env.observation_space.shape),
                                                          dtype=torch.float, device=self.device))
-        self.writer.add_scalar("agent/trainable_parameters",
-                               sum(p.numel() for p in self.value_net.parameters() if p.requires_grad),
-                               0)
+        self.writer.add_scalar("agent/trainable_parameters", trainable_parameters(self.value_net), 0)
