@@ -59,6 +59,7 @@ class UgapEMCTS(OLOP):
         """
         self.config["horizon"] = int(np.ceil(np.log(self.config["accuracy"] * (1 - self.config["gamma"]) / 2) \
                                  / np.log(self.config["gamma"])))
+        logger.debug("Planning at depth H={}".format(self.config["horizon"]))
 
     def run(self, state):
         """
