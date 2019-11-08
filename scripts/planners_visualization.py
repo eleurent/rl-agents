@@ -155,8 +155,13 @@ def show_trajectories(agent_name, trajectories, axes=None, color=None):
 
 if __name__ == "__main__":
     gym.logger.set_level(gym.logger.DEBUG)
+
     selected_env = load_environment(envs["gridenv"])
-    selected_agents = ["deterministic", "state_aware", "kl-olop"]
+    selected_agents = [
+         # "deterministic",
+         "state_aware",
+         # "kl-olop"
+    ]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
     budget = 8 * (8 ** 4 - 1) / (8 - 1)
     # budget = 200

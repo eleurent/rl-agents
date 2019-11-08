@@ -7,7 +7,7 @@ class GridEnv(Env):
     REWARD_CENTER = [10, 10]
     REWARD_RADIUS = 5
 
-    def __init__(self, use_diagonals=True):
+    def __init__(self, use_diagonals=False):
         self.x = np.zeros(2)
         num_actions = 8 if use_diagonals else 4
         self.action_space = spaces.Discrete(num_actions)

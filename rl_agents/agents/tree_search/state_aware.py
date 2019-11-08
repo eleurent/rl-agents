@@ -28,6 +28,17 @@ class StateAwarePlanner(OptimisticDeterministicPlanner):
         self.leaves = [root]
         return root
 
+    def run(self):
+        leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
+        if leaf_to_expand.done:
+            logger.warning("Expanding a terminal state")
+        leaf_to_expand.expand()
+        leaf_to_expand.updated_nodes = leaf_to_expand.backup_to_root()
+        print("{} updated nodes for state {} from path {}".format(
+            leaf_to_expand.updated_nodes,
+            leaf_to_expand.observation,
+            list(leaf_to_expand.path())))
+
     def update_value(self, observation, value):
         """
             Update the upper-confidence-bound for the value of a state with a possibly tighter candidate
@@ -44,14 +55,11 @@ class StateAwarePlanner(OptimisticDeterministicPlanner):
 
     def plan(self, state, observation):
         # Initialize root
-        self.root.state = state
         self.root.observation = observation
         self.state_nodes[str(observation)] = [self.root]
         self.state_values[str(observation)] = 1 / (1 - self.config["gamma"])
+        super().plan(state, observation)
 
-        # Plan
-        for _ in np.arange(self.config["budget"] // state.action_space.n):
-            self.run()
         logger.debug("{} expansions".format(self.config["budget"] // state.action_space.n))
         logger.debug("{} states explored".format(len(self.state_nodes)))
 
@@ -72,9 +80,9 @@ class StateAwareNode(DeterministicNode):
             self.planner.state_nodes[str(observation)] = []
         self.planner.state_nodes[str(observation)].append(self)
 
-        # Update the ucb for the value of this state
+        # Update the value of this state - no gain of information
         future_value_ucb = 1/(1 - self.planner.config["gamma"]) if not self.done else 0  # Default value
-        self.planner.update_value(observation, future_value_ucb)  # Aggregate with other nodes
+        self.planner.update_value(observation, future_value_ucb)  # Aggregate from other nodes
 
         # Among sequences that lead to this state, remove all suboptimal leaves
         state_leaves = [node for node in self.planner.state_nodes[str(observation)]
@@ -83,12 +91,18 @@ class StateAwareNode(DeterministicNode):
         [self.planner.leaves.remove(node) for node in state_leaves if node is not best]
 
     def backup_to_root(self):
-        if self.parent:
-            self.count += 1
-            best_child = max(self.parent.children.values(), key=lambda child: child.get_value_upper_bound())
-            self.planner.update_value(self.observation, best_child.reward + self.planner.config["gamma"] *
-                                      self.planner.state_values[str(best_child.observation)])
-            self.parent.backup_to_root()
+        if self.children:
+            updated_nodes = 1
+            best_child = max(self.children.values(), key=lambda child: child.get_value_upper_bound())
+            updated = self.planner.update_value(self.observation, best_child.reward + self.planner.config["gamma"] *
+                                                self.planner.state_values[str(best_child.observation)])
+            if updated:
+                if self.parent:  # Backup this node's parent first
+                    updated_nodes += self.parent.backup_to_root()
+                for node in self.planner.state_nodes[str(self.observation)]:  # And other updated nodes then
+                    if node is not self and node.parent:
+                        updated_nodes += node.parent.backup_to_root()
+        return updated_nodes
 
     def get_value_upper_bound(self):
         return self.value + \
