@@ -40,7 +40,8 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
 
     def plan(self, state, observation):
         self.root.state = state
-        for _ in np.arange(self.config["budget"] // state.action_space.n):
+        for epoch in np.arange(self.config["budget"] // state.action_space.n):
+            logger.debug("Expansion {}/{}".format(epoch + 1, self.config["budget"] // state.action_space.n))
             self.run()
 
         return self.get_plan()
@@ -99,6 +100,9 @@ class DeterministicNode(Node):
         self.done = done
         self.value_upper_bound = self.value + (1 - done) * (gamma ** self.depth) / (1 - gamma)
 
+        for node in self.sequence():
+            node.count += 1
+
     def backup_values(self):
         if self.children:
             backup_children = [child.backup_values() for child in self.children.values()]
@@ -107,12 +111,11 @@ class DeterministicNode(Node):
         return self.get_value(), self.get_value_upper_bound()
 
     def backup_to_root(self):
-        if self.parent:
-            values = [(child.value, child.value_upper_bound) for child in self.parent.children.values()]
-            self.parent.value = np.amax([b[0] for b in values])
-            self.value_upper_bound = np.amax([b[1] for b in values])
-            self.parent.backup_to_root()
-            self.count += 1
+        if self.children:
+            self.value = np.amax([child.value for child in self.children.values()])
+            self.value_upper_bound = np.amax([child.value_upper_bound for child in self.children.values()])
+            if self.parent:
+                self.parent.backup_to_root()
 
     def get_value_upper_bound(self):
         return self.value_upper_bound

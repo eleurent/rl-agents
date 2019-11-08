@@ -222,6 +222,17 @@ class Node(object):
             node = node.parent
         return reversed(path)
 
+    def sequence(self):
+        """
+        :return: sequence of nodes from the root to the node
+        """
+        node = self
+        path = [node]
+        while node.parent:
+            path.append(node.parent)
+            node = node.parent
+        return reversed(path)
+
     @staticmethod
     def all_argmax(x):
         """
