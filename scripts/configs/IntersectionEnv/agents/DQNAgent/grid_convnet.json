@@ -1,7 +1,14 @@
 {
     "__class__": "<class 'rl_agents.agents.deep_q_network.pytorch.DQNAgent'>",
     "model": {
-        "type": "ConvolutionalNetwork"
+        "type": "ConvolutionalNetwork",
+        "activation": "RELU",
+        "head_mlp": {
+            "type": "MultiLayerPerceptron",
+            "layers": [16],
+            "activation": "RELU",
+            "reshape": "True"
+        }
     },
     "gamma": 0.95,
     "n_steps": 1,
