@@ -78,6 +78,8 @@ class Evaluation(object):
         self.agent.set_writer(self.writer)
         self.write_logging()
         self.write_metadata()
+        self.filtered_agent_stats = 0
+        self.best_agent_stats = 0
 
         self.recover = recover
         if self.recover:
@@ -138,7 +140,7 @@ class Evaluation(object):
 
             # End of episode
             self.after_all_episodes(episode, rewards)
-            self.after_some_episodes(episode)
+            self.after_some_episodes(episode, rewards)
 
     def step(self):
         """
@@ -306,11 +308,22 @@ class Evaluation(object):
         self.writer.add_histogram('episode/rewards', rewards, episode)
         logger.info("Episode {} score: {:.1f}".format(episode, sum(rewards)))
 
-    def after_some_episodes(self, episode):
+    def after_some_episodes(self, episode, rewards,
+                            best_increase=1.1,
+                            episodes_window=50):
         if self.monitor.is_episode_selected():
             # Save the model
             if self.training:
                 self.save_agent_model(episode)
+
+        if self.training:
+            # Save best model so far, averaged on a window
+            best_reward, best_episode = self.best_agent_stats
+            self.filtered_agent_stats += 1 / episodes_window * (np.sum(rewards) - self.filtered_agent_stats)
+            if self.filtered_agent_stats > best_increase * best_reward \
+                    and episode >= best_episode + episodes_window:
+                self.best_agent_stats = (self.filtered_agent_stats, episode)
+                self.save_agent_model("best")
 
     @property
     def default_directory(self):
