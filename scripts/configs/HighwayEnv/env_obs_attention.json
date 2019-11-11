@@ -1,0 +1,18 @@
+{
+    "id": "highway-v0",
+    "import_module": "highway_env",
+    "observation": {
+        "type": "Kinematics",
+        "vehicles_count": 15,
+        "features": [
+            "presence",
+            "x",
+            "y",
+            "vx",
+            "vy",
+            "cos_h",
+            "sin_h"
+        ],
+        "absolute": false
+    }
+}
