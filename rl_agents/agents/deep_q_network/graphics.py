@@ -46,8 +46,8 @@ class DQNGraphics(object):
                                    1, (10, 10, 10), (255, 255, 255))
                 surface.blit(text, (cell_size[0]*action, 0))
 
-        # if sim_surface:
-        #     cls.display_vehicles_attention(agent, sim_surface)
+        if sim_surface and hasattr(agent.value_net, "get_attention_matrix"):
+            cls.display_vehicles_attention(agent, sim_surface)
 
     @classmethod
     def display_vehicles_attention(cls, agent, sim_surface):
@@ -98,6 +98,8 @@ class DQNGraphics(object):
                 v_feature = remap(v_feature, [-1, 1], agent.env.observation.features_range[feature])
                 v_position[feature] = v_feature
             v_position = np.array([v_position["x"], v_position["y"]])
+            if not agent.env.observation.absolute and v_index > 0:
+                v_position += agent.env.unwrapped.vehicle.position
             vehicle = min(agent.env.road.vehicles, key=lambda v: np.linalg.norm(v.position - v_position))
             v_attention[vehicle] = attention[:, v_index]
         return v_attention
