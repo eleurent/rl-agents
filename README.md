@@ -25,7 +25,7 @@ A collection of Reinforcement Learning agents
     * [Deep Q-Network](#dqn-deep-q-network)
     * [Fitted-Q](#ftq-fitted-q)
   * Safe value-based
-    * [Budgeted Fitted-Q](#bftq-budgeted-fitted-q-meat_on_bone)
+    * [Budgeted Fitted-Q](#bftq-budgeted-fitted-q)
 * [Citing](#citing) 
 
 # Installation
@@ -73,10 +73,11 @@ next_state, reward, done, info = env.step(action)
 agent.record(state, action, reward, next_state, done, info)
 ```
 
-The environments are described by their [gym](https://github.com/openai/gym) registration `id`
+The environments are described by their [gym](https://github.com/openai/gym) `id`, and module for registration.
 ```JSON
 {
-    "id":"CartPole-v0"
+    "id": "CartPole-v0",
+    "import_module": "gym"
 }
 ```
 
@@ -113,7 +114,7 @@ All experiments are then executed in parallel on several processes.
 $ python3 experiments.py benchmark cartpole_benchmark.json --test --processes=4
 ```
 
-A benchmark configuration files contains a list of environment configurations and a list of agent configurations.
+A benchmark configuration file contains a list of environment configurations and a list of agent configurations.
 
 ```JSON
 {
@@ -124,7 +125,7 @@ A benchmark configuration files contains a list of environment configurations an
 
 # Monitoring
 
-There are a few tools available to monitor the agent performances:
+There are several tools available to monitor the agent performances:
 * *Run metadata*: for the sake of reproducibility, the environment and agent configurations used for the run are merged and saved to a `metadata.*.json` file.
 * [*Gym Monitor*](https://github.com/openai/gym/blob/master/gym/wrappers/monitor.py): the main statistics (episode rewards, lengths, seeds) of are logged to an `episode_batch.*.stats.json` file. They can be automatically visualised by running `scripts/analyze.py`
 * [*Logging*](https://docs.python.org/3/howto/logging.html): agents can send messages through the standard python logging library. By default, all messages with log level _INFO_ are saved to a `logging.*.log` file. Add the option `scripts/experiments.py --verbose` to save with log level _DEBUG_.
@@ -243,7 +244,7 @@ Reference: [Tree-Based Batch Mode Reinforcement Learning](http://www.jmlr.org/pa
 
 ## Safe Value-based
 
-### [`BFTQ` Budgeted Fitted-Q :meat_on_bone:](rl_agents/agents/budgeted_ftq "\bif.tɛk\ ")
+### [`BFTQ` Budgeted Fitted-Q](rl_agents/agents/budgeted_ftq)
 
 An adaptation of **`FTQ`** in the budgeted setting: we maximise the expected reward _r_ of a policy _π_ under the constraint that an expected cost _c_ remains under a given budget _β_.
 The policy _π(a | s, _β_)_ is conditioned on this cost budget _β_, which can be changed online.
