@@ -58,7 +58,11 @@ def evaluate(environment_config, agent_config, options):
         logger.configure(VERBOSE_CONFIG)
     env = load_environment(environment_config)
     agent = load_agent(agent_config, env)
-    run_directory = Path(agent_config).with_suffix('').name if options['--name-from-config'] else None
+    run_directory = None
+    if options['--name-from-config']:
+        run_directory = "{}_{}_{}".format(Path(agent_config).with_suffix('').name,
+                                  datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                                  os.getpid())
     options['--seed'] = int(options['--seed']) if options['--seed'] is not None else None
     evaluation = Evaluation(env,
                             agent,
