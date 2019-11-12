@@ -265,7 +265,7 @@ If you use this project in your work, please consider citing it with:
 ```
 @misc{rl-agents,
   author = {Leurent, Edouard},
-  title = {rl-agents: implementations of reinforcement learning algorithms},
+  title = {rl-agents: Implementations of Reinforcement Learning algorithms},
   year = {2018},
   publisher = {GitHub},
   journal = {GitHub repository},
