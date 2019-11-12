@@ -10,6 +10,7 @@ import logging
 
 from rl_agents.agents.tree_search.graphics import TreePlot
 from rl_agents.agents.common.factory import agent_factory, load_environment
+from rl_agents.trainer.logger import configure
 from utils.envs import GridEnv
 
 sns.set()
@@ -74,6 +75,9 @@ agents = {
     "state_aware": {
         "__class__": "<class 'rl_agents.agents.tree_search.state_aware.StateAwarePlannerAgent'>",
         "gamma": gamma,
+        "backup_aggregated_nodes": True,
+        "prune_suboptimal_leaves": True,
+        "stopping_accuracy": 0
     },
 }
 
@@ -100,19 +104,27 @@ def evaluate_agents(env, agents, budget, seed=None):
 def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=False, show_states=False):
     trajectories = {}
     state_occupations = {}
+    state_updates = {}
     state_limits = 20
     for agent, agent_name in evaluate_agents(env, agents, budget, seed):
         trajectories[agent_name] = agent.planner.root.get_trajectories(env)
         # Aggregate visits
         visits = defaultdict(int)
-        for state in agent.planner.root.get_trajectories(env, as_sequences=False, include_leaves=False):
-            visits[str(state)] += 1
+        updates = defaultdict(int)
+        for node in agent.planner.root.get_trajectories(env,
+                                                        full_trajectories=False,
+                                                        as_observations=False,
+                                                        include_leaves=False):
+            visits[str(node.observation)] += 1
+            updates[str(node.observation)] += node.updated_nodes
 
         if isinstance(env, GridEnv):
             state_occupations[agent_name] = np.zeros((2 * state_limits + 1, 2 * state_limits + 1))
+            state_updates[agent_name] = np.zeros((2 * state_limits + 1, 2 * state_limits + 1))
             for i, x in enumerate(np.arange(-state_limits, state_limits)):
                 for j, y in enumerate(np.arange(-state_limits, state_limits)):
                     state_occupations[agent_name][i, j] = visits[str(np.array([x, y]))]
+                    state_updates[agent_name][i, j] = updates[str(np.array([x, y]))]
 
         if show_tree:
             TreePlot(agent.planner, max_depth=100).plot(out / "{}.pdf".format(agent_name), title=agent_name)
@@ -122,6 +134,9 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
         v_max = max([st.max() for st in state_occupations.values()])
         for agent_name, occupations in state_occupations.items():
             show_state_occupations(agent_name,  occupations, state_limits, v_max)
+        v_max = max([st.max() for st in state_updates.values()])
+        for agent_name, updates in state_updates.items():
+            show_state_occupations(agent_name,  updates, state_limits, v_max)
 
     if show_trajs:
         axes = None
@@ -154,8 +169,7 @@ def show_trajectories(agent_name, trajectories, axes=None, color=None):
 
 
 if __name__ == "__main__":
-    gym.logger.set_level(gym.logger.DEBUG)
-
+    configure("configs/verbose.json", gym_level=gym.logger.DEBUG)
     selected_env = load_environment(envs["gridenv"])
     selected_agents = [
          # "deterministic",
@@ -163,7 +177,7 @@ if __name__ == "__main__":
          # "kl-olop"
     ]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
-    budget = 8 * (8 ** 4 - 1) / (8 - 1)
+    budget = 4 * (4 ** 6 - 1) / (4 - 1)
     # budget = 200
     compare_agents(selected_env, selected_agents, budget=budget,
                    show_tree=True, show_states=True, show_trajs=False)

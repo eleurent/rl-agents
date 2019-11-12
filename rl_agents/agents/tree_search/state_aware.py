@@ -23,6 +23,16 @@ class StateAwarePlanner(OptimisticDeterministicPlanner):
         self.state_nodes = {}  # Mapping of states to tree nodes that lead to this state
         self.state_values = {}  # Mapping of states to an upper confidence bound of the state-value
 
+    @classmethod
+    def default_config(cls):
+        cfg = super().default_config()
+        cfg.update({
+            "backup_aggregated_nodes": True,
+            "prune_suboptimal_leaves": True,
+            "stopping_accuracy": 0,
+        })
+        return cfg
+
     def make_root(self):
         root = StateAwareNode(None, planner=self)
         self.leaves = [root]
@@ -34,7 +44,7 @@ class StateAwarePlanner(OptimisticDeterministicPlanner):
             logger.warning("Expanding a terminal state")
         leaf_to_expand.expand()
         leaf_to_expand.updated_nodes = leaf_to_expand.backup_to_root()
-        print("{} updated nodes for state {} from path {}".format(
+        logger.debug("{} updated nodes for state {} from path {}".format(
             leaf_to_expand.updated_nodes,
             leaf_to_expand.observation,
             list(leaf_to_expand.path())))
@@ -45,13 +55,14 @@ class StateAwarePlanner(OptimisticDeterministicPlanner):
 
         :param observation: an observed state
         :param value: a candidate upper-confidence bound
-        :return: whether or not the value was updated, and needs to be backed-up
+        :return: whether the value was updated, the value difference
         """
         if str(observation) not in self.state_values or value < self.state_values[str(observation)]:
+            delta = self.state_values.get(str(observation), 1/(1 - self.config["gamma"])) - value
             self.state_values[str(observation)] = value
-            return True
+            return True, delta
         else:
-            return False
+            return False, 0
 
     def plan(self, state, observation):
         # Initialize root
@@ -85,23 +96,31 @@ class StateAwareNode(DeterministicNode):
         self.planner.update_value(observation, future_value_ucb)  # Aggregate from other nodes
 
         # Among sequences that lead to this state, remove all suboptimal leaves
-        state_leaves = [node for node in self.planner.state_nodes[str(observation)]
-                        if not node.children and node in self.planner.leaves]
-        best = max(state_leaves, key=lambda n: n.get_value_upper_bound())
-        [self.planner.leaves.remove(node) for node in state_leaves if node is not best]
+        if self.planner.config["prune_suboptimal_leaves"]:
+            state_leaves = [node for node in self.planner.state_nodes[str(observation)]
+                            if not node.children and node in self.planner.leaves]
+            best = max(state_leaves, key=lambda n: n.get_value_upper_bound())
+            [self.planner.leaves.remove(node) for node in state_leaves if node is not best]
 
     def backup_to_root(self):
+        updated_nodes = 0
         if self.children:
             updated_nodes = 1
             best_child = max(self.children.values(), key=lambda child: child.get_value_upper_bound())
-            updated = self.planner.update_value(self.observation, best_child.reward + self.planner.config["gamma"] *
-                                                self.planner.state_values[str(best_child.observation)])
-            if updated:
-                if self.parent:  # Backup this node's parent first
+            gamma = self.planner.config["gamma"]
+            backup = best_child.reward + gamma * self.planner.state_values[str(best_child.observation)]
+            updated, delta = self.planner.update_value(self.observation, backup)
+
+            # Should we backup this update?
+            if updated and delta > self.planner.config["stopping_accuracy"]:
+                # Backup this node's parents first
+                if self.parent:
                     updated_nodes += self.parent.backup_to_root()
-                for node in self.planner.state_nodes[str(self.observation)]:  # And other updated nodes then
-                    if node is not self and node.parent:
-                        updated_nodes += node.parent.backup_to_root()
+                # And other aggregated nodes afterwards
+                if self.planner.config["backup_aggregated_nodes"]:
+                    for node in self.planner.state_nodes[str(self.observation)]:
+                        if node is not self and node.parent:
+                            updated_nodes += node.parent.backup_to_root()
         return updated_nodes
 
     def get_value_upper_bound(self):
