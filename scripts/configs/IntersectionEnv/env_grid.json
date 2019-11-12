@@ -4,7 +4,7 @@
     "observation": {
         "type": "OccupancyGrid",
         "vehicles_count": 15,
-        "features": ["presence", "vx", "vy", "cos_h", "sin_h"],
+        "features": ["presence", "x", "y", "vx", "vy", "cos_h", "sin_h"],
         "features_range": {
             "x": [-100, 100],
             "y": [-100, 100],
@@ -13,7 +13,7 @@
         },
         "grid_size": [[-27.5, 27.5], [-27.5, 27.5]],
         "grid_step": [5, 5],
-        "absolute": false,
-        "destination": "o1"
-    }
+        "absolute": false
+    },
+    "destination": "o1"
 }
