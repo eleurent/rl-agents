@@ -13,7 +13,7 @@
         },
         "grid_size": [[-32, 32], [-32, 32]],
         "grid_step":  [2, 2],
-        "absolute": false,
-        "destination": "o1"
-    }
+        "absolute": false
+    },
+    "destination": "o1"
 }
