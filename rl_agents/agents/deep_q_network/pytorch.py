@@ -77,12 +77,14 @@ class DQNAgent(AbstractDQNAgent):
         state = {'state_dict': self.value_net.state_dict(),
                  'optimizer': self.optimizer.state_dict()}
         torch.save(state, filename)
+        return filename
 
     def load(self, filename):
         checkpoint = torch.load(filename, map_location=self.device)
         self.value_net.load_state_dict(checkpoint['state_dict'])
         self.target_net.load_state_dict(checkpoint['state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
+        return filename
 
     def initialize_model(self):
         self.value_net.reset()

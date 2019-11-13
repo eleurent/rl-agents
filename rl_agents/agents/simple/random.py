@@ -29,7 +29,7 @@ class RandomUniformAgent(AbstractAgent):
         return self.env.action_space.seed(seed)
 
     def save(self, filename):
-        raise NotImplementedError()
+        return False
 
     def load(self, filename):
-        raise NotImplementedError()
+        return False

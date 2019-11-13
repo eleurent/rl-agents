@@ -24,10 +24,10 @@ class LinearCommandAgent(AbstractAgent):
         pass
 
     def save(self, filename):
-        raise NotImplementedError()
+        return False
 
     def load(self, filename):
-        raise NotImplementedError()
+        return False
 
     def record(self, state, action, reward, next_state, done, info):
         pass

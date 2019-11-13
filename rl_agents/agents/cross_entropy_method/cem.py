@@ -59,9 +59,9 @@ class CEMAgent(AbstractAgent):
         pass
 
     def save(self, filename):
-        pass
+        return False
 
     def load(self, filename):
-        pass
+        return False
 
 

@@ -65,7 +65,7 @@ class MCTSWithPriorPolicyAgent(MCTSAgent):
         raise NotImplementedError()
 
     def save(self, filename):
-        raise NotImplementedError()
+        return self.prior_agent.save(filename)
 
     def load(self, filename):
-        self.prior_agent.load(filename)
+        return self.prior_agent.load(filename)

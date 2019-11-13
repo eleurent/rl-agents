@@ -24,18 +24,20 @@ class FTQAgent(AbstractFTQAgent, DQNAgent):
         self.target_net.load_state_dict(self.value_net.state_dict())
 
     def save(self, filename):
-        super(FTQAgent, self).save(filename)
+        path = super().save(filename)
         samples_dataset_filename = filename.with_suffix(".data")
         with open(samples_dataset_filename, 'wb') as f:
             pickle.dump(self.memory.memory, f)
         logger.info("Saved a replay memory of length {}".format(len(self.memory)))
+        return path
 
     def load(self, filename):
-        super(FTQAgent, self).load(filename)
+        path = super().load(filename)
         dataset_filename = filename.with_suffix(".data")
         with open(dataset_filename, 'rb') as f:
             self.memory.memory = pickle.load(f)
         logger.info("Loaded a replay memory of length {}".format(len(self.memory)))
+        return path
 
     def log_memory(self, step):
         self.writer.add_scalar('agent/gpu_memory', sum(get_memory()), step)

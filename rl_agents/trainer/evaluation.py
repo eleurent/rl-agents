@@ -276,12 +276,12 @@ class Evaluation(object):
         if do_save:
             episode_path = Path(self.monitor.directory) / "checkpoint-{}.tar".format(identifier)
             try:
-                self.agent.save(filename=episode_path)
                 self.agent.save(filename=permanent_folder / "latest.tar")
+                episode_path = self.agent.save(filename=episode_path)
+                if episode_path:
+                    logger.info("Saved {} model to {}".format(self.agent.__class__.__name__, episode_path))
             except NotImplementedError:
                 pass
-            else:
-                logger.info("Saved {} model to {}".format(self.agent.__class__.__name__, episode_path))
         return episode_path
 
     def load_agent_model(self, model_path):
@@ -292,8 +292,9 @@ class Evaluation(object):
             if not model_path.exists():
                 model_path = self.directory / self.SAVED_MODELS_FOLDER / model_path
         try:
-            self.agent.load(filename=model_path)
-            logger.info("Load {} model from {}".format(self.agent.__class__.__name__, model_path))
+            model_path = self.agent.load(filename=model_path)
+            if model_path:
+                logger.info("Loaded {} model from {}".format(self.agent.__class__.__name__, model_path))
         except FileNotFoundError:
             logger.warning("No pre-trained model found at the desired location.")
         except NotImplementedError:

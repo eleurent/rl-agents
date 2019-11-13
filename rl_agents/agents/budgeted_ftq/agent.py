@@ -143,12 +143,14 @@ class BFTQAgent(AbstractAgent):
 
     def save(self, filename):
         self.bftq.save_network(filename)
+        return filename
 
     def load(self, filename):
         if not self.bftq:
             self.reset()
         network = self.bftq.load_network(filename)
         self.exploration_policy.pi_greedy.set_network(network)
+        return filename
 
     def eval(self):
         self.training = False
