@@ -40,7 +40,8 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
 
     def plan(self, state, observation):
         self.root.state = state
-        for _ in np.arange(self.config["budget"] // state.action_space.n):
+        for epoch in np.arange(self.config["budget"] // state.action_space.n):
+            logger.debug("Expansion {}/{}".format(epoch + 1, self.config["budget"] // state.action_space.n))
             self.run()
 
         return self.get_plan()
