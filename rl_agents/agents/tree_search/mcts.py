@@ -19,9 +19,13 @@ class MCTSAgent(AbstractTreeSearchAgent):
 
     @classmethod
     def default_config(cls):
-        return dict(prior_policy=dict(type="random_available"),
-                    rollout_policy=dict(type="random_available"),
-                    env_preprocessors=[])
+        config = super().default_config()
+        config.udate({
+            "prior_policy": {"type": "random_available"},
+            "rollout_policy": {"type": "random_available"},
+            "env_preprocessors": []
+         })
+        return config
 
     @staticmethod
     def policy_factory(policy_config):
