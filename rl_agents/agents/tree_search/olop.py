@@ -197,7 +197,7 @@ class OLOPNode(Node):
         self.mu_ucb = np.infty
         """ Upper bound of the node mean reward. """
 
-        if self.planner.config["upper_bound"] == "kullback-leibler":
+        if self.planner.config["upper_bound"]["type"] == "kullback-leibler":
             self.mu_ucb = 1
 
         self.done = False
