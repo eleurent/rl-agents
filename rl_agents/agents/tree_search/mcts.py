@@ -20,7 +20,7 @@ class MCTSAgent(AbstractTreeSearchAgent):
     @classmethod
     def default_config(cls):
         config = super().default_config()
-        config.udate({
+        config.update({
             "prior_policy": {"type": "random_available"},
             "rollout_policy": {"type": "random_available"},
             "env_preprocessors": []
