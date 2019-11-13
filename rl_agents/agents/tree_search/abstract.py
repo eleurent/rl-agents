@@ -5,6 +5,7 @@ from gym.utils import seeding
 from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.common.factory import preprocess_env
 from rl_agents.configuration import Configurable
+from rl_agents.agents.tree_search.graphics import TreePlot
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +23,14 @@ class AbstractTreeSearchAgent(AbstractAgent):
         self.env = env
         self.planner = self.make_planner()
         self.previous_action = None
+        self.steps = 0
 
     @classmethod
     def default_config(cls):
-        return dict(env_preprocessors=[])
+        return {
+            "env_preprocessors": [],
+            "display_tree": False
+        }
 
     def make_planner(self):
         raise NotImplementedError()
@@ -39,15 +44,19 @@ class AbstractTreeSearchAgent(AbstractAgent):
         :param observation: the current state
         :return: the list of actions
         """
+        self.steps += 1
         self.planner.step(self.previous_action)
         env = preprocess_env(self.env, self.config["env_preprocessors"])
         actions = self.planner.plan(state=env, observation=observation)
+
+        self.write_tree()
 
         self.previous_action = actions[0]
         return actions
 
     def reset(self):
         self.planner.step_by_reset()
+        self.steps = 0
 
     def seed(self, seed=None):
         return self.planner.seed(seed)
@@ -63,6 +72,10 @@ class AbstractTreeSearchAgent(AbstractAgent):
 
     def load(self, filename):
         pass
+
+    def write_tree(self):
+        if self.config["display_tree"] and self.writer:
+            TreePlot(self.planner, max_depth=self.config["max_depth"]).plot_to_writer(self.writer, epoch=self.steps, show=True)
 
 
 class AbstractPlanner(Configurable):
@@ -127,7 +140,7 @@ class AbstractPlanner(Configurable):
         elif self.config["step_strategy"] == "subtree":
             self.step_by_subtree(action)
         else:
-            logger.warn("Unknown step strategy: {}".format(self.config["step_strategy"]))
+            logger.warning("Unknown step strategy: {}".format(self.config["step_strategy"]))
             self.step_by_reset()
 
     def step_by_reset(self):
