@@ -17,12 +17,13 @@ sns.set()
 logger = logging.getLogger(__name__)
 
 out = Path("out/planners")
-gamma = 0.99
+gamma = 0.8
 
 envs = {
     "highway": Path("configs") / "HighwayEnv" / "env.json",
     "bandit": Path("configs") / "FiniteMDPEnv" / "env_bandit.json",
     "env_loop": Path("configs") / "FiniteMDPEnv" / "env_loop.json",
+    "env_garnet": Path("configs") / "FiniteMDPEnv" / "env_garnet.json",
     "gridenv": Path("configs") / "DummyEnv" / "gridenv.json",
     "dynamics": Path("configs") / "DummyEnv" / "dynamics.json",
 }
@@ -43,7 +44,7 @@ agents = {
         "gamma": gamma,
         "upper_bound": {
             "type": "kullback-leibler",
-            "c": 2
+            "threshold": "2*np.log(time) + 2*np.log(np.log(time))"
         },
         "lazy_tree_construction": True,
         "continuation_type": "uniform",
@@ -53,7 +54,7 @@ agents = {
         "gamma": gamma,
         "upper_bound": {
             "type": "kullback-leibler",
-            "c": 1
+            "threshold": "1*np.log(time)"
         },
         "lazy_tree_construction": True,
         "continuation_type": "uniform",
@@ -79,6 +80,20 @@ agents = {
         "prune_suboptimal_leaves": True,
         "stopping_accuracy": 0
     },
+    "ugape_mcts": {
+        "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
+        "gamma": gamma,
+        "accuracy": 0,
+        "confidence": 1,
+        "upper_bound":
+        {
+            "type": "kullback-leibler",
+            "time": "global",
+            "threshold": "1*np.log(time)"
+        },
+        "continuation_type": "uniform",
+        "step_strategy": "reset"
+    }
 }
 
 
@@ -111,12 +126,17 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
         # Aggregate visits
         visits = defaultdict(int)
         updates = defaultdict(int)
+        for observation in agent.planner.root.get_trajectories(env,
+                                                        full_trajectories=False,
+                                                        as_observations=True,
+                                                        include_leaves=False):
+            visits[str(observation)] += 1
         for node in agent.planner.root.get_trajectories(env,
                                                         full_trajectories=False,
                                                         as_observations=False,
                                                         include_leaves=False):
-            visits[str(node.observation)] += 1
-            updates[str(node.observation)] += node.updated_nodes
+            if hasattr(node, "observation"):
+                updates[str(node.observation)] += node.updated_nodes
 
         if isinstance(env, GridEnv):
             state_occupations[agent_name] = np.zeros((2 * state_limits + 1, 2 * state_limits + 1))
@@ -172,14 +192,15 @@ def show_trajectories(agent_name, trajectories, axes=None, color=None):
 
 if __name__ == "__main__":
     configure("configs/verbose.json", gym_level=gym.logger.DEBUG)
-    selected_env = load_environment(envs["gridenv"])
+    selected_env = load_environment(envs["env_garnet"])
     selected_agents = [
          # "deterministic",
-         "state_aware",
-         # "kl-olop"
+         # "state_aware",
+         "kl-olop-1",
+         "ugape_mcts",
     ]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
-    budget = 4 * (4 ** 6 - 1) / (4 - 1)
+    budget = 4 * (4 ** 5 - 1) / (4 - 1)
     # budget = 200
     compare_agents(selected_env, selected_agents, budget=budget,
                    show_tree=True, show_states=True, show_trajs=False)
