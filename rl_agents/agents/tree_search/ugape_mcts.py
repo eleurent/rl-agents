@@ -41,7 +41,8 @@ class UgapEMCTS(OLOP):
                                  "+ horizon*np.log(actions)"
                                  "+ np.log(1/(1-confidence))"
                 },
-                "continuation_type": "uniform"
+                "continuation_type": "uniform",
+                "horizon_from_accuracy": False
             }
         )
         return cfg
@@ -57,9 +58,14 @@ class UgapEMCTS(OLOP):
         """
             Allocate the computational budget into M episodes of fixed horizon L.
         """
-        self.config["horizon"] = int(np.ceil(np.log(self.config["accuracy"] * (1 - self.config["gamma"]) / 2) \
-                                 / np.log(self.config["gamma"])))
-        logger.debug("Planning at depth H={}".format(self.config["horizon"]))
+        if self.config["horizon_from_accuracy"]:
+            self.config["horizon"] = int(np.ceil(np.log(self.config["accuracy"] * (1 - self.config["gamma"]) / 2) \
+                                     / np.log(self.config["gamma"])))
+            self.config["episodes"] = self.config["budget"] // self.config["horizon"]
+            assert self.config["episodes"] > 1
+            logger.debug("Planning at depth H={}".format(self.config["horizon"]))
+        else:
+            super().allocate_budget()
 
     def run(self, state):
         """
@@ -116,7 +122,7 @@ class UgapEMCTS(OLOP):
 
             # Stopping rule
             done = challenger.value - best.value_lower < self.config["accuracy"] if best is not None else False
-            done = done or episode * self.config["horizon"] > self.config["budget"]
+            done = done or episode > self.config["episodes"]
 
             episode += 1
             if episode % 10 == 0:
@@ -167,6 +173,7 @@ class UGapEMCTSNode(OLOPNode):
             actions = self.planner.env.action_space.n
             confidence = self.planner.config["confidence"]
             count = self.count
+            time = self.planner.config["episodes"]
             threshold = eval(self.planner.config["upper_bound"]["threshold"])
             self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, 0,
                                          threshold=str(threshold))
