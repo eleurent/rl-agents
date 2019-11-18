@@ -28,18 +28,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import logging
 
 from rl_agents.agents.common.factory import load_environment, agent_factory
 from rl_agents.trainer.evaluation import Evaluation
 
-gamma = 0.8
+logger = logging.getLogger(__name__)
+
+gamma = 0.9
 SEED_MAX = 1e9
 
 
 def env_configs():
     # return ['configs/CartPoleEnv/env.json']
-    return ['configs/HighwayEnv/env_medium.json']
+    # return ['configs/HighwayEnv/env_medium.json']
     # return ['configs/GridWorld/collect.json']
+    return ['configs/FiniteMDPEnv/env_garnet.json']
 
 
 def agent_configs():
@@ -57,7 +61,6 @@ def agent_configs():
             },
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
-            # "env_preprocessors": [{"method": "simplify"}]
         },
         "kl-olop": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -65,11 +68,10 @@ def agent_configs():
             "max_depth": 4,
             "upper_bound": {
                 "type": "kullback-leibler",
-                "c": 2
+                "threshold": "2*np.log(time) + 2*np.log(np.log(time))"
             },
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
-            # "env_preprocessors": [{"method": "simplify"}]
         },
         "kl-olop-1": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -77,11 +79,10 @@ def agent_configs():
             "max_depth": 4,
             "upper_bound": {
                 "type": "kullback-leibler",
-                "c": 1
+                "threshold": "1*np.log(time)"
             },
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
-            # "env_preprocessors": [{"method": "simplify"}]
         },
         "laplace": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -92,19 +93,30 @@ def agent_configs():
             },
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
-            # "env_preprocessors": [{"method": "simplify"}]
         },
         "deterministic": {
             "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
             "gamma": gamma,
-            # "env_preprocessors": [{"method": "simplify"}]
+        },
+        "ugape_mcts": {
+            "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
+            "gamma": gamma,
+            "accuracy": 0.1,
+            "confidence": 1,
+            "upper_bound":
+            {
+                "type": "kullback-leibler",
+                "time": "global",
+                "threshold": "1*np.log(time)"
+            },
+            "continuation_type": "uniform",
+            "step_strategy": "reset"
+        },
+        "value_iteration": {
+            "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
+            "gamma": gamma,
+            "iterations": int(3 / (1 - gamma))
         }
-        # ,
-        # "value_iteration": {
-        #     "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
-        #     "gamma": gamma,
-        #     "iterations": int(3 / (1 - gamma))
-        # }
     }
     return OrderedDict(agents)
 
@@ -124,21 +136,34 @@ def evaluate(experiment):
     agent_config["budget"] = int(budget)
     agent = agent_factory(env, agent_config)
 
-    # Evaluate
-    print("Evaluating agent {} with budget {} on seed {}".format(agent_name, budget, seed))
-    evaluation = Evaluation(env,
-                            agent,
-                            directory=Path("out") / "planners" / agent_name,
-                            num_episodes=1,
-                            sim_seed=seed,
-                            display_env=False,
-                            display_agent=False,
-                            display_rewards=False)
-    evaluation.test()
-    rewards = evaluation.monitor.stats_recorder.episode_rewards_[0]
-    length = evaluation.monitor.stats_recorder.episode_lengths[0]
-    total_reward = np.sum(rewards)
-    return_ = np.sum([gamma**t * rewards[t] for t in range(len(rewards))])
+    logger.debug("Evaluating agent {} with budget {} on seed {}".format(agent_name, budget, seed))
+
+    # Compute true value
+    value_iteration_agent = agent_factory(env, agent_configs()["value_iteration"])
+    best_action = value_iteration_agent.act(env.mdp.state)
+    action = agent.act(env.mdp.state)
+    simple_regret = value_iteration_agent.state_action_value()[env.mdp.state, best_action] - \
+                    value_iteration_agent.state_action_value()[env.mdp.state, action]
+
+    if False:
+        # Evaluate
+        evaluation = Evaluation(env,
+                                agent,
+                                directory=Path("out") / "planners" / agent_name,
+                                num_episodes=1,
+                                sim_seed=seed,
+                                display_env=False,
+                                display_agent=False,
+                                display_rewards=False)
+        evaluation.test()
+        rewards = evaluation.monitor.stats_recorder.episode_rewards_[0]
+        length = evaluation.monitor.stats_recorder.episode_lengths[0]
+        total_reward = np.sum(rewards)
+        return_ = np.sum([gamma**t * rewards[t] for t in range(len(rewards))])
+    else:
+        length = 0
+        total_reward = 0
+        return_ = 0
 
     # Save results
     result = {
@@ -147,7 +172,8 @@ def evaluate(experiment):
         "seed": seed,
         "total_reward": total_reward,
         "return": return_,
-        "length": length
+        "length": length,
+        "simple_regret": simple_regret
     }
     df = pd.DataFrame.from_records([result])
     with open(path, 'a') as f:
@@ -157,6 +183,8 @@ def evaluate(experiment):
 def prepare_experiments(budgets, seeds, path):
     budgets = np.unique(np.logspace(*literal_eval(budgets)).astype(int))
     agents = agent_configs()
+    for excluded_agent in ["value_iteration", "olop", "laplace"]:
+        agents.pop(excluded_agent, None)
 
     seeds = seeds.split(",")
     first_seed = int(seeds[0]) if len(seeds) == 2 else np.random.randint(0, SEED_MAX, dtype=int)
@@ -178,11 +206,13 @@ def plot_all(data_path, plot_path, data_range):
         df = df[df["budget"].between(int(start), int(end))]
     print("Number of seeds found: {}".format(df.seed.nunique()))
 
-    for field in ["total_reward", "return", "length"]:
+    for field in ["total_reward", "return", "length", "simple_regret"]:
         fig, ax = plt.subplots()
         ax.set(xscale="log")
+        if field in ["simple_regret"]:
+            ax.set(yscale="log")
         sns.lineplot(x="budget", y=field, ax=ax, hue="agent", data=df)
-        field_path = plot_path / "{}.svg".format(field)
+        field_path = plot_path / "{}.pdf".format(field)
         fig.savefig(field_path, bbox_inches='tight')
         field_path = plot_path / "{}.png".format(field)
         fig.savefig(field_path, bbox_inches='tight')
