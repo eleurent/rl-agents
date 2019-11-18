@@ -48,7 +48,6 @@ class AbstractTreeSearchAgent(AbstractAgent):
         self.steps += 1
         replanning_required = self.step(self.previous_actions)
         if replanning_required:
-            logger.debug("Replanning")
             env = preprocess_env(self.env, self.config["env_preprocessors"])
             actions = self.planner.plan(state=env, observation=observation)
         else:
@@ -56,7 +55,6 @@ class AbstractTreeSearchAgent(AbstractAgent):
         self.write_tree()
 
         self.previous_actions = actions
-        logger.debug("Actions to execute: {}".format(self.previous_actions))
         return actions
 
     def step(self, actions):
@@ -65,7 +63,6 @@ class AbstractTreeSearchAgent(AbstractAgent):
         :return: whether a replanning is required
         """
         replanning_required = self.remaining_horizon == 0 or len(actions) <= 1
-        logger.debug("Replanning required: {}, remaining horizon {}".format(replanning_required, self.remaining_horizon))
         if replanning_required:
             self.remaining_horizon = self.config["receding_horizon"] - 1
         else:
