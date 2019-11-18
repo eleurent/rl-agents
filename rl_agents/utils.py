@@ -21,6 +21,8 @@ def wrap_to_pi(x):
 
 
 def remap(v, x, y, clip=False):
+    if x[1] == x[0]:
+        return y[0]
     out = y[0] + (v-x[0])*(y[1]-y[0])/(x[1]-x[0])
     if clip:
         out = constrain(out, y[0], y[1])

@@ -22,7 +22,8 @@ class AbstractTreeSearchAgent(AbstractAgent):
         super(AbstractTreeSearchAgent, self).__init__(config)
         self.env = env
         self.planner = self.make_planner()
-        self.previous_action = None
+        self.previous_actions = []
+        self.remaining_horizon = 0
         self.steps = 0
 
     @classmethod
@@ -45,14 +46,33 @@ class AbstractTreeSearchAgent(AbstractAgent):
         :return: the list of actions
         """
         self.steps += 1
-        self.planner.step(self.previous_action)
-        env = preprocess_env(self.env, self.config["env_preprocessors"])
-        actions = self.planner.plan(state=env, observation=observation)
-
+        replanning_required = self.step(self.previous_actions)
+        if replanning_required:
+            logger.debug("Replanning")
+            env = preprocess_env(self.env, self.config["env_preprocessors"])
+            actions = self.planner.plan(state=env, observation=observation)
+        else:
+            actions = self.previous_actions[1:]
         self.write_tree()
 
-        self.previous_action = actions[0]
+        self.previous_actions = actions
+        logger.debug("Actions to execute: {}".format(self.previous_actions))
         return actions
+
+    def step(self, actions):
+        """
+            Handle receding horizon mechanism
+        :return: whether a replanning is required
+        """
+        replanning_required = self.remaining_horizon == 0 or len(actions) <= 1
+        logger.debug("Replanning required: {}, remaining horizon {}".format(replanning_required, self.remaining_horizon))
+        if replanning_required:
+            self.remaining_horizon = self.config["receding_horizon"] - 1
+        else:
+            self.remaining_horizon -= 1
+
+        self.planner.step(actions)
+        return replanning_required
 
     def reset(self):
         self.planner.step_by_reset()
@@ -90,7 +110,8 @@ class AbstractPlanner(Configurable):
         return dict(budget=500,
                     gamma=0.8,
                     max_depth=6,
-                    step_strategy="reset")
+                    step_strategy="reset",
+                    receding_horizon=1)
 
     def make_root(self):
         raise NotImplementedError()
@@ -129,16 +150,19 @@ class AbstractPlanner(Configurable):
             node = node.children[action]
         return actions
 
-    def step(self, action):
+    def step(self, actions):
         """
             Update the planner tree when the agent performs an action
 
-        :param action: the chosen action from the root node
+        :param actions: a sequence of actions to follow from the root node
         """
         if self.config["step_strategy"] == "reset":
             self.step_by_reset()
         elif self.config["step_strategy"] == "subtree":
-            self.step_by_subtree(action)
+            if actions:
+                self.step_by_subtree(actions[0])
+            else:
+                self.step_by_reset()
         else:
             logger.warning("Unknown step strategy: {}".format(self.config["step_strategy"]))
             self.step_by_reset()
