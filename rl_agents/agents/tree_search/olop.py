@@ -201,8 +201,6 @@ class OLOPNode(Node):
         self.count += 1
         self.compute_ucb()
 
-
-
     def compute_ucb(self):
         if self.planner.config["upper_bound"]["time"] == "local":
             time = self.planner.episode + 1
