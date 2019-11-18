@@ -11,12 +11,13 @@ Options:
   --budgets <start,end,N>     Computational budgets available to planners, in logspace [default: 1,3,100].
   --seeds <(s,)n>             Number of evaluations of each configuration, with an optional first seed [default: 10].
   --processes <p>             Number of processes [default: 4]
-  --chunksize <c>             Size of data chunks each processor receives
+  --chunksize <c>             Size of data chunks each processor receives [default: 1]
   --range <start:end>         Range of budgets to be plotted.
 """
 from ast import literal_eval
 from pathlib import Path
 
+import tqdm
 from docopt import docopt
 from collections import OrderedDict
 from itertools import product
@@ -191,9 +192,9 @@ def plot_all(data_path, plot_path, data_range):
 def main(args):
     if args["--generate"] == "True":
         experiments = prepare_experiments(args["--budgets"], args['--seeds'], args["--data_path"])
-        chunksize = int(args["--chunksize"]) if args["--chunksize"] else args["--chunksize"]
+        chunksize = int(args["--chunksize"])
         with Pool(processes=int(args["--processes"])) as p:
-            p.map(evaluate, experiments, chunksize=chunksize)
+            list(tqdm.tqdm(p.imap_unordered(evaluate, experiments, chunksize=chunksize), total=len(experiments)))
     if args["--show"] == "True":
         plot_all(Path(args["--data_path"]), Path(args["--plot_path"]), args["--range"])
 
