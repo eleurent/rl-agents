@@ -76,11 +76,11 @@ class UgapEMCTS(OLOP):
             selected_child, best, challenger = self.root.best_arm_identification_selection()
             selected_action = next(selected_child.path())
 
-            # Pick best sequence of actions in the selected subtree
-            subtree_leaves = [leaf for leaf in self.leaves if next(leaf.path()) == selected_action]
-            sequences_upper_bounds = [leaf.value for leaf in subtree_leaves]
-            best_leaf_index = self.np_random.choice(Node.all_argmax(sequences_upper_bounds))
-            best_sequence = list(subtree_leaves[best_leaf_index].path())
+            # Run UCB for the rest of the sequence
+            best_sequence = [selected_action]
+            while selected_child.children:
+                action, selected_child = max([child for child in selected_child.children.items()], key=lambda c: c[1].value)
+                best_sequence.append(action)
         else:
             best_sequence, best, challenger = [], None, None
 
