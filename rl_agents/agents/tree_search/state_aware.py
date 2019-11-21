@@ -53,6 +53,8 @@ class StateAwarePlanner(OptimisticDeterministicPlanner):
             leaf_to_expand.updated_nodes,
             leaf_to_expand.observation,
             list(leaf_to_expand.path())))
+        for leaf in reversed(self.leaves.copy()):
+            leaf.prune()
 
     def update_value(self, observation, value):
         """
@@ -98,12 +100,20 @@ class StateAwareNode(DeterministicNode):
         if self.done:
             self.planner.update_value(observation, 0)
 
-        # Among sequences that lead to this state, remove all suboptimal leaves
+    def prune(self):
+        """
+            Among sequences that lead to this state, check if one is better than this one.
+            If so, remove this leaf.
+        """
         if self.planner.config["prune_suboptimal_leaves"]:
-            state_leaves = [node for node in self.planner.state_nodes[str(observation)]
-                            if not node.children and node in self.planner.leaves]
-            best = max(state_leaves, key=lambda n: n.get_value_upper_bound())
-            [self.planner.leaves.remove(node) for node in state_leaves if node is not best]
+            value_upper_bound = self.get_value_upper_bound()
+            for node in self.planner.state_nodes[str(self.observation)]:
+                if node is not self and \
+                        node.get_value_upper_bound() >= value_upper_bound and \
+                        node.depth >= self.depth and \
+                        (node.children or node in self.planner.leaves):
+                    self.planner.leaves.remove(self)
+                    break
 
     def backup_to_root(self):
         updated_nodes = 0
