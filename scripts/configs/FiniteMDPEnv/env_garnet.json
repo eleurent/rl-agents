@@ -4,7 +4,7 @@
     "mode": "garnet",
     "num_states": 200,
     "num_actions": 5,
-    "num_transitions": 1,
+    "num_transitions": 2,
     "reward_sparsity": 0.5,
     "max_steps": 20
 }
