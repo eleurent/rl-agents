@@ -131,12 +131,14 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
             plt.show()
 
     if show_states:
-        v_max = max([st.max() for st in state_occupations.values()])
-        for agent_name, occupations in state_occupations.items():
-            show_state_occupations(agent_name,  occupations, state_limits, v_max)
-        v_max = max([st.max() for st in state_updates.values()])
-        for agent_name, updates in state_updates.items():
-            show_state_occupations(agent_name,  updates, state_limits, v_max)
+        v_max = max([st.max() for st in state_occupations.values()] + [0])
+        if v_max > 0:
+            for agent_name, occupations in state_occupations.items():
+                show_state_map("occupations", agent_name, occupations, state_limits, v_max)
+        v_max = max([st.max() for st in state_updates.values()] + [0])
+        if v_max > 0:
+            for agent_name, updates in state_updates.items():
+                show_state_map("updates", agent_name, updates, state_limits, v_max)
 
     if show_trajs:
         axes = None
@@ -147,15 +149,15 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
         plt.savefig(out / "trajectories.png")
 
 
-def show_state_occupations(agent_name, state_occupations, state_limits, v_max=None):
+def show_state_map(title, agent_name, values, state_limits, v_max=None):
     fig, ax = plt.subplots()
-    img = ax.imshow(state_occupations.T,
+    img = ax.imshow(values.T,
                     extent=(-state_limits, state_limits, -state_limits, state_limits),
                     norm=colors.LogNorm(vmax=v_max),
                     cmap=plt.cm.coolwarm)
     fig.colorbar(img, ax=ax)
     plt.title(agent_name)
-    plt.savefig(out / "states_{}.pdf".format(agent_name))
+    plt.savefig(out / "{}_{}.pdf".format(title, agent_name))
     plt.show()
 
 
