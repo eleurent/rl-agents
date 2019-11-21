@@ -116,24 +116,26 @@ class StateAwareNode(DeterministicNode):
                     break
 
     def backup_to_root(self):
+        gamma = self.planner.config["gamma"]
         updated_nodes = 0
-        if self.children:
-            updated_nodes = 1
-            best_child = max(self.children.values(), key=lambda child: child.get_value_upper_bound())
-            gamma = self.planner.config["gamma"]
-            backup = best_child.reward + gamma * self.planner.state_values[str(best_child.observation)]
-            updated, delta = self.planner.update_value(self.observation, backup)
+        queue = [self]
+        while queue:
+            node = queue.pop(0)
+            delta = 0
+            # Bellman backup
+            if node.children:
+                best_child = max(node.children.values(), key=lambda child: child.get_value_upper_bound())
+                backup = best_child.reward + gamma * self.planner.state_values[str(best_child.observation)]
+                # Update state ucb with this new bound
+                delta = self.planner.update_value(node.observation, backup)
+                updated_nodes += 1
 
-            # Should we backup this update?
-            if updated and delta > self.planner.config["stopping_accuracy"]:
-                # Backup this node's parents first
-                if self.parent:
-                    updated_nodes += self.parent.backup_to_root()
-                # And other aggregated nodes afterwards
-                if self.planner.config["backup_aggregated_nodes"]:
-                    for node in self.planner.state_nodes[str(self.observation)]:
-                        if node is not self and node.parent:
-                            updated_nodes += node.parent.backup_to_root()
+            # Should we propagate the update by backing-up the parents?
+            for neighbour in self.planner.state_nodes[str(node.observation)]:
+                if neighbour.parent and \
+                        (neighbour is node or self.planner.config["backup_aggregated_nodes"]) and \
+                        delta > self.planner.config["stopping_accuracy"] * (1 - gamma) * gamma ** (neighbour.depth - 1):
+                    queue.append(neighbour.parent)
         return updated_nodes
 
     def get_value_upper_bound(self):
