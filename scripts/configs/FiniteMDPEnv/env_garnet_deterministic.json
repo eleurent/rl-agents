@@ -1,0 +1,10 @@
+{
+    "id": "finite-mdp-v0",
+    "import_module": "finite_mdp",
+    "mode": "garnet",
+    "num_states": 200,
+    "num_actions": 5,
+    "num_transitions": 1,
+    "reward_sparsity": 0.5,
+    "max_steps": 20
+}
