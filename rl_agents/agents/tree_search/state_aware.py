@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import numpy as np
 import logging
 from rl_agents.agents.tree_search.deterministic import DeterministicPlannerAgent, OptimisticDeterministicPlanner, \
@@ -20,8 +22,11 @@ class StateAwarePlanner(OptimisticDeterministicPlanner):
     """
     def __init__(self, env, config=None):
         super().__init__(env, config)
-        self.state_nodes = {}  # Mapping of states to tree nodes that lead to this state
-        self.state_values = {}  # Mapping of states to an upper confidence bound of the state-value
+
+        # Mapping of states to tree nodes that lead to this state
+        self.state_nodes = {}
+        # Mapping of states to an upper confidence bound of the state-value
+        self.state_values = defaultdict(lambda: 1 / (1 - self.config["gamma"]))
 
     @classmethod
     def default_config(cls):
@@ -55,14 +60,12 @@ class StateAwarePlanner(OptimisticDeterministicPlanner):
 
         :param observation: an observed state
         :param value: a candidate upper-confidence bound
-        :return: whether the value was updated, the value difference
+        :return: the value difference
         """
-        if str(observation) not in self.state_values or value < self.state_values[str(observation)]:
-            delta = self.state_values.get(str(observation), 1/(1 - self.config["gamma"])) - value
+        delta = self.state_values[str(observation)] - value
+        if delta > 0:
             self.state_values[str(observation)] = value
-            return True, delta
-        else:
-            return False, 0
+        return delta
 
     def plan(self, state, observation):
         # Initialize root
@@ -91,9 +94,9 @@ class StateAwareNode(DeterministicNode):
             self.planner.state_nodes[str(observation)] = []
         self.planner.state_nodes[str(observation)].append(self)
 
-        # Update the value of this state - no gain of information
-        future_value_ucb = 1/(1 - self.planner.config["gamma"]) if not self.done else 0  # Default value
-        self.planner.update_value(observation, future_value_ucb)  # Aggregate from other nodes
+        # Handle terminal states
+        if self.done:
+            self.planner.update_value(observation, 0)
 
         # Among sequences that lead to this state, remove all suboptimal leaves
         if self.planner.config["prune_suboptimal_leaves"]:
