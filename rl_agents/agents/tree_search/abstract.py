@@ -285,15 +285,11 @@ class Node(object):
         indices = Node.all_argmax(x)
         return self.planner.np_random.choice(indices)
 
-    def __str__(self, level=0):
-        return str(self.value)
-        ret = "\t" * level + repr(self.value) + "\n"
-        for child in self.children.values():
-            ret += child.__str__(level + 1)
-        return ret
+    def __str__(self):
+        return "{} ({})".format(list(self.path()), self.value)
 
     def __repr__(self):
-        return '<tree node representation>'
+        return '<node {}>'.format(id(self))
 
     def get_trajectories(self, initial_state, initial_observation=None,
                          as_observations=True, full_trajectories=True, include_leaves=True):
