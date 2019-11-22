@@ -102,17 +102,14 @@ class ConvolutionalNetwork(nn.Module, Configurable):
         super().__init__()
         Configurable.__init__(self, config)
         self.activation = activation_factory(self.config["activation"])
-        self.conv1 = nn.Conv2d(self.config["in_channels"], 16, kernel_size=3, stride=2)
-        self.bn1 = nn.BatchNorm2d(16)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=2)
-        self.bn2 = nn.BatchNorm2d(32)
-        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, stride=2)
-        self.bn3 = nn.BatchNorm2d(64)
+        self.conv1 = nn.Conv2d(self.config["in_channels"], 16, kernel_size=2, stride=2)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=2, stride=2)
+        self.conv3 = nn.Conv2d(32, 64, kernel_size=2, stride=2)
 
         # MLP Head
         # Number of Linear input connections depends on output of conv2d layers
         # and therefore the input image size, so compute it.
-        def conv2d_size_out(size, kernel_size=3, stride=2):
+        def conv2d_size_out(size, kernel_size=2, stride=2):
             return (size - (kernel_size - 1) - 1) // stride  + 1
         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(self.config["in_width"])))
         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(self.config["in_height"])))
@@ -144,9 +141,9 @@ class ConvolutionalNetwork(nn.Module, Configurable):
             Forward convolutional network
         :param x: tensor of shape BCHW
         """
-        x = self.activation(self.bn1(self.conv1(x)))
-        x = self.activation(self.bn2(self.conv2(x)))
-        x = self.activation(self.bn3(self.conv3(x)))
+        x = self.activation((self.conv1(x)))
+        x = self.activation((self.conv2(x)))
+        x = self.activation((self.conv3(x)))
         return self.head(x)
 
 

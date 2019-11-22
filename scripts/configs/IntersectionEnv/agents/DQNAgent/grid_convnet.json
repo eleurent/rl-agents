@@ -5,7 +5,7 @@
         "activation": "RELU",
         "head_mlp": {
             "type": "MultiLayerPerceptron",
-            "layers": [16],
+            "layers": [36],
             "activation": "RELU",
             "reshape": "True"
         }
