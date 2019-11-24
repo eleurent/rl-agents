@@ -121,7 +121,8 @@ def rename(name):
     dictionary = {
         "ego_attention": "Ego-Attention",
         "mlp": "MLP/List",
-        "grid": "MLP/Grid"
+        "grid": "MLP/Grid",
+        "grid_convnet2": "CNN/Grid"
     }
     return dictionary.get(name, name)
 
