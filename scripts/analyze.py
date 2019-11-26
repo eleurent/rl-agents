@@ -120,8 +120,8 @@ class RunAnalyzer(object):
 def rename(name):
     dictionary = {
         "ego_attention": "Ego-Attention",
-        "mlp": "MLP/List",
-        "grid": "MLP/Grid",
+        "mlp": "FCN/List",
+        "grid": "FCN/Grid",
         "grid_convnet2": "CNN/Grid"
     }
     return dictionary.get(name, name)
