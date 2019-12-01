@@ -35,69 +35,69 @@ from rl_agents.trainer.evaluation import Evaluation
 
 logger = logging.getLogger(__name__)
 
-gamma = 0.9
+gamma = 0.8
 SEED_MAX = 1e9
 
 
 def env_configs():
     # return ['configs/CartPoleEnv/env.json']
-    # return ['configs/HighwayEnv/env_medium.json']
+    return ['configs/HighwayEnv/env_medium.json']
     # return ['configs/GridWorld/collect.json']
-    return ['configs/FiniteMDPEnv/env_garnet.json']
+    # return ['configs/FiniteMDPEnv/env_garnet.json']
 
 
 def agent_configs():
     agents = {
-        "random": {
-            "__class__": "<class 'rl_agents.agents.simple.random.RandomUniformAgent'>"
-        },
-        "olop": {
-            "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-            "gamma": gamma,
-            "max_depth": 4,
-            "upper_bound": {
-                "type": "hoeffding",
-                "c": 4
-            },
-            "lazy_tree_construction": True,
-            "continuation_type": "uniform",
-        },
-        "kl-olop": {
-            "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-            "gamma": gamma,
-            "max_depth": 4,
-            "upper_bound": {
-                "type": "kullback-leibler",
-                "threshold": "2*np.log(time) + 2*np.log(np.log(time))"
-            },
-            "lazy_tree_construction": True,
-            "continuation_type": "uniform",
-        },
-        "kl-olop-1": {
-            "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-            "gamma": gamma,
-            "max_depth": 4,
-            "upper_bound": {
-                "type": "kullback-leibler",
-                "threshold": "1*np.log(time)"
-            },
-            "lazy_tree_construction": True,
-            "continuation_type": "uniform",
-        },
-        "laplace": {
-            "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-            "gamma": gamma,
-            "upper_bound": {
-                "type": "laplace",
-                "c": 2
-            },
-            "lazy_tree_construction": True,
-            "continuation_type": "uniform",
-        },
-        "deterministic": {
-            "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
-            "gamma": gamma,
-        },
+        # "random": {
+        #     "__class__": "<class 'rl_agents.agents.simple.random.RandomUniformAgent'>"
+        # },
+        # "olop": {
+        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+        #     "gamma": gamma,
+        #     "max_depth": 4,
+        #     "upper_bound": {
+        #         "type": "hoeffding",
+        #         "c": 4
+        #     },
+        #     "lazy_tree_construction": True,
+        #     "continuation_type": "uniform",
+        # },
+        # "kl-olop": {
+        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+        #     "gamma": gamma,
+        #     "max_depth": 4,
+        #     "upper_bound": {
+        #         "type": "kullback-leibler",
+        #         "threshold": "2*np.log(time) + 2*np.log(np.log(time))"
+        #     },
+        #     "lazy_tree_construction": True,
+        #     "continuation_type": "uniform",
+        # },
+        # "kl-olop-1": {
+        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+        #     "gamma": gamma,
+        #     "max_depth": 4,
+        #     "upper_bound": {
+        #         "type": "kullback-leibler",
+        #         "threshold": "1*np.log(time)"
+        #     },
+        #     "lazy_tree_construction": True,
+        #     "continuation_type": "uniform",
+        # },
+        # "laplace": {
+        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+        #     "gamma": gamma,
+        #     "upper_bound": {
+        #         "type": "laplace",
+        #         "c": 2
+        #     },
+        #     "lazy_tree_construction": True,
+        #     "continuation_type": "uniform",
+        # },
+        # "deterministic": {
+        #     "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
+        #     "gamma": gamma,
+        # },
         "ugape_mcts": {
             "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
             "gamma": gamma,
@@ -112,11 +112,11 @@ def agent_configs():
             "continuation_type": "uniform",
             "step_strategy": "reset"
         },
-        "value_iteration": {
-            "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
-            "gamma": gamma,
-            "iterations": int(3 / (1 - gamma))
-        }
+        # "value_iteration": {
+        #     "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
+        #     "gamma": gamma,
+        #     "iterations": int(3 / (1 - gamma))
+        # }
     }
     return OrderedDict(agents)
 
@@ -139,13 +139,18 @@ def evaluate(experiment):
     logger.debug("Evaluating agent {} with budget {} on seed {}".format(agent_name, budget, seed))
 
     # Compute true value
-    value_iteration_agent = agent_factory(env, agent_configs()["value_iteration"])
-    best_action = value_iteration_agent.act(env.mdp.state)
-    action = agent.act(env.mdp.state)
-    simple_regret = value_iteration_agent.state_action_value()[env.mdp.state, best_action] - \
-                    value_iteration_agent.state_action_value()[env.mdp.state, action]
+    compute_regret = False
+    compute_return = True
+    if compute_regret:
+        value_iteration_agent = agent_factory(env, agent_configs()["value_iteration"])
+        best_action = value_iteration_agent.act(env.mdp.state)
+        action = agent.act(env.mdp.state)
+        simple_regret = value_iteration_agent.state_action_value()[env.mdp.state, best_action] - \
+                        value_iteration_agent.state_action_value()[env.mdp.state, action]
+    else:
+        simple_regret = 0
 
-    if False:
+    if compute_return:
         # Evaluate
         evaluation = Evaluation(env,
                                 agent,
@@ -173,8 +178,10 @@ def evaluate(experiment):
         "total_reward": total_reward,
         "return": return_,
         "length": length,
-        "simple_regret": simple_regret
+        # "simple_regret": simple_regret
     }
+    if compute_regret:
+        result["simple_regret"] = simple_regret
     df = pd.DataFrame.from_records([result])
     with open(path, 'a') as f:
         df.to_csv(f, sep=',', encoding='utf-8', header=f.tell() == 0, index=False)
@@ -206,17 +213,20 @@ def plot_all(data_path, plot_path, data_range):
         df = df[df["budget"].between(int(start), int(end))]
     print("Number of seeds found: {}".format(df.seed.nunique()))
 
-    for field in ["total_reward", "return", "length", "simple_regret"]:
-        fig, ax = plt.subplots()
-        ax.set(xscale="log")
-        if field in ["simple_regret"]:
-            ax.set(yscale="log")
-        sns.lineplot(x="budget", y=field, ax=ax, hue="agent", data=df)
-        field_path = plot_path / "{}.pdf".format(field)
-        fig.savefig(field_path, bbox_inches='tight')
-        field_path = plot_path / "{}.png".format(field)
-        fig.savefig(field_path, bbox_inches='tight')
-        print("Saving {} plot to {}".format(field, field_path))
+    try:
+        for field in ["total_reward", "return", "length", "simple_regret"]:
+            fig, ax = plt.subplots()
+            ax.set(xscale="log")
+            if field in ["simple_regret"]:
+                ax.set(yscale="log")
+            sns.lineplot(x="budget", y=field, ax=ax, hue="agent", data=df)
+            field_path = plot_path / "{}.pdf".format(field)
+            fig.savefig(field_path, bbox_inches='tight')
+            field_path = plot_path / "{}.png".format(field)
+            fig.savefig(field_path, bbox_inches='tight')
+            print("Saving {} plot to {}".format(field, field_path))
+    except ValueError:
+        pass
 
 
 def main(args):
