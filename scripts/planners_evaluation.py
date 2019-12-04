@@ -110,7 +110,8 @@ def agent_configs():
                 "threshold": "1*np.log(time)"
             },
             "continuation_type": "uniform",
-            "step_strategy": "reset"
+            "step_strategy": "reset",
+            "env_preprocessors": [{"method": "simplify"}]
         },
         # "value_iteration": {
         #     "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
