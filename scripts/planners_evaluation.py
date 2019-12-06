@@ -84,6 +84,7 @@ def agent_configs():
             },
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
+            "env_preprocessors": [{"method": "simplify"}],
         },
         # "laplace": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -236,7 +237,7 @@ def plot_all(data_path, plot_path, data_range):
     print("Number of seeds found: {}".format(df.seed.nunique()))
 
     try:
-        for field in ["total_reward", "return", "length", "simple_regret"]:
+        for field in ["total_reward", "return", "length", "mean_return", "simple_regret"]:
             fig, ax = plt.subplots()
             ax.set(xscale="log")
             if field in ["simple_regret"]:
