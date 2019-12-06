@@ -22,7 +22,7 @@ class BFTQGraphics(object):
 def plot_values_histograms(value_network, targets, states_betas, actions, writer, epoch, batch):
     with torch.no_grad():
         values = value_network(states_betas)
-    n_actions = value_network.predict.out_features // 2
+    n_actions = value_network.config["out"] // 2
     targets_r, targets_c = targets
     # Histograms of values of observed transitions
     plot_histograms(title="agent/Qr (observed transitions) batch {}".format(batch), writer=writer, epoch=epoch, labels=["target", "prediction"],

@@ -36,7 +36,7 @@ class BudgetedFittedQ(object):
         # Load network
         self._value_network = value_network
         self._value_network = self._value_network.to(self.device)
-        self.n_actions = self._value_network.model.predict.out_features // 2
+        self.n_actions = self._value_network.config["out"] // 2
 
         self.writer = writer
         if writer:
@@ -199,7 +199,7 @@ class BudgetedFittedQ(object):
         logger.debug("-Forward pass")
         # Compute the cartesian product sb of all next states s with all budgets b
         ss = next_states.squeeze().repeat((1, len(self.betas_for_discretisation))) \
-            .view((len(next_states) * len(self.betas_for_discretisation), self._value_network.size_state))
+            .view((len(next_states) * len(self.betas_for_discretisation), self._value_network.config["in"]))
         bb = torch.from_numpy(self.betas_for_discretisation).float().unsqueeze(1).to(device=self.device)
         bb = bb.repeat((len(next_states), 1))
         sb = torch.cat((ss, bb), dim=1).unsqueeze(1)
