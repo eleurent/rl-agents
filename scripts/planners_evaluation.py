@@ -73,17 +73,17 @@ def agent_configs():
         #     "lazy_tree_construction": True,
         #     "continuation_type": "uniform",
         # },
-        # "kl-olop-1": {
-        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-        #     "gamma": gamma,
-        #     "max_depth": 4,
-        #     "upper_bound": {
-        #         "type": "kullback-leibler",
-        #         "threshold": "1*np.log(time)"
-        #     },
-        #     "lazy_tree_construction": True,
-        #     "continuation_type": "uniform",
-        # },
+        "kl-olop-1": {
+            "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+            "gamma": gamma,
+            "max_depth": 4,
+            "upper_bound": {
+                "type": "kullback-leibler",
+                "threshold": "1*np.log(time)"
+            },
+            "lazy_tree_construction": True,
+            "continuation_type": "uniform",
+        },
         # "laplace": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         #     "gamma": gamma,
@@ -164,11 +164,14 @@ def evaluate(experiment):
         rewards = evaluation.monitor.stats_recorder.episode_rewards_[0]
         length = evaluation.monitor.stats_recorder.episode_lengths[0]
         total_reward = np.sum(rewards)
-        return_ = np.sum([gamma**t * rewards[t] for t in range(len(rewards))])
+        cum_discount = lambda signal: np.sum([gamma**t * signal[t] for t in range(len(signal))])
+        return_ = cum_discount(rewards)
+        mean_return = np.mean([cum_discount(rewards[t:]) for t in range(len(rewards))])
     else:
         length = 0
         total_reward = 0
         return_ = 0
+        mean_return = 0
 
     # Save results
     result = {
@@ -177,11 +180,11 @@ def evaluate(experiment):
         "seed": seed,
         "total_reward": total_reward,
         "return": return_,
+        "mean_return": mean_return,
         "length": length,
-        # "simple_regret": simple_regret
+        "simple_regret": simple_regret
     }
-    if compute_regret:
-        result["simple_regret"] = simple_regret
+
     df = pd.DataFrame.from_records([result])
     with open(path, 'a') as f:
         df.to_csv(f, sep=',', encoding='utf-8', header=f.tell() == 0, index=False)
