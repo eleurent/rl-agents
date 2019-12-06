@@ -107,9 +107,12 @@ class Evaluation(object):
         self.close()
 
     def test(self):
+        """
+        Test the agent.
+
+        If applicable, the agent model should be loaded before using the recover option.
+        """
         self.training = False
-        if not self.recover:
-            logger.warning("No pre-trained model has been loaded.")
         if self.display_env:
             self.monitor.video_callable = MonitorV2.always_call_video
         try:
