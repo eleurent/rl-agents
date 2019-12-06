@@ -6,25 +6,32 @@ from torch.nn import functional as F
 from rl_agents.configuration import Configurable
 
 
-class BaseModule(torch.nn.Module):
+class BaseModule(torch.nn.Module, Configurable):
     """
         Base torch.nn.Module implementing basic features:
             - initialization factory
             - normalization parameters
     """
-    def __init__(self, activation_type="RELU", reset_type="XAVIER", normalize=None):
+    def __init__(self, config):
         super().__init__()
-        self.activation = activation_factory(activation_type)
-        self.reset_type = reset_type
-        self.normalize = normalize
+        Configurable.__init__(self, config)
+        self.activation = activation_factory(self.config["activation"])
         self.mean = None
         self.std = None
 
+    @classmethod
+    def default_config(cls):
+        return {
+            "activation": "RELU",
+            "reset_type": "XAVIER",
+            "normalize": False
+        }
+
     def _init_weights(self, m):
         if hasattr(m, 'weight'):
-            if self.reset_type == "XAVIER":
+            if self.config["reset_type"] == "XAVIER":
                 torch.nn.init.xavier_uniform_(m.weight.data)
-            elif self.reset_type == "ZEROS":
+            elif self.config["reset_type"] == "ZEROS":
                 torch.nn.init.constant_(m.weight.data, 0.)
             else:
                 raise ValueError("Unknown reset type")
@@ -32,7 +39,7 @@ class BaseModule(torch.nn.Module):
             torch.nn.init.constant_(m.bias.data, 0.)
 
     def set_normalization_params(self, mean, std):
-        if self.normalize:
+        if self.config["normalize"]:
             std[std == 0.] = 1.
         self.std = std
         self.mean = mean
@@ -41,17 +48,15 @@ class BaseModule(torch.nn.Module):
         self.apply(self._init_weights)
 
     def forward(self, *input):
-        if self.normalize:
+        if self.config["normalize"]:
             input = (input.float() - self.mean.float()) / self.std.float()
         return NotImplementedError
 
 
-class MultiLayerPerceptron(BaseModule, Configurable):
+class MultiLayerPerceptron(BaseModule):
     def __init__(self, config):
-        super().__init__()
-        Configurable.__init__(self, config)
+        super().__init__(config)
         sizes = [self.config["in"]] + self.config["layers"]
-        self.activation = activation_factory(self.config["activation"])
         layers_list = [nn.Linear(sizes[i], sizes[i + 1]) for i in range(len(sizes) - 1)]
         self.layers = nn.ModuleList(layers_list)
         if self.config.get("out", None):
@@ -59,11 +64,14 @@ class MultiLayerPerceptron(BaseModule, Configurable):
 
     @classmethod
     def default_config(cls):
-        return {"in": None,
-                "layers": [64, 64],
-                "activation": "RELU",
-                "reshape": "True",
-                "out": None}
+        config = super().default_config()
+        config.update({
+            "in": None,
+            "layers": [64, 64],
+            "reshape": "True",
+            "out": None
+        })
+        return config
 
     def forward(self, x):
         if self.config["reshape"]:
@@ -75,10 +83,9 @@ class MultiLayerPerceptron(BaseModule, Configurable):
         return x
 
 
-class DuelingNetwork(BaseModule, Configurable):
+class DuelingNetwork(BaseModule):
     def __init__(self, config):
-        super().__init__()
-        Configurable.__init__(self, config)
+        super().__init__(config)
         self.config["base_module"]["in"] = self.config["in"]
         self.base_module = model_factory(self.config["base_module"])
         self.advantage = nn.Linear(self.config["base_module"]["layers"][-1], self.config["out"])
@@ -147,10 +154,9 @@ class ConvolutionalNetwork(nn.Module, Configurable):
         return self.head(x)
 
 
-class EgoAttention(BaseModule, Configurable):
+class EgoAttention(BaseModule):
     def __init__(self, config):
-        super().__init__()
-        Configurable.__init__(self, config)
+        super().__init__(config)
         self.features_per_head = int(self.config["feature_size"] / self.config["heads"])
 
         self.value_all = nn.Linear(self.config["feature_size"], self.config["feature_size"], bias=False)
@@ -187,10 +193,9 @@ class EgoAttention(BaseModule, Configurable):
         return result, attention_matrix
 
 
-class SelfAttention(BaseModule, Configurable):
+class SelfAttention(BaseModule):
     def __init__(self, config):
-        super().__init__()
-        Configurable.__init__(self, config)
+        super().__init__(config)
         self.features_per_head = int(self.config["feature_size"] / self.config["heads"])
 
         self.value_all = nn.Linear(self.config["feature_size"], self.config["feature_size"], bias=False)
@@ -227,10 +232,9 @@ class SelfAttention(BaseModule, Configurable):
         return result, attention_matrix
 
 
-class EgoAttentionNetwork(BaseModule, Configurable):
+class EgoAttentionNetwork(BaseModule):
     def __init__(self, config):
-        super().__init__()
-        Configurable.__init__(self, config)
+        super().__init__(config)
         self.config = config
         if not self.config["embedding_layer"]["in"]:
             self.config["embedding_layer"]["in"] = self.config["in"]
@@ -305,10 +309,9 @@ class EgoAttentionNetwork(BaseModule, Configurable):
         return attention_matrix
 
 
-class AttentionNetwork(BaseModule, Configurable):
+class AttentionNetwork(BaseModule):
     def __init__(self, config):
-        super().__init__()
-        Configurable.__init__(self, config)
+        super().__init__(config)
         self.config = config
         if not self.config["embedding_layer"]["in"]:
             self.config["embedding_layer"]["in"] = self.config["in"]

@@ -14,12 +14,15 @@
     "split_batches": 4,
     "processes": 1,
     "network": {
+        "type": "BudgetedMLP",
         "size_beta_encoder": 50,
-        "layers": [
-            256,
-            128,
-            64
-        ]
+        "model": {
+            "layers": [
+                256,
+                128,
+                64
+            ]
+        }
     },
     "optimizer": {
         "weight_decay": 0.0005,
