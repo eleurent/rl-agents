@@ -1,0 +1,60 @@
+{
+    "__class__": "<class 'rl_agents.agents.budgeted_ftq.agent.BFTQAgent'>",
+    "gamma": 0.9,
+    "gamma_c": 0.9,
+    "epochs": 15,
+    "batch_size": 100,
+    "betas_for_discretisation": "np.arange(0, 1, 0.05)",
+    "exploration": {
+        "tau": 15000,
+        "temperature": 1.0,
+        "final_temperature": 0.05
+    },
+    "memory_capacity": 50000,
+    "device": "cuda:best",
+    "regression_epochs": 5000,
+    "clamp_qc": [0, 1.5],
+    "split_batches": 4,
+    "processes": null,
+    "model": {
+        "type": "BudgetedNetwork",
+        "size_beta_encoder": 64,
+        "state_encoder": {
+            "type": "EgoAttentionNetwork",
+            "embedding_layer": {
+                "type": "MultiLayerPerceptron",
+                "layers": [64, 64],
+                "reshape": false,
+                "in": 7
+            },
+            "others_embedding_layer": {
+                "type": "MultiLayerPerceptron",
+                "layers": [64, 64],
+                "reshape": false,
+                "in": 7
+            },
+            "self_attention_layer": null,
+            "attention_layer": {
+                "type": "EgoAttention",
+                "feature_size": 64,
+                "heads": 2
+            },
+            "output_layer": {
+                "type": "MultiLayerPerceptron",
+                "layers": [],
+                "out": 64,
+                "reshape": false
+            }
+        },
+        "head": {
+            "type": "MultiLayerPerceptron",
+            "layers": [
+                64
+            ]
+        }
+    },
+    "optimizer": {
+        "weight_decay": 0.0005,
+        "learning_rate": 1e-3
+    }
+}
