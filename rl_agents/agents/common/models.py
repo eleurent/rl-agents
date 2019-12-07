@@ -6,15 +6,15 @@ from torch.nn import functional as F
 from rl_agents.configuration import Configurable
 
 
-class BaseModule(torch.nn.Module, Configurable):
+class BaseModule(Configurable, torch.nn.Module):
     """
         Base torch.nn.Module implementing basic features:
             - initialization factory
             - normalization parameters
     """
     def __init__(self, config):
-        super().__init__()
-        Configurable.__init__(self, config)
+        super().__init__(config)
+        torch.nn.Module.__init__(self)
         self.activation = activation_factory(self.config["activation"])
         self.mean = None
         self.std = None
@@ -166,11 +166,13 @@ class EgoAttention(BaseModule):
 
     @classmethod
     def default_config(cls):
-        return {
+        config = super().default_config()
+        config.update({
             "feature_size": 64,
             "heads": 4,
             "dropout_factor": 0,
-        }
+        })
+        return config
 
     def forward(self, ego, others, mask=None):
         batch_size = others.shape[0]
@@ -205,11 +207,13 @@ class SelfAttention(BaseModule):
 
     @classmethod
     def default_config(cls):
-        return {
+        config = super().default_config()
+        config.update({
             "feature_size": 64,
             "heads": 4,
             "dropout_factor": 0,
-        }
+        })
+        return config
 
     def forward(self, ego, others, mask=None):
         batch_size = others.shape[0]
@@ -253,7 +257,8 @@ class EgoAttentionNetwork(BaseModule):
 
     @classmethod
     def default_config(cls):
-        return {
+        config = super().default_config()
+        config.update({
             "in": None,
             "out": None,
             "presence_feature_idx": 0,
@@ -282,7 +287,8 @@ class EgoAttentionNetwork(BaseModule):
                 "layers": [128, 128, 128],
                 "reshape": False
             },
-        }
+        })
+        return config
 
     def forward(self, x):
         ego_embedded_att, _ = self.forward_attention(x)
