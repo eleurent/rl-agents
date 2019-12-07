@@ -1,0 +1,32 @@
+{
+    "__class__": "<class 'rl_agents.agents.budgeted_ftq.agent.BFTQAgent'>",
+    "gamma": 0.9,
+    "gamma_c": 0.9,
+    "epochs": 15,
+    "batch_size": 1000,
+    "betas_for_discretisation": "np.arange(0, 1, 0.01)",
+    "exploration": {
+        "tau": 3000
+    },
+    "memory_capacity": 100000,
+    "device": 0,
+    "regression_epochs": 5000,
+    "clamp_qc": [0, 1.5],
+    "split_batches": 4,
+    "processes": null,
+    "network": {
+        "type": "BudgetedMLP",
+        "size_beta_encoder": 50,
+        "model": {
+            "layers": [
+                256,
+                128,
+                64
+            ]
+        }
+    },
+    "optimizer": {
+        "weight_decay": 0.0005,
+        "learning_rate": 1e-3
+    }
+}
