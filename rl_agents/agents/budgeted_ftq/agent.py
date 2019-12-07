@@ -117,6 +117,12 @@ class BFTQAgent(AbstractAgent):
             self.seed()
         size_model_config(self.env, self.config["model"])
         network = model_factory(self.config["model"])
+
+        if self.writer:
+            self.writer.add_graph(
+                network,
+                input_to_model=(torch.tensor(np.zeros((1, *self.env.observation_space.shape), dtype=np.float32)),
+                                torch.tensor(np.zeros((1, 1), dtype=np.float32))))
         self.bftq = BudgetedFittedQ(value_network=network, config=self.config, writer=self.writer)
         self.exploration_policy = EpsilonGreedyBudgetedPolicy(
             pi_greedy=PytorchBudgetedFittedPolicy(

@@ -39,12 +39,6 @@ class BudgetedFittedQ(object):
         self.n_actions = self._value_network.config["out"] // 2
 
         self.writer = writer
-        if writer:
-            self.writer.add_graph(self._value_network,
-                                  input_to_model=
-                                  (torch.tensor(np.zeros((1, value_network.config["in"]),
-                                                         dtype=np.float32)).to(self.device),
-                                   torch.tensor(np.zeros((1, 1), dtype=np.float32)).to(self.device)))
 
         self.memory = ReplayMemory(transition_type=TransitionBFTQ, config=self.config)
         self.optimizer = None
