@@ -264,7 +264,7 @@ class BudgetedFittedQ(object):
             losses.append(loss)
         torch.cuda.empty_cache()
 
-        plot_curves("regression loss", self.writer, self.epoch, ["loss"], [losses], log_scales=[True])
+        plot_curves("agent/regression loss", self.writer, self.epoch, ["loss"], [losses], log_scales=[True])
 
         return delta
 
