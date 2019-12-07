@@ -16,14 +16,20 @@
     "clamp_qc": [0, 1.5],
     "split_batches": 4,
     "processes": null,
-    "network": {
-        "type": "BudgetedMLP",
-        "size_beta_encoder": 50,
-        "model": {
+    "model": {
+        "type": "BudgetedNetwork",
+        "size_beta_encoder": 64,
+        "state_encoder": {
+            "type": "MultiLayerPerceptron",
             "layers": [
-                128,
-                64,
-                32
+                256
+            ],
+            "out": 64
+        },
+        "head": {
+            "type": "MultiLayerPerceptron",
+            "layers": [
+                64
             ]
         }
     },

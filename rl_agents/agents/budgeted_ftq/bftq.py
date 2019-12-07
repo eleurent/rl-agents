@@ -41,8 +41,10 @@ class BudgetedFittedQ(object):
         self.writer = writer
         if writer:
             self.writer.add_graph(self._value_network,
-                                  input_to_model=torch.tensor(np.zeros((1, 1, value_network.config["in"] + 1),
-                                                                       dtype=np.float32)).to(self.device))
+                                  input_to_model=
+                                  (torch.tensor(np.zeros((1, value_network.config["in"]),
+                                                         dtype=np.float32)).to(self.device),
+                                   torch.tensor(np.zeros((1, 1), dtype=np.float32)).to(self.device)))
 
         self.memory = ReplayMemory(transition_type=TransitionBFTQ, config=self.config)
         self.optimizer = None
@@ -58,19 +60,19 @@ class BudgetedFittedQ(object):
         reward = torch.tensor([reward], dtype=torch.float)
         terminal = torch.tensor([terminal], dtype=torch.uint8)
         cost = torch.tensor([cost], dtype=torch.float)
-        state = torch.tensor([[state]], dtype=torch.float)
-        next_state = torch.tensor([[next_state]], dtype=torch.float)
+        state = torch.tensor([state], dtype=torch.float)
+        next_state = torch.tensor([next_state], dtype=torch.float)
 
         # Data augmentation for (potentially missing) budget values
         if np.size(self.betas_for_duplication):
             for beta_d in self.betas_for_duplication:
                 if beta:  # If the transition already has a beta, augment data by altering it.
-                    beta_d = torch.tensor([[[beta_d * beta]]], dtype=torch.float)
+                    beta_d = torch.tensor([[beta_d * beta]], dtype=torch.float)
                 else:  # Otherwise, simply set new betas
-                    beta_d = torch.tensor([[[beta_d]]], dtype=torch.float)
+                    beta_d = torch.tensor([[beta_d]], dtype=torch.float)
                 self.memory.push(state, action, reward, next_state, terminal, cost, beta_d)
         else:
-            beta = torch.tensor([[[beta]]], dtype=torch.float)
+            beta = torch.tensor([[beta]], dtype=torch.float)
             self.memory.push(state, action, reward, next_state, terminal, cost, beta)
 
     def run(self):
@@ -117,12 +119,7 @@ class BudgetedFittedQ(object):
         betas = torch.cat(zipped.beta).to(self.device)
         states = torch.cat(zipped.state).to(self.device)
         next_states = torch.cat(zipped.next_state).to(self.device)
-        states_betas = torch.cat((states, betas), dim=2).to(self.device)
-
-        # Batch normalization
-        mean = torch.mean(states_betas, 0).to(self.device)
-        std = torch.std(states_betas, 0).to(self.device)
-        self._value_network.set_normalization_params(mean, std)
+        states_betas = (states, betas)
 
         return states_betas, actions, rewards, costs, next_states, betas, terminals
 
@@ -198,18 +195,16 @@ class BudgetedFittedQ(object):
         """
         logger.debug("-Forward pass")
         # Compute the cartesian product sb of all next states s with all budgets b
-        ss = next_states.squeeze().repeat((1, len(self.betas_for_discretisation))) \
-            .view((len(next_states) * len(self.betas_for_discretisation), self._value_network.config["in"]))
-        bb = torch.from_numpy(self.betas_for_discretisation).float().unsqueeze(1).to(device=self.device)
-        bb = bb.repeat((len(next_states), 1))
-        sb = torch.cat((ss, bb), dim=1).unsqueeze(1)
+        states = torch.cat(len(self.betas_for_discretisation) * [next_states])
+        budgets = torch.from_numpy(self.betas_for_discretisation) \
+            .float().unsqueeze(1).to(device=self.device).repeat(len(next_states), 1)
 
         # To avoid spikes in memory, we actually split the batch in several minibatches
-        batch_sizes = near_split(x=len(sb), num_bins=self.config["split_batches"])
+        batch_sizes = near_split(x=states.shape[0], num_bins=self.config["split_batches"])
         q_values = []
         for minibatch in range(self.config["split_batches"]):
-            mini_batch = sb[sum(batch_sizes[:minibatch]):sum(batch_sizes[:minibatch + 1])]
-            q_values.append(self._value_network(mini_batch))
+            mb_range = slice(sum(batch_sizes[:minibatch]), sum(batch_sizes[:minibatch + 1]))
+            q_values.append(self._value_network(states[mb_range], budgets[mb_range]))
             torch.cuda.empty_cache()
         return torch.cat(q_values).detach().cpu().numpy()
 
@@ -288,7 +283,7 @@ class BudgetedFittedQ(object):
         :param target_c: target qc
         :return: the weighted loss for expected rewards and costs
         """
-        values = self._value_network(states_betas)
+        values = self._value_network(*states_betas)
         qr = values.gather(1, actions)
         qc = values.gather(1, actions + self.n_actions)
         loss_qc = self.loss_function_c(qc, target_c.unsqueeze(1))

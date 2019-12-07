@@ -5,7 +5,7 @@ from gym.utils import seeding
 
 from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.budgeted_ftq.bftq import BudgetedFittedQ
-from rl_agents.agents.budgeted_ftq.models import BudgetedMLP, size_model_config, model_factory
+from rl_agents.agents.budgeted_ftq.models import BudgetedNetwork, size_model_config, model_factory
 from rl_agents.agents.budgeted_ftq.policies import PytorchBudgetedFittedPolicy, RandomBudgetedPolicy, \
     EpsilonGreedyBudgetedPolicy
 from rl_agents.agents.common.utils import load_pytorch
@@ -100,7 +100,7 @@ class BFTQAgent(AbstractAgent):
         if not self.training:
             return
         # Store transition to memory
-        self.bftq.push(state.flatten(), action, reward, next_state.flatten(), done, info["cost"])
+        self.bftq.push(state, action, reward, next_state, done, info["cost"])
 
     def update(self):
         """
@@ -115,8 +115,8 @@ class BFTQAgent(AbstractAgent):
     def reset(self):
         if not self.np_random:
             self.seed()
-        size_model_config(self.env, self.config["network"])
-        network = model_factory(self.config["network"])
+        size_model_config(self.env, self.config["model"])
+        network = model_factory(self.config["model"])
         self.bftq = BudgetedFittedQ(value_network=network, config=self.config, writer=self.writer)
         self.exploration_policy = EpsilonGreedyBudgetedPolicy(
             pi_greedy=PytorchBudgetedFittedPolicy(

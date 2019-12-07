@@ -3,18 +3,18 @@ import torch.nn as nn
 import numpy as np
 
 from rl_agents.agents.common.models import BaseModule, model_factory
-from rl_agents.configuration import Configurable
 from rl_agents.agents.common.models import model_factory as common_model_factory
 
 
-class BudgetedMLP(BaseModule, Configurable):
+class BudgetedNetwork(BaseModule):
     def __init__(self, config):
         super().__init__(config)
-        if self.config["beta_encoder_type"] == "LINEAR":
-            self.beta_encoder = torch.nn.Linear(1, self.config["size_beta_encoder"])
-        self.config["model"]["in"] = self.config["in"] + self.config["size_beta_encoder"]
-        self.config["model"]["out"] = self.config["out"]
-        self.model = model_factory(self.config["model"])
+        self.config["state_encoder"]["in"] = self.config["in"]
+        self.config["head"]["in"] = self.config["state_encoder"]["out"] + self.config["size_beta_encoder"]
+        self.config["head"]["out"] = self.config["out"]
+        self.state_encoder = model_factory(self.config["state_encoder"])
+        self.beta_encoder = torch.nn.Linear(1, self.config["size_beta_encoder"])
+        self.head = model_factory(self.config["head"])
 
     @classmethod
     def default_config(cls):
@@ -22,23 +22,25 @@ class BudgetedMLP(BaseModule, Configurable):
         config.update({
             "in": None,
             "out": None,
-            "model": {
+            "size_beta_encoder": 10,
+            "state_encoder": {
+                "type": "MultiLayerPerceptron",
+                "out": 64
+            },
+            "head": {
                 "type": "MultiLayerPerceptron"
             },
-            "size_beta_encoder": 10,
         })
         return config
 
-    def forward(self, x):
-        if self.config["normalize"]:
-            x = (x - self.mean) / self.std
-
-        beta = x[:, :, -1]
-        beta = self.beta_encoder(beta)
-        state = x[:, :, 0:-1][:, 0]
-        x = torch.cat((state, beta), dim=1)
-        x = self.model(x)
-        return x.view(x.size(0), -1)
+    def forward(self, states, budgets):
+        # Since we use the "out" parameter in the state encoder to specify output size,
+        # the output is linear and needs an additional activation.
+        states = self.activation(self.state_encoder(states))
+        budgets = self.beta_encoder(budgets)
+        x = torch.cat((states, budgets), dim=1)
+        x = self.head(x)
+        return x
 
 
 def size_model_config(env, model_config):
@@ -55,7 +57,7 @@ def size_model_config(env, model_config):
 
 
 def model_factory(config: dict) -> nn.Module:
-    if config["type"] == "BudgetedMLP":
-        return BudgetedMLP(config)
+    if config["type"] == "BudgetedNetwork":
+        return BudgetedNetwork(config)
     else:
         return common_model_factory(config)

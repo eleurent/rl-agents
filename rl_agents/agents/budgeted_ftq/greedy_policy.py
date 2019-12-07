@@ -116,8 +116,7 @@ def pareto_frontier_at(state, value_network, betas, device, hull_options, clamp_
     :return: the frontier, all points
     """
     with torch.no_grad():
-        ss = state.repeat((len(betas), 1, 1))
-        bb = torch.from_numpy(betas).float().unsqueeze(1).unsqueeze(1).to(device=device)
-        sb = torch.cat((ss, bb), dim=2)
-        values = value_network(sb).detach().cpu().numpy()
+        ss = state.repeat(len(betas))
+        bb = torch.from_numpy(betas).float().unsqueeze(1).to(device=device)
+        values = value_network(ss, bb).detach().cpu().numpy()
     return pareto_frontier(values, betas, hull_options=hull_options, clamp_qc=clamp_qc)
