@@ -4,13 +4,13 @@
     "gamma_c": 0.9,
     "epochs": 15,
     "batch_size": 4000,
-    "betas_for_discretisation": "np.arange(0, 1, 0.01)",
+    "betas_for_discretisation": "np.arange(0, 1, 0.05)",
     "exploration": {
         "tau": 15000,
         "temperature": 1.0,
         "final_temperature": 0.05
     },
-    "memory_capacity": 500000,
+    "memory_capacity": 50000,
     "device": "cuda:best",
     "regression_epochs": 5000,
     "clamp_qc": [0, 1.5],
@@ -21,9 +21,9 @@
         "size_beta_encoder": 50,
         "model": {
             "layers": [
-                256,
                 128,
-                64
+                64,
+                32
             ]
         }
     },
