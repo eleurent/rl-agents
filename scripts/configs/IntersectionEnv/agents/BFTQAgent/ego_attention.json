@@ -3,7 +3,7 @@
     "gamma": 0.9,
     "gamma_c": 0.9,
     "epochs": 15,
-    "batch_size": 100,
+    "batch_size": 4000,
     "betas_for_discretisation": "np.arange(0, 1, 0.05)",
     "exploration": {
         "tau": 15000,
