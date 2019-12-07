@@ -1,7 +1,7 @@
 """
     Adapted from the original implementation by Nicolas Carrara <https://github.com/ncarrara>.
 """
-from rl_agents.agents.budgeted_ftq.graphics import plot_values_histograms, plot_frontier
+from rl_agents.agents.budgeted_ftq.graphics import plot_values_histograms, plot_frontier, plot_curves
 from rl_agents.agents.common.utils import choose_device
 
 __author__ = "Edouard Leurent"
@@ -274,6 +274,8 @@ class BudgetedFittedQ(object):
             loss = self._gradient_step(states_betas, actions, target_r, target_c)
             losses.append(loss)
         torch.cuda.empty_cache()
+
+        plot_curves("regression loss", self.writer, self.epoch, ["loss"], [losses], log_scales=[True])
 
         return delta
 

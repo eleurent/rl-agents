@@ -5,6 +5,7 @@ import torch
 import pandas as pd
 import re
 
+sns.set()
 
 class BFTQGraphics(object):
     @classmethod
@@ -96,6 +97,23 @@ def plot_frontier(frontier, all_points, writer=None, epoch=0, title="", beta=Non
         writer.add_image(clean_tag(title), data, epoch)
     plt.close()
     return data_str, fig.canvas.get_width_height()
+
+
+def plot_curves(title, writer, epoch, labels, values, log_scales=None):
+    fig, ax = plt.subplots()
+    log_scales = log_scales if log_scales is not None else [False] * len(values)
+    for value, label, log_scale in zip(values, labels, log_scales):
+        if log_scale:
+            ax.set(xscale="log")
+        plt.plot(value, label=label)
+    plt.title(title)
+    plt.legend(loc='upper right')
+
+    fig.canvas.draw()
+    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+    data = np.rollaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), 2, 0)
+    writer.add_image(clean_tag(title), data, epoch)
+    plt.close()
 
 
 def clean_tag(tag):
