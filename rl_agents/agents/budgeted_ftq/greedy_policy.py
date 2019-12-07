@@ -9,7 +9,7 @@ from scipy.spatial.qhull import QhullError
 from rl_agents.agents.budgeted_ftq.convex_hull_graham import convex_hull_graham
 
 TransitionBFTQ = namedtuple('TransitionBFTQ', ('state', 'action', 'reward', 'next_state', 'terminal', 'cost', 'beta'))
-ValuePoint = namedtuple('HullPoint', ('action', 'budget', 'qc', 'qr'))
+ValuePoint = namedtuple('ValuePoint', ('action', 'budget', 'qc', 'qr'))
 Mixture = namedtuple('Mixture', ('inf', 'sup', 'probability_sup', 'status'))
 
 
