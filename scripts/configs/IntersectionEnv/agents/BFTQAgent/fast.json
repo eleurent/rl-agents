@@ -2,14 +2,14 @@
     "__class__": "<class 'rl_agents.agents.budgeted_ftq.agent.BFTQAgent'>",
     "gamma": 0.9,
     "gamma_c": 0.9,
-    "epochs": 15,
+    "epochs": 3,
     "batch_size": 100,
     "exploration": {
         "tau": 3000
     },
     "memory_capacity": 100000,
     "device": 0,
-    "regression_epochs": 5000,
+    "regression_epochs": 100,
     "clamp_qc": [0, 1.5],
     "split_batches": 4,
     "processes": 1,
