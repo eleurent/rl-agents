@@ -85,8 +85,6 @@ class BFTQAgent(AbstractAgent):
         """
         # TODO: Choose the initial budget for the next episode and not at each step
         self.beta = self.np_random.rand() if self.training else self.config["beta"]
-
-        state = state.flatten()
         self.previous_state, self.previous_beta = state, self.beta
         action, self.beta = self.exploration_policy.execute(state, self.beta)
         return action
