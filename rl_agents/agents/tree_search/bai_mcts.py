@@ -2,6 +2,7 @@ import logging
 import numpy as np
 
 from rl_agents.agents.tree_search.ugape_mcts import UGapEMCTSNode, UgapEMCTS, UgapEMCTSAgent
+from rl_agents.utils import max_expectation_under_constraint
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,7 @@ class BaiActionNode(UGapEMCTSNode):
         self.depth = parent.depth
         gamma = self.planner.config["gamma"]
         self.value = (1 - gamma ** (self.planner.config["horizon"] - self.depth)) / (1 - gamma)
+        self.p_plus, self.p_minus = None, None
 
     def expand(self, state):
         # Generate placeholder nodes
@@ -145,8 +147,21 @@ class BaiActionNode(UGapEMCTSNode):
         assert self.parent
         gamma = self.planner.config["gamma"]
         children = list(self.children.values())
-        p_plus = np.array([child.count for child in children]) / self.count
-        p_minus = np.array([child.count for child in children]) / self.count
-        self.value = self.mu_ucb + gamma * p_plus @ np.array([c.value for c in children])
-        self.value_lower = self.mu_lcb + gamma * p_minus @ np.array([c.value_lower for c in children])
+        u_next = np.array([c.value for c in children])
+        l_next = np.array([c.value_lower for c in children])
+        p_hat = np.array([child.count for child in children]) / self.count
+        C = self.compute_threshold() / self.count
+        print("count", self.count, "C", C)
+        self.p_plus = max_expectation_under_constraint(u_next, p_hat, C)
+        self.p_minus = max_expectation_under_constraint(l_next, p_hat, C)
+        self.value = self.mu_ucb + gamma * self.p_plus @ u_next
+        self.value_lower = self.mu_lcb + gamma * self.p_minus @ l_next
         self.parent.backup_to_root()
+
+    def compute_threshold(self):
+        horizon = self.planner.config["horizon"]
+        actions = self.planner.env.action_space.n
+        confidence = self.planner.config["confidence"]
+        count = self.count
+        time = self.planner.config["episodes"]
+        return eval(self.planner.config["upper_bound"]["threshold"])

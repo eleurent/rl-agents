@@ -133,23 +133,97 @@ def kl_upper_bound(_sum, count, time, threshold="2*np.log(time)", eps=1e-2, lowe
     max_div = eval(threshold)/count
 
     # Solve KL(mu, q) = max_div
-    q = mu
-    next_q = (1 + mu)/2 if not lower else mu/2
-    while abs(q - next_q) > eps:
-        q = next_q
+    kl = lambda q: bernoulli_kullback_leibler(mu, q) - max_div
+    d_kl = lambda q: d_bernoulli_kullback_leibler_dq(mu, q)
+    a, b = (0, mu) if lower else (mu, 1)
+    return newton_iteration(kl, d_kl, eps, a=a, b=b)
 
-        # Newton Iteration
-        klq = bernoulli_kullback_leibler(mu, q) - max_div
-        d_klq = d_bernoulli_kullback_leibler_dq(mu, q)
-        next_q = q - klq / d_klq
 
-        # Out of bounds: move toward the bound
-        weight = 0.9
-        if next_q > 1:
-            next_q = weight*1 + (1 - weight)*q
-        elif next_q < 0:
-            next_q = weight*0 + (1 - weight)*q
-        elif (next_q < mu and not lower) or (next_q > mu and lower):
-            next_q = weight*mu + (1 - weight)*q
+def newton_iteration(f, df, eps, x0=None, a=None, b=None, weight=0.9, display=False):
+    """
+        Run Newton Iteration to solve f(x) = 0, with x in [a, b]
+    :param f: a function R -> R
+    :param df: the function derivative
+    :param eps: the desired accuracy
+    :param x0: an initial value
+    :param a: an optional lower-bound
+    :param b: an optional upper-bound
+    :param weight: a weight to handle out of bounds events
+    :param display: plot the function
+    :return: x such that f(x) = 0
+    """
+    x = np.inf
+    if x0 is None:
+        x0 = (a + b) / 2
+    x_next = x0
+    iterations = 0
+    while abs(x - x_next) > eps:
+        iterations += 1
+        x = x_next
 
-    return constrain(next_q, 0, 1)
+        if display:
+            import matplotlib.pyplot as plt
+            a = a or 1
+            b = b or 5
+            xx = np.linspace(a, b, 100)
+            yy = np.array(list(map(f, xx)))
+            plt.plot(xx, yy)
+            plt.show()
+
+        df_x = df(x)
+        if df_x > 0:
+            x_next = x - f(x) / df_x
+
+        if a is not None and x_next < a:
+            x_next = weight * a + (1 - weight) * x
+        elif b is not None and x_next > b:
+            x_next = weight * b + (1 - weight) * x
+
+    if a is not None and x_next < a:
+        x_next = a
+    if b is not None and x_next > b:
+        x_next = b
+
+    print(iterations, "iterations")
+    if iterations == 0:
+        print(iterations, "iterations")
+    return x_next
+
+
+def max_expectation_under_constraint(f, q, c, eps=1e-2):
+    """
+        Solve the following constrained optimisation problem:
+             max_p E_p[f]    s.t.    KL(p || q) <= c
+    :param f: a value function, np.array of size n
+    :param q: a discrete distribution, np.array of size n
+    :param c: a threshold for the KL divergence between p and q.
+    :param eps: desired accuracy
+    :return: the argmax p*
+    """
+    x_plus = np.where(q > 0)
+    x_zero = np.where(q == 0)
+    p_star = np.zeros(q.shape)
+    lambda_, z = None, 0
+
+    q_p = q[x_plus]
+    f_p = f[x_plus]
+    theta = lambda l: q_p @ np.log(l - f_p) + np.log(q_p @ (1 / (l - f_p))) - c
+    d_theta_dl = lambda l: q_p @ (1 / (l - f_p)) - (q_p @ (1 / (l - f_p)**2)) / (q_p @ (1 / (l - f_p)))
+    f_star = np.amax(f)
+    theta_star = np.nan_to_num(theta(f_star))
+    if theta_star < c:
+        lambda_ = f_star
+        z = 1 - np.exp(theta_star - c)
+        p_star[x_zero] = z / np.size(x_zero)
+    if lambda_ is None:
+        lambda_ = newton_iteration(theta, d_theta_dl, eps, x0=f_star + 1, display=True)
+
+    beta = (1 - z) / (q_p @ (1 / (lambda_ - f_p)))
+    if beta == 0:
+        x_uni = np.where((q > 0) & (f == f_star))
+        p_star[x_uni] = (1 - z) / np.size(x_uni)
+    else:
+        p_star[x_plus] = beta * q_p / (lambda_ - f_p)
+    return p_star
+
+
