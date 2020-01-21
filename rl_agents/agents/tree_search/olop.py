@@ -23,7 +23,7 @@ class OLOP(AbstractPlanner):
     def __init__(self, env, config=None):
         self.leaves = None
         self.env = env
-        super(OLOP, self).__init__(config)
+        super().__init__(config)
 
     @classmethod
     def default_config(cls):
@@ -166,7 +166,7 @@ class OLOP(AbstractPlanner):
 
 
 class OLOPNode(Node):
-    STOP_ON_ANY_TERMINAL_STATE = True
+    STOP_ON_ANY_TERMINAL_STATE = False
 
     def __init__(self, parent, planner):
         super(OLOPNode, self).__init__(parent, planner)

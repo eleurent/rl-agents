@@ -21,11 +21,6 @@ class UgapEMCTS(OLOP):
     """
        Best-Arm Identification MCTS.
     """
-    def __init__(self, env, config=None):
-        self.leaves = None
-        self.env = env
-        super(OLOP, self).__init__(config)
-
     @classmethod
     def default_config(cls):
         cfg = super(OLOP, cls).default_config()
