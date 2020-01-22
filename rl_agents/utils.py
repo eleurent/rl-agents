@@ -58,6 +58,17 @@ def zip_with_singletons(*args):
     return zip(*(arg if isinstance(arg, list) else itertools.repeat(arg) for arg in args))
 
 
+def kullback_leibler(p, q):
+    kl = 0
+    for pi, qi in zip(p, q):
+        if pi > 0:
+            if qi > 0:
+                kl += pi * np.log(pi/qi)
+            else:
+                kl = np.inf
+    return kl
+
+
 def bernoulli_kullback_leibler(p, q):
     """
         Compute the Kullback-Leibler divergence of two Bernoulli distributions.
@@ -163,16 +174,17 @@ def newton_iteration(f, df, eps, x0=None, a=None, b=None, weight=0.9, display=Fa
 
         if display:
             import matplotlib.pyplot as plt
-            a = a or 1
-            b = b or 5
-            xx = np.linspace(a, b, 100)
+            xx0 = a or x-1
+            xx1 = b or x+1
+            xx = np.linspace(xx0, xx1, 100)
             yy = np.array(list(map(f, xx)))
             plt.plot(xx, yy)
+            plt.axvline(x=x)
             plt.show()
 
-        df_x = df(x)
-        if df_x > 0:
-            x_next = x - f(x) / df_x
+        f_x, df_x = f(x), df(x)
+        if df_x != 0:
+            x_next = x - f_x / df_x
 
         if a is not None and x_next < a:
             x_next = weight * a + (1 - weight) * x
@@ -185,8 +197,6 @@ def newton_iteration(f, df, eps, x0=None, a=None, b=None, weight=0.9, display=Fa
         x_next = b
 
     print(iterations, "iterations")
-    if iterations == 0:
-        print(iterations, "iterations")
     return x_next
 
 
@@ -210,13 +220,15 @@ def max_expectation_under_constraint(f, q, c, eps=1e-2):
     theta = lambda l: q_p @ np.log(l - f_p) + np.log(q_p @ (1 / (l - f_p))) - c
     d_theta_dl = lambda l: q_p @ (1 / (l - f_p)) - (q_p @ (1 / (l - f_p)**2)) / (q_p @ (1 / (l - f_p)))
     f_star = np.amax(f)
-    theta_star = np.nan_to_num(theta(f_star))
+    theta_star = theta(f_star)
+    if np.isnan(theta_star):
+        theta_star = np.inf
     if theta_star < c:
         lambda_ = f_star
         z = 1 - np.exp(theta_star - c)
         p_star[x_zero] = z / np.size(x_zero)
     if lambda_ is None:
-        lambda_ = newton_iteration(theta, d_theta_dl, eps, x0=f_star + 1, display=True)
+        lambda_ = newton_iteration(theta, d_theta_dl, eps, x0=f_star + 1, a=f_star, display=False)
 
     beta = (1 - z) / (q_p @ (1 / (lambda_ - f_p)))
     if beta == 0:

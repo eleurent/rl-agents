@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from rl_agents.utils import bernoulli_kullback_leibler, d_bernoulli_kullback_leibler_dq, kl_upper_bound
+from rl_agents.utils import bernoulli_kullback_leibler, d_bernoulli_kullback_leibler_dq, kl_upper_bound, \
+    max_expectation_under_constraint, kullback_leibler
 
 
 def test_bernoulli_kullback_leibler():
@@ -25,14 +26,40 @@ def test_d_bernoulli_kullback_leibler_dq():
 
 
 def test_kl_upper_bound():
-    assert kl_upper_bound(0.5 * 1, 1, 10, c=1, eps=1e-3) == pytest.approx(0.997, abs=1e-3)
-    assert kl_upper_bound(0.5 * 10, 10, 20, c=1, eps=1e-3) == pytest.approx(0.835, abs=1e-3)
-    assert kl_upper_bound(0.5 * 20, 20, 40, c=1, eps=1e-3) == pytest.approx(0.777, abs=1e-3)
+    assert kl_upper_bound(0.5 * 1, 1, 10, threshold="np.log(time)", eps=1e-3) == pytest.approx(0.997, abs=1e-3)
+    assert kl_upper_bound(0.5 * 10, 10, 20, threshold="np.log(time)", eps=1e-3) == pytest.approx(0.835, abs=1e-3)
+    assert kl_upper_bound(0.5 * 20, 20, 40, threshold="np.log(time)", eps=1e-3) == pytest.approx(0.777, abs=1e-3)
 
     rands = np.random.randint(1, 500, 2)
     rands.sort()
     mu, count, time = np.random.random(), rands[0], rands[1]
-    ucb = kl_upper_bound(mu*count, count, time, c=1, eps=1e-3)
+    ucb = kl_upper_bound(mu*count, count, time, threshold="np.log(time)", eps=1e-3)
     assert not np.isnan(ucb)
     d_max = 1 * np.log(time) / count
     assert bernoulli_kullback_leibler(mu, ucb) == pytest.approx(d_max, abs=1e-2)
+
+
+def test_max_expectation_contrainted():
+    # Edge case
+    q = np.array([0, 0, 0.5, 0.5])
+    f = np.array([1, 1, 0, 0])
+    c = np.random.random()
+    p = max_expectation_under_constraint(f, q, c, eps=1e-3)
+    print("solution:", p)
+    kl = kullback_leibler(q, p)
+    print("kl:", kl, "c", c)
+    assert kl <= c + 1e-3
+    assert c - 1e-3 <= kl
+
+
+    # Random distribution
+    q = np.random.random(10)
+    q /= q.sum()
+    f = np.random.random(10)
+    c = np.random.random()
+    p = max_expectation_under_constraint(f, q, c, eps=1e-3)
+    print("solution:", p)
+    kl = q @ np.log(q/p)
+    print("kl:", kl, "c", c)
+    assert kl <= c + 1e-3
+    assert c - 1e-3 <= kl
