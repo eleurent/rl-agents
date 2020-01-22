@@ -14,16 +14,45 @@ class BaiMCTSAgent(UgapEMCTSAgent):
     def make_planner(self):
         return BaiMCTS(self.env, self.config)
 
+    def step(self, actions):
+        """
+            Handle receding horizon mechanism
+        :return: whether a replanning is required
+        """
+        replanning_required = self.remaining_horizon == 0
+        if replanning_required:
+            self.remaining_horizon = self.config["receding_horizon"] - 1
+            self.planner.step(actions)
+        else:
+            self.remaining_horizon -= 1
+            self.planner.step(actions)
+
+            if self.planner.root.children:
+                self.previous_actions.extend(self.planner.get_plan())
+            else:  # After stepping the transition in the tree, the subtree is empty
+                replanning_required = True
+        return replanning_required
+
+    def record(self, state, action, reward, next_state, done, info):
+        self.planner.next_observation = next_state
+
 
 class BaiMCTS(UgapEMCTS):
     """
        Best-Arm Identification MCTS.
     """
+    def __init__(self, env, config=None):
+        super().__init__(env, config)
+        self.next_observation = None
+
     @classmethod
     def default_config(cls):
         cfg = super().default_config()
         cfg.update(
             {
+                "upper_bound": {
+                    "transition_threshold": "0.1*np.log(time)"
+                },
                 "max_next_states_count": 1
             }
         )
@@ -41,6 +70,8 @@ class BaiMCTS(UgapEMCTS):
 
         :param state: the initial environment state
         """
+        # We need randomness
+        state.seed(self.np_random.randint(10**10))
         best, challenger = None, None
         if self.root.children:
             logger.debug(" / ".join(["a{} ({}): [{:.3f}, {:.3f}]".format(k, n.count, n.value_lower, n.value)
@@ -71,6 +102,27 @@ class BaiMCTS(UgapEMCTS):
         # Backup global statistics
         state_node.backup_to_root()
         return best, challenger
+
+    def step(self, actions):
+        """
+            Update the planner tree when the agent performs an action and observes the next state
+        :param actions: a sequence of actions to follow from the root node
+        """
+        if self.config["step_strategy"] == "reset":
+            self.step_by_reset()
+        elif self.config["step_strategy"] == "subtree":
+            if actions:
+                self.step_by_subtree(actions[0])
+                self.step_by_subtree(str(self.next_observation))  # Step to the observed next state
+            else:
+                self.step_by_reset()
+        else:
+            logger.warning("Unknown step strategy: {}".format(self.config["step_strategy"]))
+            self.step_by_reset()
+
+    def get_plan(self):
+        """Only return the first action, the rest is conditioned on observations"""
+        return [self.root.selection_rule()]
 
 
 class BaiStateNode(UGapEMCTSNode):
@@ -123,11 +175,11 @@ class BaiActionNode(UGapEMCTSNode):
         for i in range(self.planner.config["max_next_states_count"]):
             self.children["placeholder_{}".format(i)] = BaiStateNode(self, self.planner)
 
-    def get_child(self, observation):
+    def get_child(self, observation, hash=False):
         if not self.children:
             self.expand(None)
         import hashlib
-        state_id = hashlib.sha1(str(observation).encode("UTF-8")).hexdigest()[:5]
+        state_id = hashlib.sha1(str(observation).encode("UTF-8")).hexdigest()[:5] if hash else str(observation)
         if state_id not in self.children:
             # Assign the first available placeholder to the observation
             for i in range(self.planner.config["max_next_states_count"]):
@@ -151,7 +203,8 @@ class BaiActionNode(UGapEMCTSNode):
         l_next = np.array([c.value_lower for c in children])
         p_hat = np.array([child.count for child in children]) / self.count
         C = self.compute_threshold() / self.count
-        print("count", self.count, "C", C)
+
+        # print("count", self.count, "C", C)
         self.p_plus = max_expectation_under_constraint(u_next, p_hat, C)
         self.p_minus = max_expectation_under_constraint(l_next, p_hat, C)
         self.value = self.mu_ucb + gamma * self.p_plus @ u_next
@@ -164,4 +217,4 @@ class BaiActionNode(UGapEMCTSNode):
         confidence = self.planner.config["confidence"]
         count = self.count
         time = self.planner.config["episodes"]
-        return eval(self.planner.config["upper_bound"]["threshold"])
+        return eval(self.planner.config["upper_bound"]["transition_threshold"])

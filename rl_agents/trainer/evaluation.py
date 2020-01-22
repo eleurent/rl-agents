@@ -134,7 +134,7 @@ class Evaluation(object):
                 # Catch interruptions
                 try:
                     if self.env.unwrapped.done:
-                        return
+                        break
                 except AttributeError:
                     pass
 
@@ -162,11 +162,10 @@ class Evaluation(object):
         self.observation, reward, terminal, info = self.monitor.step(action)
 
         # Record the experience.
-        if self.training:
-            try:
-                self.agent.record(previous_observation, action, reward, self.observation, terminal, info)
-            except NotImplementedError:
-                pass
+        try:
+            self.agent.record(previous_observation, action, reward, self.observation, terminal, info)
+        except NotImplementedError:
+            pass
 
         return reward, terminal
 
