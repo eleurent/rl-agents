@@ -7,9 +7,9 @@
         },
         {
             "method": "change_vehicles",
-            "args": "highway_env.vehicle.uncertainty.IntervalVehicle"
+            "args": "highway_env.vehicle.uncertainty.prediction.IntervalVehicle"
         }
     ],
-    "sub_agent_path": "configs/HighwayEnv/agents/DeterministicPlannerAgent/baseline.json",
+    "sub_agent_path": "configs/HighwayEnv/agents/IntervalRobustPlannerAgent/opd.json",
     "enable_robust_planning": true
 }
