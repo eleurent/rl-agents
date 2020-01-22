@@ -166,6 +166,8 @@ def newton_iteration(f, df, eps, x0=None, a=None, b=None, weight=0.9, display=Fa
     x = np.inf
     if x0 is None:
         x0 = (a + b) / 2
+    if a is not None and b is not None and a == b:
+        return a
     x_next = x0
     iterations = 0
     while abs(x - x_next) > eps:
@@ -196,7 +198,6 @@ def newton_iteration(f, df, eps, x0=None, a=None, b=None, weight=0.9, display=Fa
     if b is not None and x_next > b:
         x_next = b
 
-    print(iterations, "iterations")
     return x_next
 
 
