@@ -41,9 +41,10 @@ SEED_MAX = 1e9
 
 def env_configs():
     # return ['configs/CartPoleEnv/env.json']
-    return ['configs/HighwayEnv/env_medium.json']
+    # return ['configs/HighwayEnv/env_medium.json']
     # return ['configs/GridWorld/collect.json']
     # return ['configs/FiniteMDPEnv/env_garnet.json']
+    return [Path("configs") / "DummyEnv" / "line_env.json"]
 
 
 def agent_configs():
@@ -98,8 +99,23 @@ def agent_configs():
         #     "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
         #     "gamma": gamma,
         # },
-        "ugape_mcts": {
-            "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
+        # "ugape_mcts": {
+        #     "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
+        #     "gamma": gamma,
+        #     "accuracy": 0.1,
+        #     "confidence": 1,
+        #     "upper_bound":
+        #     {
+        #         "type": "kullback-leibler",
+        #         "time": "global",
+        #         "threshold": "1*np.log(time)"
+        #     },
+        #     "continuation_type": "uniform",
+        #     "step_strategy": "reset",
+        #     "env_preprocessors": [{"method": "simplify"}]
+        # },
+        "bai_mcts": {
+            "__class__": "<class 'rl_agents.agents.tree_search.bai_mcts.BaiMCTSAgent'>",
             "gamma": gamma,
             "accuracy": 0.1,
             "confidence": 1,
@@ -107,11 +123,13 @@ def agent_configs():
             {
                 "type": "kullback-leibler",
                 "time": "global",
-                "threshold": "1*np.log(time)"
+                "threshold": "1*np.log(time)",
+                "transition_threshold": "0.1*np.log(time)"
             },
+            "max_next_states_count": 2,
             "continuation_type": "uniform",
             "step_strategy": "reset",
-            "env_preprocessors": [{"method": "simplify"}]
+            # "env_preprocessors": [{"method": "simplify"}]
         },
         # "value_iteration": {
         #     "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
