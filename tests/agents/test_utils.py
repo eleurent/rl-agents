@@ -40,26 +40,35 @@ def test_kl_upper_bound():
 
 
 def test_max_expectation_contrainted():
-    # Edge case
-    q = np.array([0, 0, 0.5, 0.5])
+    # Edge case 1
+    q = np.array([0, 0, 1, 1], dtype='float')
+    q /= q.sum()
     f = np.array([1, 1, 0, 0])
-    c = np.random.random()
+    c = 0.3
     p = max_expectation_under_constraint(f, q, c, eps=1e-3)
-    print("solution:", p)
     kl = kullback_leibler(q, p)
-    print("kl:", kl, "c", c)
-    assert kl <= c + 1e-3
-    assert c - 1e-3 <= kl
+    print(q @ f, p @ f, kl, c)
+    assert q @ f <= p @ f
+    assert c - 1e-2 <= kl <= c + 1e-2
 
+    # Edge case 2
+    q = np.array([0, 1,  1], dtype='float')
+    q /= q.sum()
+    f = np.array([0, 1, 1])
+    c = 0.1
+    p = max_expectation_under_constraint(f, q, c, eps=1e-3)
+    kl = kullback_leibler(q, p)
+    print(q @ f, p @ f, kl, c)
+    assert q @ f <= p @ f
+    assert kl <= c + 1e-2
 
     # Random distribution
-    q = np.random.random(10)
-    q /= q.sum()
-    f = np.random.random(10)
-    c = np.random.random()
-    p = max_expectation_under_constraint(f, q, c, eps=1e-3)
-    print("solution:", p)
-    kl = q @ np.log(q/p)
-    print("kl:", kl, "c", c)
-    assert kl <= c + 1e-3
-    assert c - 1e-3 <= kl
+    for _ in range(100):
+        q = np.random.random(10)
+        q /= q.sum()
+        f = np.random.random(10)
+        c = np.random.random()
+        p = max_expectation_under_constraint(f, q, c, eps=1e-4)
+        kl = q @ np.log(q/p)
+        assert q @ f <= p @ f
+        assert c - 1e-2 <= kl <= c + 1e-2

@@ -201,7 +201,7 @@ def newton_iteration(f, df, eps, x0=None, a=None, b=None, weight=0.9, display=Fa
     return x_next
 
 
-def max_expectation_under_constraint(f, q, c, eps=1e-2):
+def max_expectation_under_constraint(f, q, c, eps=1e-2, display=False):
     """
         Solve the following constrained optimisation problem:
              max_p E_p[f]    s.t.    KL(p || q) <= c
@@ -211,6 +211,7 @@ def max_expectation_under_constraint(f, q, c, eps=1e-2):
     :param eps: desired accuracy
     :return: the argmax p*
     """
+    np.seterr(all='warn')
     x_plus = np.where(q > 0)
     x_zero = np.where(q == 0)
     p_star = np.zeros(q.shape)
@@ -218,18 +219,22 @@ def max_expectation_under_constraint(f, q, c, eps=1e-2):
 
     q_p = q[x_plus]
     f_p = f[x_plus]
+    f_star = np.amax(f)
     theta = lambda l: q_p @ np.log(l - f_p) + np.log(q_p @ (1 / (l - f_p))) - c
     d_theta_dl = lambda l: q_p @ (1 / (l - f_p)) - (q_p @ (1 / (l - f_p)**2)) / (q_p @ (1 / (l - f_p)))
-    f_star = np.amax(f)
-    theta_star = theta(f_star)
-    if np.isnan(theta_star):
-        theta_star = np.inf
-    if theta_star < c:
-        lambda_ = f_star
-        z = 1 - np.exp(theta_star - c)
-        p_star[x_zero] = z / np.size(x_zero)
+    if f_star > np.amax(f_p):
+        theta_star = theta(f_star)
+        if theta_star < 0:
+            lambda_ = f_star
+            z = 1 - np.exp(theta_star)
+            p_star[x_zero] = 1.0 * (f[x_zero] == np.amax(f[x_zero]))
+            p_star[x_zero] *= z / p_star[x_zero].sum()
+            # p_star[x_zero] = z / np.size(x_zero)
     if lambda_ is None:
-        lambda_ = newton_iteration(theta, d_theta_dl, eps, x0=f_star + 1, a=f_star, display=False)
+        if np.allclose(f_p, f_p[0]):
+            return q
+        else:
+            lambda_ = newton_iteration(theta, d_theta_dl, eps, x0=f_star + 1, a=f_star, display=display)
 
     beta = (1 - z) / (q_p @ (1 / (lambda_ - f_p)))
     if beta == 0:
@@ -238,5 +243,3 @@ def max_expectation_under_constraint(f, q, c, eps=1e-2):
     else:
         p_star[x_plus] = beta * q_p / (lambda_ - f_p)
     return p_star
-
-
