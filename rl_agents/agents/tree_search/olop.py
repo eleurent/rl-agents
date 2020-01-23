@@ -146,7 +146,7 @@ class OLOP(AbstractPlanner):
         :param node: a node in the look-ahead tree
         :return:an upper-bound of the sequence value
         """
-        if node.planner.config["upper_bound"] == "kullback-leibler":
+        if node.planner.config["upper_bound"]["type"] == "kullback-leibler":
             return node.value
         else:
             node_t = node

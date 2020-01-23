@@ -73,6 +73,7 @@ class AbstractTreeSearchAgent(AbstractAgent):
 
     def reset(self):
         self.planner.step_by_reset()
+        self.remaining_horizon = 0
         self.steps = 0
 
     def seed(self, seed=None):
@@ -286,7 +287,7 @@ class Node(object):
         return self.planner.np_random.choice(indices)
 
     def __str__(self):
-        return "{} ({})".format(list(self.path()), self.value)
+        return "{} (n:{}, v:{:.2f})".format(list(self.path()), self.count, self.value)
 
     def __repr__(self):
         return '<node {}>'.format(id(self))

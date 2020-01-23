@@ -137,7 +137,7 @@ class UGapEMCTSNode(OLOPNode):
         self.mu_lcb = -np.infty
         """ Lower bound of the node mean reward. """
 
-        if self.planner.config["upper_bound"] == "kullback-leibler":
+        if self.planner.config["upper_bound"]["type"] == "kullback-leibler":
             self.mu_lcb = 0
 
         gamma = self.planner.config["gamma"]
