@@ -22,7 +22,7 @@ class BaiMCTSAgent(UgapEMCTSAgent):
         replanning_required = self.remaining_horizon == 0
         if replanning_required:
             self.remaining_horizon = self.config["receding_horizon"] - 1
-            self.planner.step(actions)
+            self.planner.step_by_reset()
         else:
             self.remaining_horizon -= 1
             self.planner.step(actions)
@@ -31,6 +31,8 @@ class BaiMCTSAgent(UgapEMCTSAgent):
                 self.previous_actions.extend(self.planner.get_plan())
             else:  # After stepping the transition in the tree, the subtree is empty
                 replanning_required = True
+                self.planner.step_by_reset()
+
         return replanning_required
 
     def record(self, state, action, reward, next_state, done, info):
@@ -79,7 +81,7 @@ class BaiMCTS(UgapEMCTS):
 
         # Follow selection policy, expand tree if needed, collect rewards and update confidence bounds.
         state_node = self.root
-        for _ in range(self.config["horizon"]):
+        for h in range(self.config["horizon"]):
             # Select action
             if not state_node.children:  # Break ties at leaves
                 action = self.np_random.randint(state.action_space.n) \
@@ -96,8 +98,8 @@ class BaiMCTS(UgapEMCTS):
             state_node = action_node.get_child(observation)
 
             # Update local statistics
-            action_node.update(reward, done)
-            state_node.update(np.nan, False)
+            action_node.update(np.nan, False)
+            state_node.update(reward, done)
 
         # Backup global statistics
         state_node.backup_to_root()
@@ -126,6 +128,9 @@ class BaiMCTS(UgapEMCTS):
 
 
 class BaiStateNode(UGapEMCTSNode):
+    def __init__(self, parent, planner):
+        super().__init__(parent, planner)
+
     def expand(self, state):
         if state is None:
             raise Exception("The state should be set before expanding a node")
@@ -135,9 +140,6 @@ class BaiStateNode(UGapEMCTSNode):
             actions = range(state.action_space.n)
         for action in actions:
             self.children[action] = BaiActionNode(self, self.planner)
-
-    def update(self, reward, done):
-        self.count += 1
 
     def get_child(self, action, state):
         if not self.children:
@@ -168,7 +170,13 @@ class BaiActionNode(UGapEMCTSNode):
         self.depth = parent.depth
         gamma = self.planner.config["gamma"]
         self.value = (1 - gamma ** (self.planner.config["horizon"] - self.depth)) / (1 - gamma)
-        self.p_plus, self.p_minus = None, None
+        self.p_hat, self.p_plus, self.p_minus = None, None, None
+        delattr(self, 'cumulative_reward')
+        delattr(self, 'mu_ucb')
+        delattr(self, 'mu_lcb')
+
+    def update(self, reward, done):
+        self.count += 1
 
     def expand(self, state):
         # Generate placeholder nodes
@@ -199,19 +207,18 @@ class BaiActionNode(UGapEMCTSNode):
         assert self.parent
         gamma = self.planner.config["gamma"]
         children = list(self.children.values())
-        u_next = np.array([c.value for c in children])
-        l_next = np.array([c.value_lower for c in children])
-        p_hat = np.array([child.count for child in children]) / self.count
-        C = self.compute_threshold() / self.count
+        u_next = np.array([c.mu_ucb + gamma * c.value for c in children])
+        l_next = np.array([c.mu_lcb + gamma * c.value_lower for c in children])
+        self.p_hat = np.array([child.count for child in children]) / self.count
+        threshold = self.transition_threshold() / self.count
 
-        # print("count", self.count, "C", C)
-        self.p_plus = max_expectation_under_constraint(u_next, p_hat, C)
-        self.p_minus = max_expectation_under_constraint(l_next, p_hat, C)
-        self.value = self.mu_ucb + gamma * self.p_plus @ u_next
-        self.value_lower = self.mu_lcb + gamma * self.p_minus @ l_next
+        self.p_plus = max_expectation_under_constraint(u_next, self.p_hat, threshold)
+        self.p_minus = max_expectation_under_constraint(l_next, self.p_hat, threshold)
+        self.value = self.p_plus @ u_next
+        self.value_lower = self.p_minus @ l_next
         self.parent.backup_to_root()
 
-    def compute_threshold(self):
+    def transition_threshold(self):
         horizon = self.planner.config["horizon"]
         actions = self.planner.env.action_space.n
         confidence = self.planner.config["confidence"]
