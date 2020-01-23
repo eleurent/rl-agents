@@ -74,6 +74,8 @@ class OLOP(AbstractPlanner):
 
         :param state: the initial environment state
         """
+        # We need randomness
+        state.seed(self.np_random.randint(10**10))
         # Compute B-values
         # TODO: Remove deprecated local times
         list(Node.breadth_first_search(self.root, operator=self.compute_ucbs, condition=None))
