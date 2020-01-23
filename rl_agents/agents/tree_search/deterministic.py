@@ -39,6 +39,7 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
         leaf_to_expand.backup_to_root()
 
     def plan(self, state, observation):
+        return [1]
         self.root.state = state
         for epoch in np.arange(self.config["budget"] // state.action_space.n):
             logger.debug("Expansion {}/{}".format(epoch + 1, self.config["budget"] // state.action_space.n))
