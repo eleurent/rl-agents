@@ -73,7 +73,7 @@ class LineEnv(Env):
         return self.x, self.reward(), self.done, {}
 
     def reward(self):
-        return 1 if not self.done else 0
+        return 1.0 * (abs(self.x) <= 1) if not self.done else 0
 
     def terminal(self):
         return abs(self.x) >= 2

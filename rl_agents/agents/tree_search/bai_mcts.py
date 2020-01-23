@@ -19,7 +19,7 @@ class BaiMCTSAgent(UgapEMCTSAgent):
             Handle receding horizon mechanism
         :return: whether a replanning is required
         """
-        replanning_required = self.remaining_horizon == 0
+        replanning_required = self.remaining_horizon == 0  # Cannot check remaining actions here
         if replanning_required:
             self.remaining_horizon = self.config["receding_horizon"] - 1
             self.planner.step_by_reset()
@@ -27,6 +27,7 @@ class BaiMCTSAgent(UgapEMCTSAgent):
             self.remaining_horizon -= 1
             self.planner.step(actions)
 
+            # Check for remaining children here instead
             if self.planner.root.children:
                 self.previous_actions.extend(self.planner.get_plan())
             else:  # After stepping the transition in the tree, the subtree is empty

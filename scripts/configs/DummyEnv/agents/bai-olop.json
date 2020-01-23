@@ -1,7 +1,7 @@
 {
     "__class__": "<class 'rl_agents.agents.tree_search.bai_mcts.BaiMCTSAgent'>",
     "gamma": 0.7,
-    "budget": 3000,
+    "budget": 100,
     "max_depth": 4,
     "accuracy": 0.0,
     "confidence": 1.0,
@@ -10,11 +10,11 @@
     {
         "type": "kullback-leibler",
         "time": "global",
-        "threshold": "0.1*np.log(time)",
+        "threshold": "1*np.log(time)",
         "threshold_transition": "0.1*np.log(time)",
         "max_next_states_count": 1
     },
     "continuation_type": "uniform",
     "step_strategy": "subtree",
-    "receding_horizon": 5
+    "receding_horizon": 100
 }
