@@ -214,7 +214,7 @@ class BaiActionNode(UGapEMCTSNode):
         threshold = self.transition_threshold() / self.count
 
         self.p_plus = max_expectation_under_constraint(u_next, self.p_hat, threshold)
-        self.p_minus = max_expectation_under_constraint(l_next, self.p_hat, threshold)
+        self.p_minus = max_expectation_under_constraint(-l_next, self.p_hat, threshold)
         self.value = self.p_plus @ u_next
         self.value_lower = self.p_minus @ l_next
         self.parent.backup_to_root()
