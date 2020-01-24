@@ -7,7 +7,7 @@
         },
         {
             "method": "change_vehicles",
-            "args": "highway_env.vehicle.uncertainty.prediction.IntervalVehicle"
+            "args": "highway_env.vehicle.uncertainty.estimation.RegressionVehicle"
         }
     ],
     "sub_agent_path": "configs/HighwayEnv/agents/IntervalRobustPlannerAgent/opd.json",

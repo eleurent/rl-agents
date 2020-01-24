@@ -166,8 +166,8 @@ class IntervalRobustPlannerGraphics(object):
         for vehicle in robust_env.road.vehicles:
             if not hasattr(vehicle, 'interval_trajectory'):
                 continue
-            min_traj = [o.position[0] for o in vehicle.interval_trajectory]
-            max_traj = [o.position[1] for o in vehicle.interval_trajectory]
+            min_traj = [o.position[0].clip(vehicle.position - 100, vehicle.position + 100) for o in vehicle.interval_trajectory]
+            max_traj = [o.position[1].clip(vehicle.position - 100, vehicle.position + 100) for o in vehicle.interval_trajectory]
             uncertainty_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA, 32)
             cls.display_uncertainty(min_traj, max_traj, uncertainty_surface, sim_surface, cls.UNCERTAINTY_TIME_COLORMAP)
             cls.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface, cls.MODEL_TRAJ_COLOR)
