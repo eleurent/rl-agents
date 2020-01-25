@@ -74,7 +74,7 @@ class BaiMCTS(UgapEMCTS):
         :param state: the initial environment state
         """
         # We need randomness
-        state.seed(self.np_random.randint(10**10))
+        state.seed(self.np_random.randint(2**30))
         best, challenger = None, None
         if self.root.children:
             logger.debug(" / ".join(["a{} ({}): [{:.3f}, {:.3f}]".format(k, n.count, n.value_lower, n.value)
