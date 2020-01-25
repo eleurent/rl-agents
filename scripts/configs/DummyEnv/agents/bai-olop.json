@@ -1,7 +1,7 @@
 {
     "__class__": "<class 'rl_agents.agents.tree_search.bai_mcts.BaiMCTSAgent'>",
     "gamma": 0.7,
-    "budget": 100,
+    "budget": 3000,
     "max_depth": 4,
     "accuracy": 0.0,
     "confidence": 1.0,

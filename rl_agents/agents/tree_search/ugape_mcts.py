@@ -125,6 +125,7 @@ class UgapEMCTS(OLOP):
                                                                 challenger.value - best.value_lower,
                                                                 self.config["accuracy"]))
 
+        self.budget_used = episode * self.config["horizon"]
         return self.get_plan()
 
 

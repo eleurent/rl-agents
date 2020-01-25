@@ -6,8 +6,8 @@ Options:
   -h --help
   --generate <true or false>  Generate new data [default: True].
   --show <true_or_false>      Plot results [default: True].
-  --data_path <path>          Specify output data file path [default: ./out/planners/data.csv].
-  --plot_path <path>          Specify figure data file path [default: ./out/planners].
+  --directory <path>          Specify directory path [default: ./out/planners].
+  --data_file <path>          Specify output data file name [default: data.csv].
   --budgets <start,end,N>     Computational budgets available to planners, in logspace [default: 1,3,100].
   --seeds <(s,)n>             Number of evaluations of each configuration, with an optional first seed [default: 10].
   --processes <p>             Number of processes [default: 4]
@@ -35,7 +35,7 @@ from rl_agents.trainer.evaluation import Evaluation
 
 logger = logging.getLogger(__name__)
 
-gamma = 0.8
+gamma = 0.9
 SEED_MAX = 1e9
 
 
@@ -43,15 +43,15 @@ def env_configs():
     # return ['configs/CartPoleEnv/env.json']
     # return ['configs/HighwayEnv/env_medium.json']
     # return ['configs/GridWorld/collect.json']
-    # return ['configs/FiniteMDPEnv/env_garnet.json']
-    return [Path("configs") / "DummyEnv" / "line_env.json"]
+    return ['configs/FiniteMDPEnv/env_garnet.json']
+    # return [Path("configs") / "DummyEnv" / "line_env.json"]
 
 
 def agent_configs():
     agents = {
-        # "random": {
-        #     "__class__": "<class 'rl_agents.agents.simple.random.RandomUniformAgent'>"
-        # },
+        "random": {
+            "__class__": "<class 'rl_agents.agents.simple.random.RandomUniformAgent'>"
+        },
         # "olop": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         #     "gamma": gamma,
@@ -74,7 +74,7 @@ def agent_configs():
         #     "lazy_tree_construction": True,
         #     "continuation_type": "uniform",
         # },
-        "kl-olop-1": {
+        "kl-olop": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
             "gamma": gamma,
             "max_depth": 4,
@@ -84,7 +84,7 @@ def agent_configs():
             },
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
-            "env_preprocessors": [{"method": "simplify"}],
+            # "env_preprocessors": [{"method": "simplify"}],
         },
         # "laplace": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
@@ -96,10 +96,10 @@ def agent_configs():
         #     "lazy_tree_construction": True,
         #     "continuation_type": "uniform",
         # },
-        # "deterministic": {
-        #     "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
-        #     "gamma": gamma,
-        # },
+        "opd": {
+            "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
+            "gamma": gamma,
+        },
         # "ugape_mcts": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
         #     "gamma": gamma,
@@ -124,7 +124,7 @@ def agent_configs():
             {
                 "type": "kullback-leibler",
                 "time": "global",
-                "threshold": "1*np.log(time)",
+                "threshold": "0*np.log(time)",
                 "transition_threshold": "0.1*np.log(time)"
             },
             "max_next_states_count": 2,
@@ -132,11 +132,29 @@ def agent_configs():
             "step_strategy": "reset",
             # "env_preprocessors": [{"method": "simplify"}]
         },
-        # "value_iteration": {
-        #     "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
+        # "bai_mcts_conf": {
+        #     "__class__": "<class 'rl_agents.agents.tree_search.bai_mcts.BaiMCTSAgent'>",
         #     "gamma": gamma,
-        #     "iterations": int(3 / (1 - gamma))
-        # }
+        #     "accuracy": 0.2,
+        #     "confidence": 0.9,
+        #     "upper_bound":
+        #     {
+        #         "type": "kullback-leibler",
+        #         "time": "global",
+        #         "threshold": "np.log(1/(1 - confidence)) + np.log(count)",
+        #         "transition_threshold": "np.log(1/(1 - confidence)) + np.log(1 + np.log(count))"
+        #     },
+        #     "max_next_states_count": 2,
+        #     "continuation_type": "uniform",
+        #     "step_strategy": "reset",
+        #     "horizon_from_accuracy": True,
+        #     # "env_preprocessors": [{"method": "simplify"}]
+        # },
+        "value_iteration": {
+            "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
+            "gamma": gamma,
+            "iterations": int(3 / (1 - gamma))
+        }
     }
     return OrderedDict(agents)
 
@@ -159,16 +177,21 @@ def evaluate(experiment):
     logger.debug("Evaluating agent {} with budget {} on seed {}".format(agent_name, budget, seed))
 
     # Compute true value
-    compute_regret = False
-    compute_return = True
+    compute_regret = True
+    compute_return = False
     if compute_regret:
         value_iteration_agent = agent_factory(env, agent_configs()["value_iteration"])
         best_action = value_iteration_agent.act(env.mdp.state)
         action = agent.act(env.mdp.state)
-        simple_regret = value_iteration_agent.state_action_value()[env.mdp.state, best_action] - \
-                        value_iteration_agent.state_action_value()[env.mdp.state, action]
+        q = value_iteration_agent.state_action_value()
+        simple_regret = q[env.mdp.state, best_action] - q[env.mdp.state, action]
+        gap = q[env.mdp.state, best_action] - np.sort(q[env.mdp.state, :])[-2]
+
+        # if hasattr(agent.planner, "budget_used"):
+        #     budget = agent.planner.budget_used
     else:
         simple_regret = 0
+        gap = 0
 
     if compute_return:
         # Evaluate
@@ -202,7 +225,8 @@ def evaluate(experiment):
         "return": return_,
         "mean_return": mean_return,
         "length": length,
-        "simple_regret": simple_regret
+        "simple_regret": simple_regret,
+        "gap": gap
     }
 
     df = pd.DataFrame.from_records([result])
@@ -226,9 +250,9 @@ def prepare_experiments(budgets, seeds, path):
     return experiments
 
 
-def plot_all(data_path, plot_path, data_range):
-    print("Reading data from {}".format(data_path))
-    df = pd.read_csv(data_path)
+def plot_all(data_file, directory, data_range):
+    print("Reading data from {}".format(directory / data_file))
+    df = pd.read_csv(str(directory / data_file))
     df = df[~df.agent.isin(['agent'])].apply(pd.to_numeric, errors='ignore')
     df = df.sort_values(by="agent")
     if data_range:
@@ -243,58 +267,53 @@ def plot_all(data_path, plot_path, data_range):
             if field in ["simple_regret"]:
                 ax.set(yscale="log")
             sns.lineplot(x="budget", y=field, ax=ax, hue="agent", data=df)
-            field_path = plot_path / "{}.pdf".format(field)
+            field_path = directory / "{}.pdf".format(field)
             fig.savefig(field_path, bbox_inches='tight')
-            field_path = plot_path / "{}.png".format(field)
+            field_path = directory / "{}.png".format(field)
             fig.savefig(field_path, bbox_inches='tight')
             print("Saving {} plot to {}".format(field, field_path))
     except ValueError:
         pass
 
+    custom_processing(df, directory)
+
+
+def custom_processing(df, directory):
+    df = df[df["agent"] == "bai_mcts_conf"]
+    print("Median values")
+    print(df.median(axis=0))
+    print("Maximum values")
+    print(df.max(axis=0))
+    for field in ["budget", "simple_regret"]:
+        # histogram on linear scale
+        _, bins, _ = plt.hist(df[field], bins=8)
+        fig, ax = plt.subplots()
+        if bins[0] > 0:
+            logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+            ax.set(xscale="log")
+        elif bins[1] > 0:
+            logbins = np.logspace(np.floor(np.log10(bins[1])), np.ceil(np.log10(bins[-1])), len(bins))
+            ax.set_xscale("symlog", linthreshx=bins[1])
+            logbins = np.insert(logbins, 0, 0)
+        else:
+            logbins = bins
+        sns.distplot(df[field], bins=logbins, ax=ax, kde=False, rug=True)
+        field_path = directory / "{}_hist.pdf".format(field)
+        fig.savefig(field_path, bbox_inches='tight')
+        field_path = directory / "{}_hist.png".format(field)
+        fig.savefig(field_path, bbox_inches='tight')
+        print("Saving {} plot to {}".format(field, field_path))
+
 
 def main(args):
     if args["--generate"] == "True":
-        experiments = prepare_experiments(args["--budgets"], args['--seeds'], args["--data_path"])
+        experiments = prepare_experiments(args["--budgets"], args['--seeds'],
+                                          str(Path(args["--directory"]) / args["--data_file"]))
         chunksize = int(args["--chunksize"])
         with Pool(processes=int(args["--processes"])) as p:
             list(tqdm.tqdm(p.imap_unordered(evaluate, experiments, chunksize=chunksize), total=len(experiments)))
     if args["--show"] == "True":
-        plot_all(Path(args["--data_path"]), Path(args["--plot_path"]), args["--range"])
-
-
-def olop_horizon(episodes, gamma):
-    return int(np.ceil(np.log(episodes) / (2 * np.log(1 / gamma))))
-
-
-def allocate(budget):
-    if np.size(budget) > 1:
-        episodes = np.zeros(budget.shape)
-        horizon = np.zeros(budget.shape)
-        for i in range(budget.size):
-            episodes[i], horizon[i] = allocate(budget[i])
-        return episodes, horizon
-    else:
-        budget = np.array(budget).item()
-        for episodes in range(1, budget):
-            if episodes * olop_horizon(episodes, gamma) > budget:
-                episodes -= 1
-                break
-        horizon = olop_horizon(episodes, gamma)
-        return episodes, horizon
-
-
-def plot_budget(budget, episodes, horizon, K=5):
-    plt.figure()
-    plt.subplot(311)
-    plt.plot(budget, episodes, '+')
-    plt.legend(["M"])
-    plt.subplot(312)
-    plt.plot(budget, horizon, '+')
-    plt.legend(["L"])
-    plt.subplot(313)
-    plt.plot(budget, horizon / K ** (horizon - 1))
-    plt.legend(['Computational complexity ratio'])
-    plt.show()
+        plot_all(args["--data_file"], Path(args["--directory"]), args["--range"])
 
 
 if __name__ == "__main__":
