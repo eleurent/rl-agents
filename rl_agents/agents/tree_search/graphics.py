@@ -116,6 +116,10 @@ class DiscreteRobustPlannerGraphics(TreeGraphics):
         horizon = 2
         plan = agent.planner.get_plan()
         for env in [preprocess_env(agent.true_env, preprocessors) for preprocessors in agent.config["models"]]:
+            IntervalRobustPlannerGraphics.display_vehicles_uncertainty(env, plan, sim_surface, trajectory=False)
+            for vehicle in env.road.vehicles:
+                if hasattr(vehicle, ):
+                    IntervalRobustPlannerGraphics.display(vehicle)
             for vehicle in env.road.vehicles:
                 vehicle.trajectory = []
             for action in plan[:horizon] + (horizon - len(plan)) * [1]:
@@ -152,12 +156,17 @@ class IntervalRobustPlannerGraphics(object):
 
     @classmethod
     def display(cls, agent, agent_surface, sim_surface):
+        robust_env = preprocess_env(agent.env, agent.config["env_preprocessors"])
+        cls.display_vehicles_uncertainty(robust_env, plan=agent.get_plan(), surface=sim_surface)
+        if agent_surface and hasattr(agent, "sub_agent"):
+            TreeGraphics.display(agent.sub_agent, agent_surface)
+
+    @classmethod
+    def display_vehicles_uncertainty(cls, robust_env, plan, surface, trajectory=True):
         import pygame
         horizon = 2
-        robust_env = preprocess_env(agent.env, agent.config["env_preprocessors"])
         for vehicle in robust_env.road.vehicles:
             vehicle.COLLISIONS_ENABLED = False
-        plan = agent.get_plan()
         if plan:
             plan = plan[1:]  # First action has already been performed
         plan = plan[:horizon] + (horizon - len(plan)) * [1]
@@ -168,12 +177,11 @@ class IntervalRobustPlannerGraphics(object):
                 continue
             min_traj = [o.position[0].clip(vehicle.position - 100, vehicle.position + 100) for o in vehicle.interval_trajectory]
             max_traj = [o.position[1].clip(vehicle.position - 100, vehicle.position + 100) for o in vehicle.interval_trajectory]
-            uncertainty_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA, 32)
-            cls.display_uncertainty(min_traj, max_traj, uncertainty_surface, sim_surface, cls.UNCERTAINTY_TIME_COLORMAP)
-            cls.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface, cls.MODEL_TRAJ_COLOR)
-            sim_surface.blit(uncertainty_surface, (0, 0))
-            if agent_surface and hasattr(agent, "sub_agent"):
-                TreeGraphics.display(agent.sub_agent, agent_surface)
+            uncertainty_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA, 32)
+            cls.display_uncertainty(min_traj, max_traj, uncertainty_surface, surface, cls.UNCERTAINTY_TIME_COLORMAP)
+            if trajectory:
+                cls.display_trajectory(vehicle.trajectory, uncertainty_surface, surface, cls.MODEL_TRAJ_COLOR)
+            surface.blit(uncertainty_surface, (0, 0))
 
     @classmethod
     def display_trajectory(cls, trajectory, surface, sim_surface, color):

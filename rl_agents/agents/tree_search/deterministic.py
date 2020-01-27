@@ -16,10 +16,10 @@ class DeterministicPlannerAgent(AbstractTreeSearchAgent):
 
 class OptimisticDeterministicPlanner(AbstractPlanner):
     """
-       An implementation of Open Loop Optimistic Planning.
+       An implementation of Optimistic Planning for Deterministic systems.
     """
     def __init__(self, env, config=None):
-        super(OptimisticDeterministicPlanner, self).__init__(config)
+        super().__init__(config)
         self.env = env
         self.leaves = None
 
@@ -39,7 +39,6 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
         leaf_to_expand.backup_to_root()
 
     def plan(self, state, observation):
-        return [1]
         self.root.state = state
         for epoch in np.arange(self.config["budget"] // state.action_space.n):
             logger.debug("Expansion {}/{}".format(epoch + 1, self.config["budget"] // state.action_space.n))
@@ -113,8 +112,8 @@ class DeterministicNode(Node):
 
     def backup_to_root(self):
         if self.children:
-            self.value = np.amax([child.value for child in self.children.values()])
-            self.value_upper_bound = np.amax([child.value_upper_bound for child in self.children.values()])
+            self.value = np.amax([child.value for child in self.children.values()], axis=0)
+            self.value_upper_bound = np.amax([child.value_upper_bound for child in self.children.values()], axis=0)
             if self.parent:
                 self.parent.backup_to_root()
 

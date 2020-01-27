@@ -14,7 +14,7 @@ class DiscreteRobustPlannerAgent(DeterministicPlannerAgent):
         super(DiscreteRobustPlannerAgent, self).__init__(env, config)
 
     def make_planner(self):
-        return DiscreteRobustPlanner(self.config)
+        return DiscreteRobustPlanner(self.env, self.config)
 
     @classmethod
     def default_config(cls):
@@ -52,6 +52,14 @@ class DiscreteRobustPlanner(OptimisticDeterministicPlanner):
         root = RobustNode(parent=None, planner=self)
         self.leaves = [root]
         return root
+
+    def run(self):
+        """
+            Run an OptimisticDeterministicPlanner episode
+        """
+        leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
+        leaf_to_expand.expand()
+        leaf_to_expand.backup_to_root()
 
 
 class RobustNode(DeterministicNode):
