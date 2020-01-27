@@ -35,7 +35,7 @@ from rl_agents.trainer.evaluation import Evaluation
 
 logger = logging.getLogger(__name__)
 
-gamma = 0.9
+gamma = 0.7
 SEED_MAX = 1e9
 
 
@@ -49,9 +49,9 @@ def env_configs():
 
 def agent_configs():
     agents = {
-        "random": {
-            "__class__": "<class 'rl_agents.agents.simple.random.RandomUniformAgent'>"
-        },
+        # "random": {
+        #     "__class__": "<class 'rl_agents.agents.simple.random.RandomUniformAgent'>"
+        # },
         # "olop": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         #     "gamma": gamma,
@@ -74,18 +74,18 @@ def agent_configs():
         #     "lazy_tree_construction": True,
         #     "continuation_type": "uniform",
         # },
-        "kl-olop": {
-            "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-            "gamma": gamma,
-            "max_depth": 4,
-            "upper_bound": {
-                "type": "kullback-leibler",
-                "threshold": "1*np.log(time)"
-            },
-            "lazy_tree_construction": True,
-            "continuation_type": "uniform",
-            # "env_preprocessors": [{"method": "simplify"}],
-        },
+        # "kl-olop": {
+        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
+        #     "gamma": gamma,
+        #     "max_depth": 4,
+        #     "upper_bound": {
+        #         "type": "kullback-leibler",
+        #         "threshold": "1*np.log(time)"
+        #     },
+        #     "lazy_tree_construction": True,
+        #     "continuation_type": "uniform",
+        #     # "env_preprocessors": [{"method": "simplify"}],
+        # },
         # "laplace": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         #     "gamma": gamma,
@@ -96,10 +96,10 @@ def agent_configs():
         #     "lazy_tree_construction": True,
         #     "continuation_type": "uniform",
         # },
-        "opd": {
-            "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
-            "gamma": gamma,
-        },
+        # "opd": {
+        #     "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
+        #     "gamma": gamma,
+        # },
         # "ugape_mcts": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
         #     "gamma": gamma,
@@ -115,41 +115,41 @@ def agent_configs():
         #     "step_strategy": "reset",
         #     "env_preprocessors": [{"method": "simplify"}]
         # },
-        "bai_mcts": {
-            "__class__": "<class 'rl_agents.agents.tree_search.bai_mcts.BaiMCTSAgent'>",
-            "gamma": gamma,
-            "accuracy": 0.1,
-            "confidence": 1,
-            "upper_bound":
-            {
-                "type": "kullback-leibler",
-                "time": "global",
-                "threshold": "0*np.log(time)",
-                "transition_threshold": "0.1*np.log(time)"
-            },
-            "max_next_states_count": 2,
-            "continuation_type": "uniform",
-            "step_strategy": "reset",
-            # "env_preprocessors": [{"method": "simplify"}]
-        },
-        # "bai_mcts_conf": {
+        # "bai_mcts": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.bai_mcts.BaiMCTSAgent'>",
         #     "gamma": gamma,
-        #     "accuracy": 0.2,
-        #     "confidence": 0.9,
+        #     "accuracy": 0.1,
+        #     "confidence": 1,
         #     "upper_bound":
         #     {
         #         "type": "kullback-leibler",
         #         "time": "global",
-        #         "threshold": "np.log(1/(1 - confidence)) + np.log(count)",
-        #         "transition_threshold": "np.log(1/(1 - confidence)) + np.log(1 + np.log(count))"
+        #         "threshold": "0*np.log(time)",
+        #         "transition_threshold": "0.1*np.log(time)"
         #     },
         #     "max_next_states_count": 2,
         #     "continuation_type": "uniform",
         #     "step_strategy": "reset",
-        #     "horizon_from_accuracy": True,
         #     # "env_preprocessors": [{"method": "simplify"}]
         # },
+        "bai_mcts_conf": {
+            "__class__": "<class 'rl_agents.agents.tree_search.bai_mcts.BaiMCTSAgent'>",
+            "gamma": gamma,
+            "accuracy": 1,
+            "confidence": 0.9,
+            "upper_bound":
+            {
+                "type": "kullback-leibler",
+                "time": "global",
+                "threshold": "0*np.log(1/(1 - confidence)) + 0*np.log(count)",
+                "transition_threshold": "np.log(1/(1 - confidence)) + np.log(1 + np.log(count))"
+            },
+            "max_next_states_count": 2,
+            "continuation_type": "uniform",
+            "step_strategy": "reset",
+            "horizon_from_accuracy": True,
+            # "env_preprocessors": [{"method": "simplify"}]
+        },
         "value_iteration": {
             "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
             "gamma": gamma,
@@ -161,7 +161,7 @@ def agent_configs():
 
 def evaluate(experiment):
     # Prepare workspace
-    seed, budget, agent_config, env_config, path = experiment
+    seed, accuracy, agent_config, env_config, path = experiment
     gym.logger.set_level(gym.logger.DISABLED)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -171,14 +171,16 @@ def evaluate(experiment):
 
     # Make agent
     agent_name, agent_config = agent_config
-    agent_config["budget"] = int(budget)
+    agent_config["accuracy"] = float(accuracy)
+    agent_config["budget"] = 10**9
     agent = agent_factory(env, agent_config)
 
-    logger.debug("Evaluating agent {} with budget {} on seed {}".format(agent_name, budget, seed))
+    logger.debug("Evaluating agent {} with accuracy {} on seed {}".format(agent_name, accuracy, seed))
 
     # Compute true value
     compute_regret = True
     compute_return = False
+    budget = 0
     if compute_regret:
         value_iteration_agent = agent_factory(env, agent_configs()["value_iteration"])
         best_action = value_iteration_agent.act(env.mdp.state)
@@ -187,8 +189,8 @@ def evaluate(experiment):
         simple_regret = q[env.mdp.state, best_action] - q[env.mdp.state, action]
         gap = q[env.mdp.state, best_action] - np.sort(q[env.mdp.state, :])[-2]
 
-        # if hasattr(agent.planner, "budget_used"):
-        #     budget = agent.planner.budget_used
+        if hasattr(agent.planner, "budget_used"):
+            budget = agent.planner.budget_used
     else:
         simple_regret = 0
         gap = 0
@@ -220,6 +222,8 @@ def evaluate(experiment):
     result = {
         "agent": agent_name,
         "budget": budget,
+        "accuracy": agent.planner.config["accuracy"],
+        "horizon": agent.planner.config["horizon"],
         "seed": seed,
         "total_reward": total_reward,
         "return": return_,
@@ -235,7 +239,7 @@ def evaluate(experiment):
 
 
 def prepare_experiments(budgets, seeds, path):
-    budgets = np.unique(np.logspace(*literal_eval(budgets)).astype(int))
+    budgets = np.flip(np.unique(np.logspace(*literal_eval(budgets))), axis=0)
     agents = agent_configs()
     for excluded_agent in ["value_iteration", "olop", "laplace"]:
         agents.pop(excluded_agent, None)
@@ -261,12 +265,12 @@ def plot_all(data_file, directory, data_range):
     print("Number of seeds found: {}".format(df.seed.nunique()))
 
     try:
-        for field in ["total_reward", "return", "length", "mean_return", "simple_regret"]:
+        for field in ["simple_regret", "budget", "accuracy"]:
             fig, ax = plt.subplots()
             ax.set(xscale="log")
-            if field in ["simple_regret"]:
+            if field in ["simple_regret", "budget"]:
                 ax.set(yscale="log")
-            sns.lineplot(x="budget", y=field, ax=ax, hue="agent", data=df)
+            sns.lineplot(x="horizon", y=field, ax=ax, hue="agent", data=df)
             field_path = directory / "{}.pdf".format(field)
             fig.savefig(field_path, bbox_inches='tight')
             field_path = directory / "{}.png".format(field)
