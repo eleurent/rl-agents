@@ -35,7 +35,7 @@ from rl_agents.trainer.evaluation import Evaluation
 
 logger = logging.getLogger(__name__)
 
-gamma = 0.9
+gamma = 0.7
 SEED_MAX = 1e9
 
 
@@ -96,10 +96,10 @@ def agent_configs():
         #     "lazy_tree_construction": True,
         #     "continuation_type": "uniform",
         # },
-        "opd": {
-            "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
-            "gamma": gamma,
-        },
+        # "opd": {
+        #     "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
+        #     "gamma": gamma,
+        # },
         # "ugape_mcts": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
         #     "gamma": gamma,
@@ -124,7 +124,7 @@ def agent_configs():
             {
                 "type": "kullback-leibler",
                 "time": "global",
-                "threshold": "0*np.log(time)",
+                "threshold": "1*np.log(time)",
                 "transition_threshold": "0.1*np.log(time)"
             },
             "max_next_states_count": 2,
