@@ -254,8 +254,12 @@ def prepare_experiments(budgets, seeds, path):
 
 latex_names = {
     "simple_regret": "simple regret $r_n$",
+    "total_reward": "total reward $R$",
+    "mean_return": "mean return $E[R]$",
     "1/epsilon": r"${1}/{\epsilon}$",
     "bai_mcts_conf": r"\texttt{MDP-GapE}",
+    "bai_mcts": r"\texttt{MDP-GapE}",
+    "kl-olop": r"\texttt{KL-OLOP}",
     "budget": r"budget $n$",
 }
 
