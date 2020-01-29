@@ -8,6 +8,6 @@
         "threshold": "1*np.log(time)"
     },
     "continuation_type": "uniform",
-    "step_strategy": "subtree",
-    "receding_horizon": 100
+    "step_strategy": "reset",
+    "receding_horizon": 1
 }
