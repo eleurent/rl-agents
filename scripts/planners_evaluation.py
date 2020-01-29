@@ -259,6 +259,7 @@ def plot_all(data_file, directory, data_range):
     df = pd.read_csv(str(directory / data_file))
     df = df[~df.agent.isin(['agent'])].apply(pd.to_numeric, errors='ignore')
     df = df.sort_values(by="agent")
+    df["1/epsilon"] = 1/df["accuracy"]
     if data_range:
         start, end = data_range.split(':')
         df = df[df["budget"].between(int(start), int(end))]
@@ -270,7 +271,7 @@ def plot_all(data_file, directory, data_range):
             ax.set(xscale="log")
             if field in ["simple_regret", "budget"]:
                 ax.set(yscale="log")
-            sns.lineplot(x="horizon", y=field, ax=ax, hue="agent", data=df)
+            sns.lineplot(x="1/epsilon", y=field, ax=ax, hue="agent", data=df)
             field_path = directory / "{}.pdf".format(field)
             fig.savefig(field_path, bbox_inches='tight')
             field_path = directory / "{}.png".format(field)
