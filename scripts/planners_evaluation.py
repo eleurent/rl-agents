@@ -141,7 +141,7 @@ def agent_configs():
             {
                 "type": "kullback-leibler",
                 "time": "global",
-                "threshold": "0*np.log(1/(1 - confidence)) + 0*np.log(count)",
+                "threshold": "np.log(1/(1 - confidence)) + np.log(count)",
                 "transition_threshold": "np.log(1/(1 - confidence)) + np.log(1 + np.log(count))"
             },
             "max_next_states_count": 2,
