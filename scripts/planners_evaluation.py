@@ -291,7 +291,7 @@ def plot_all(data_file, directory, data_range):
             fig, ax = plt.subplots()
             ax.set(xscale="log")
             if field in ["simple_regret"]:
-                ax.set(yscale="log")
+                ax.set_yscale("symlog", linthreshy=1e-3)
             sns.lineplot(x=rename("budget"), y=rename(field), ax=ax, hue="agent", data=df)
             field_path = directory / "{}.pdf".format(field)
             fig.savefig(field_path, bbox_inches='tight')
