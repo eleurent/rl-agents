@@ -30,6 +30,8 @@ import pandas as pd
 import seaborn as sns
 import logging
 
+sns.set(font_scale=1.5, rc={'text.usetex': True})
+
 from rl_agents.agents.common.factory import load_environment, agent_factory
 from rl_agents.trainer.evaluation import Evaluation
 
@@ -254,12 +256,32 @@ def prepare_experiments(budgets, seeds, path):
     return experiments
 
 
+latex_names = {
+    "simple_regret": "simple regret $r_n$",
+    "1/epsilon": r"${1}/{\epsilon}$",
+    "bai_mcts_conf": r"\texttt{MDP-GapE}",
+    "budget": r"budget $n$",
+}
+
+
+def rename_df(df):
+    df = df.rename(columns=latex_names)
+    for key, value in latex_names.items():
+        df["agent"] = df["agent"].replace(key, value)
+    return df
+
+
+def rename(value, latex=True):
+    return latex_names.get(value, value) if latex else value
+
+
 def plot_all(data_file, directory, data_range):
     print("Reading data from {}".format(directory / data_file))
     df = pd.read_csv(str(directory / data_file))
     df = df[~df.agent.isin(['agent'])].apply(pd.to_numeric, errors='ignore')
     df = df.sort_values(by="agent")
     df["1/epsilon"] = 1/df["accuracy"]
+    df = rename_df(df)
     if data_range:
         start, end = data_range.split(':')
         df = df[df["budget"].between(int(start), int(end))]
@@ -271,19 +293,20 @@ def plot_all(data_file, directory, data_range):
             ax.set(xscale="log")
             if field in ["simple_regret", "budget"]:
                 ax.set(yscale="log")
-            sns.lineplot(x="1/epsilon", y=field, ax=ax, hue="agent", data=df)
+            sns.lineplot(x=rename("1/epsilon"), y=rename(field), ax=ax, hue="agent", data=df)
             field_path = directory / "{}.pdf".format(field)
             fig.savefig(field_path, bbox_inches='tight')
             field_path = directory / "{}.png".format(field)
             fig.savefig(field_path, bbox_inches='tight')
             print("Saving {} plot to {}".format(field, field_path))
-    except ValueError:
-        pass
+    except ValueError as e:
+        print(e)
 
     custom_processing(df, directory)
 
 
 def custom_processing(df, directory):
+    return
     df = df[df["agent"] == "bai_mcts_conf"]
     print("Median values")
     print(df.median(axis=0))
