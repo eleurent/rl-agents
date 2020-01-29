@@ -1,13 +1,13 @@
 {
     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
     "gamma": 0.7,
-    "budget": 100,
+    "budget": 10,
     "max_depth": 4,
     "upper_bound": {
         "type": "kullback-leibler",
         "threshold": "1*np.log(time)"
     },
-    "continuation_type": "uniform",
+    "continuation_type": "zeros",
     "step_strategy": "reset",
     "receding_horizon": 1
 }
