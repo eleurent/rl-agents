@@ -294,6 +294,7 @@ def plot_all(data_file, directory, data_range):
             if field in ["simple_regret", "budget"]:
                 ax.set(yscale="log")
             sns.lineplot(x=rename("1/epsilon"), y=rename(field), ax=ax, hue="agent", data=df)
+            ax.set_xlim(0.1, 10)
             field_path = directory / "{}.pdf".format(field)
             fig.savefig(field_path, bbox_inches='tight')
             field_path = directory / "{}.png".format(field)
@@ -306,6 +307,14 @@ def plot_all(data_file, directory, data_range):
 
 
 def custom_processing(df, directory):
+
+    from sklearn.linear_model import LinearRegression
+    X = np.log(df[rename("1/epsilon")].values.reshape(-1, 1))
+    Y = np.log(df[rename("budget")].values.reshape(-1, 1))
+    linear_regressor = LinearRegression()
+    linear_regressor.fit(X, Y)
+    print(linear_regressor.coef_, linear_regressor.intercept_)
+
     return
     df = df[df["agent"] == "bai_mcts_conf"]
     print("Median values")
