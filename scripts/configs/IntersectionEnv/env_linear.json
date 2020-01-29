@@ -2,7 +2,7 @@
     "id": "intersection-v0",
     "import_module": "highway_env",
     "other_vehicles_type": "highway_env.vehicle.behavior.LinearVehicle",
-    "initial_vehicle_count": 1,
+    "initial_vehicle_count": 9,
     "spawn_probability": 0.3,
     "observation": {
         "type": "Kinematics",
