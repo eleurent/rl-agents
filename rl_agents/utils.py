@@ -204,11 +204,11 @@ def newton_iteration(f, df, eps, x0=None, a=None, b=None, weight=0.9, display=Fa
 def max_expectation_under_constraint(f, q, c, eps=1e-2, display=False):
     """
         Solve the following constrained optimisation problem:
-             max_p E_p[f]    s.t.    KL(p || q) <= c
-    :param f: a value function, np.array of size n
-    :param q: a discrete distribution, np.array of size n
+             max_p E_p[f]    s.t.    KL(q || p) <= c
+    :param f: an array of values f(x), np.array of size n
+    :param q: a discrete distribution q(x), np.array of size n
     :param c: a threshold for the KL divergence between p and q.
-    :param eps: desired accuracy
+    :param eps: desired accuracy on the constraint
     :return: the argmax p*
     """
     np.seterr(all='warn')
@@ -229,7 +229,6 @@ def max_expectation_under_constraint(f, q, c, eps=1e-2, display=False):
             z = 1 - np.exp(theta_star)
             p_star[x_zero] = 1.0 * (f[x_zero] == np.amax(f[x_zero]))
             p_star[x_zero] *= z / p_star[x_zero].sum()
-            # p_star[x_zero] = z / np.size(x_zero)
     if lambda_ is None:
         if np.allclose(f_p, f_p[0]):
             return q
