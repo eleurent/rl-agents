@@ -18,9 +18,13 @@ class RobustEPCAgent(AbstractAgent):
         self.B = np.array(self.config["B"])
         self.phi = np.array(self.config["phi"])
         self.env = env
+        self.env.unwrapped.automatic_record_callback = self.automatic_record
         self.data = []
         self.robust_env = None
         self.sub_agent = load_agent(self.config['sub_agent_path'], env)
+        self.theta_n_lambda = None
+        self.g_n_lambda = None
+        self.beta_n = None
 
     @classmethod
     def default_config(cls):
@@ -31,6 +35,8 @@ class RobustEPCAgent(AbstractAgent):
             "sigma": [[1]],
             "A": [[1]],
             "B": [[1]],
+            "D": [[1]],
+            "omega": [[0], [0]],
             "phi": [[[1]]],
             "simulation_frequency": 10,
             "policy_frequency": 2,
@@ -40,13 +46,12 @@ class RobustEPCAgent(AbstractAgent):
     def record(self, state, action, reward, next_state, done, info):
         control = self.env.unwrapped.dynamics.action_to_control(action)
         derivative = self.env.unwrapped.dynamics.derivative
-        self.data.append((state, control, derivative))
+        self.data.append((state.copy(), control.copy(), derivative.copy()))
+
+    def automatic_record(self, state, derivative, control):
+        self.data.append((state.copy(), control.copy(), derivative.copy()))
 
     def plan(self, observation):
-        # if not self.data:
-        #     self.sub_agent.env = self.env
-        #     return self.sub_agent.plan(observation)
-
         self.robust_env = self.robustify_env()
         self.sub_agent.env = self.robust_env
         return self.sub_agent.plan(observation)
@@ -85,11 +90,14 @@ class RobustEPCAgent(AbstractAgent):
 
     def polytope(self):
         theta_n_lambda, g_n_lambda, beta_n = self.ellipsoid()
+        self.theta_n_lambda = theta_n_lambda
+        self.g_n_lambda = g_n_lambda
+        self.beta_n = beta_n
         d = g_n_lambda.shape[0]
         values, p = np.linalg.eig(g_n_lambda)
         m = np.sqrt(beta_n) * np.linalg.inv(p) @ np.diag(np.sqrt(1 / values))
         h = np.array(list(itertools.product([-1, 1], repeat=d)))
-        d_theta_k = np.clip([m @ h_k for h_k in h], -0., 0.)
+        d_theta_k = np.clip([m @ h_k for h_k in h], -self.config["parameter_bound"], self.config["parameter_bound"])
 
         a0 = self.A + np.tensordot(theta_n_lambda, self.phi, axes=[0, 0])
         da = [np.tensordot(d_theta, self.phi, axes=[0, 0]) for d_theta in d_theta_k]
@@ -106,16 +114,11 @@ class RobustEPCAgent(AbstractAgent):
 
     def robustify_env(self):
         a0, da = self.polytope()
-        # a0 = self.env.unwrapped.dynamics.A
-        # da = [np.zeros(a0.shape)]
-        b = [[1],
-             [1],
-             [0],
-             [0]]
-        d_i = 0 * np.array([[-1], [1]])
-        lpv = LPV(a0=a0, da=da, x0=self.env.unwrapped.dynamics.state.squeeze(-1), b=b, d_i=d_i)
+        lpv = LPV(a0=a0, da=da, x0=self.env.unwrapped.dynamics.state.squeeze(-1),
+                  b=self.config["D"], d_i=self.config["omega"])
         robust_env = safe_deepcopy_env(self.env)
         robust_env.unwrapped.lpv = lpv
+        robust_env.unwrapped.automatic_record_callback = None
         return robust_env
 
 #

@@ -8,7 +8,7 @@ import matplotlib.colors as colors
 import seaborn as sns
 import logging
 
-from rl_agents.agents.tree_search.graphics import TreePlot
+from rl_agents.agents.tree_search.graphics.graphics import TreePlot
 from rl_agents.agents.common.factory import agent_factory, load_environment
 from rl_agents.trainer.logger import configure
 from utils.envs import GridEnv
