@@ -64,7 +64,7 @@ class DeterministicNode(Node):
         self.depth = depth
         self.reward = 0
         self.value_upper_bound = 0
-        self.count = 1
+        self.count = 0
         self.done = False
 
     def selection_rule(self):

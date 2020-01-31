@@ -8,9 +8,10 @@ from rl_agents.agents.dynamic_programming.graphics import ValueIterationGraphics
 from rl_agents.agents.dynamic_programming.value_iteration import ValueIterationAgent
 from rl_agents.agents.tree_search.abstract import AbstractTreeSearchAgent
 from rl_agents.agents.tree_search.graphics import TreeGraphics, MCTSGraphics, DiscreteRobustPlannerGraphics, \
-    IntervalRobustPlannerGraphics
+    IntervalRobustPlannerGraphics, RobustEPCGraphics
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 from rl_agents.agents.tree_search.robust import DiscreteRobustPlannerAgent, IntervalRobustPlannerAgent
+from rl_agents.agents.tree_search.robust_epc import RobustEPCAgent
 
 
 class AgentGraphics(object):
@@ -39,5 +40,7 @@ class AgentGraphics(object):
             IntervalRobustPlannerGraphics.display(agent, agent_surface, sim_surface)
         elif isinstance(agent, DiscreteRobustPlannerAgent):
             DiscreteRobustPlannerGraphics.display(agent, agent_surface, sim_surface)
+        elif isinstance(agent, RobustEPCAgent):
+            RobustEPCGraphics.display(agent, agent_surface, sim_surface)
         elif isinstance(agent, AbstractTreeSearchAgent):
             TreeGraphics.display(agent, agent_surface)

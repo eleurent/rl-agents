@@ -157,12 +157,12 @@ class IntervalRobustPlannerGraphics(object):
     @classmethod
     def display(cls, agent, agent_surface, sim_surface):
         robust_env = preprocess_env(agent.env, agent.config["env_preprocessors"])
-        cls.display_vehicles_uncertainty(robust_env, plan=agent.get_plan(), surface=sim_surface)
+        cls.display_uncertainty(robust_env, plan=agent.get_plan(), surface=sim_surface)
         if agent_surface and hasattr(agent, "sub_agent"):
             TreeGraphics.display(agent.sub_agent, agent_surface)
 
     @classmethod
-    def display_vehicles_uncertainty(cls, robust_env, plan, surface, trajectory=True):
+    def display_uncertainty(cls, robust_env, plan, surface, trajectory=True):
         import pygame
         horizon = 2
         for vehicle in robust_env.road.vehicles:
@@ -178,7 +178,7 @@ class IntervalRobustPlannerGraphics(object):
             min_traj = [o.position[0].clip(vehicle.position - 100, vehicle.position + 100) for o in vehicle.interval_trajectory]
             max_traj = [o.position[1].clip(vehicle.position - 100, vehicle.position + 100) for o in vehicle.interval_trajectory]
             uncertainty_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA, 32)
-            cls.display_uncertainty(min_traj, max_traj, uncertainty_surface, surface, cls.UNCERTAINTY_TIME_COLORMAP)
+            cls.display_traj_uncertainty(min_traj, max_traj, uncertainty_surface, surface, cls.UNCERTAINTY_TIME_COLORMAP)
             if trajectory:
                 cls.display_trajectory(vehicle.trajectory, uncertainty_surface, surface, cls.MODEL_TRAJ_COLOR)
             surface.blit(uncertainty_surface, (0, 0))
@@ -203,7 +203,7 @@ class IntervalRobustPlannerGraphics(object):
             pygame.draw.rect(surface, color, rect, 0)
 
     @classmethod
-    def display_uncertainty(cls, min_traj, max_traj, surface, sim_surface, cmap, boxes=True):
+    def display_traj_uncertainty(cls, min_traj, max_traj, surface, sim_surface, cmap, boxes=True):
         import pygame
         for i in reversed(range(len(min_traj))):
             for (A, B) in [(min_traj, max_traj), (min_traj, min_traj)]:
@@ -224,6 +224,42 @@ class IntervalRobustPlannerGraphics(object):
                             p.append(p[0])
                             p = list(map(sim_surface.vec2pix, p))
                             pygame.draw.polygon(surface, color, p, 0)
+
+
+class RobustEPCGraphics(IntervalRobustPlannerGraphics):
+    @classmethod
+    def display(cls, agent, agent_surface, sim_surface):
+        robust_env = agent.robustify_env()
+        cls.display_uncertainty(robust_env=robust_env, plan=agent.get_plan(), surface=sim_surface)
+        if agent_surface and hasattr(agent, "sub_agent"):
+            TreeGraphics.display(agent.sub_agent, agent_surface)
+
+    @classmethod
+    def display_uncertainty(cls, robust_env, plan, surface, trajectory=True):
+        import pygame
+        horizon = 3
+        if plan:
+            plan = plan[1:]  # First action has already been performed
+        plan = plan[:horizon] + (horizon - len(plan)) * [0]
+        for action in plan:
+            robust_env.step(action)
+        min_traj = [o[0] for o in robust_env.unwrapped.interval_trajectory]
+        max_traj = [o[1] for o in robust_env.unwrapped.interval_trajectory]
+        uncertainty_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA, 32)
+        cls.display_traj_uncertainty(min_traj, max_traj, uncertainty_surface, surface, cls.UNCERTAINTY_TIME_COLORMAP)
+        # if trajectory:
+        #     cls.display_trajectory(robust_env.trajectory, uncertainty_surface, surface, cls.MODEL_TRAJ_COLOR)
+        surface.blit(uncertainty_surface, (0, 0))
+
+    # @classmethod
+    # def display_trajectory(cls, trajectory, surface, sim_surface, color):
+    #     import pygame
+    #     color = (color[0], color[1], color[2], cls.TRANSPARENCY)
+    #     for i in range(len(trajectory)-1):
+    #         pygame.draw.line(surface, color,
+    #                          (sim_surface.vec2pix(trajectory[i].position)),
+    #                          (sim_surface.vec2pix(trajectory[i+1].position)),
+    #                          2)
 
 
 class TreePlot(object):
