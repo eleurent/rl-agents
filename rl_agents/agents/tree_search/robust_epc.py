@@ -31,7 +31,7 @@ class RobustEPCAgent(AbstractAgent):
         return {
             "gamma": 0.9,
             "delta": 0.9,
-            "lambda": 0.0001,
+            "lambda": 1e-6,
             "sigma": [[1]],
             "A": [[1]],
             "B": [[1]],
@@ -44,9 +44,10 @@ class RobustEPCAgent(AbstractAgent):
         }
 
     def record(self, state, action, reward, next_state, done, info):
-        control = self.env.unwrapped.dynamics.action_to_control(action)
-        derivative = self.env.unwrapped.dynamics.derivative
-        self.data.append((state.copy(), control.copy(), derivative.copy()))
+        if not self.env.unwrapped.automatic_record_callback:
+            control = self.env.unwrapped.dynamics.action_to_control(action)
+            derivative = self.env.unwrapped.dynamics.derivative
+            self.data.append((state.copy(), control.copy(), derivative.copy()))
 
     def automatic_record(self, state, derivative, control):
         self.data.append((state.copy(), control.copy(), derivative.copy()))
@@ -74,6 +75,7 @@ class RobustEPCAgent(AbstractAgent):
         else:
             phi = np.array([np.squeeze(self.phi @ state, axis=2).transpose() for state, _, _ in self.data])
             dx = np.array([derivative for _, _, derivative in self.data])
+            x = np.array([state for state, _, _ in self.data])
             ax = np.array([self.A @ state for state, _, _ in self.data])
             bu = np.array([self.B @ control for _, control, _ in self.data])
             y = dx - ax - bu
