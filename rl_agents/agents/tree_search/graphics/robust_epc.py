@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 import matplotlib.transforms as transforms
+import matplotlib
+# matplotlib.rc('text', usetex=True)
 
 from rl_agents.agents.tree_search.graphics.graphics import TreeGraphics
 from rl_agents.agents.tree_search.graphics.robust import IntervalRobustPlannerGraphics
@@ -16,8 +18,8 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
         if agent_surface and hasattr(agent, "sub_agent"):
             # TreeGraphics.display(agent.sub_agent, agent_surface)
             true = agent.env.unwrapped.dynamics.theta
-            ellipsoid = agent.theta_n_lambda, agent.g_n_lambda, agent.beta_n
             surf_size = agent_surface.get_size()
+            ellipsoid = agent.theta_n_lambda, agent.g_n_lambda, agent.beta_n
             image_str, size = plot_ellipsoid(ellipsoid, true, None, figsize=(surf_size[0]/100, surf_size[1]/100))
             surf = pygame.image.fromstring(image_str, size, "RGB")
             agent_surface.blit(surf, (0, 0))
@@ -67,10 +69,11 @@ def plot_ellipsoid(ellipsoid, true, writer=None, epoch=0, title="", figsize=(8, 
     plt.title(title)
     center, cov, beta = ellipsoid
     cov = np.linalg.inv(cov / beta)
-    confidence_ellipse(center, cov, ax, edgecolor='red')
-    plt.plot(true[0], true[1], '.')
-    ax.set_xlim(-1, 2)
-    ax.set_ylim(-1, 2)
+    confidence_ellipse(center, cov, ax, edgecolor='red', label=r"$\mathcal{C}_N$")
+    plt.plot(true[0], true[1], '.', label=r"$\theta$")
+    plt.legend()
+    ax.set_xlim(-0.2, 0.7)
+    ax.set_ylim(-0.2, 0.7)
 
     # Figure export
     fig.canvas.draw()
@@ -95,12 +98,7 @@ def confidence_ellipse(center, cov, ax, facecolor='none', **kwargs):
         facecolor=facecolor,
         **kwargs)
 
-    # Calculating the stdandard deviation of x from
-    # the squareroot of the variance and multiplying
-    # with the given number of standard deviations.
     scale_x = np.sqrt(cov[0, 0])
-
-    # calculating the stdandard deviation of y ...
     scale_y = np.sqrt(cov[1, 1])
 
     transf = transforms.Affine2D() \
