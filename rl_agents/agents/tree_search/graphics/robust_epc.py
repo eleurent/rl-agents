@@ -5,11 +5,12 @@ import matplotlib.transforms as transforms
 import matplotlib
 # matplotlib.rc('text', usetex=True)
 
-from rl_agents.agents.tree_search.graphics.graphics import TreeGraphics
 from rl_agents.agents.tree_search.graphics.robust import IntervalRobustPlannerGraphics
 
 
 class RobustEPCGraphics(IntervalRobustPlannerGraphics):
+    PREVIOUS_ELLIPSES = []
+
     @classmethod
     def display(cls, agent, agent_surface, sim_surface):
         import pygame
@@ -20,7 +21,7 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
             true = agent.env.unwrapped.dynamics.theta
             surf_size = agent_surface.get_size()
             ellipsoid = agent.theta_n_lambda, agent.g_n_lambda, agent.beta_n
-            image_str, size = plot_ellipsoid(ellipsoid, true, None, figsize=(surf_size[0]/100, surf_size[1]/100))
+            image_str, size = cls.plot_ellipsoid(ellipsoid, true, None, figsize=(surf_size[0]/100, surf_size[1]/100))
             surf = pygame.image.fromstring(image_str, size, "RGB")
             agent_surface.blit(surf, (0, 0))
 
@@ -51,39 +52,46 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
     #                          (sim_surface.vec2pix(trajectory[i+1].position)),
     #                          2)
 
+    @classmethod
+    def plot_ellipsoid(cls, ellipsoid, true, writer=None, epoch=0, title="", figsize=(8, 6)):
+        """
+            Plot the hull of all Qc, Qr points for different (action, budget).
 
-def plot_ellipsoid(ellipsoid, true, writer=None, epoch=0, title="", figsize=(8, 6)):
-    """
-        Plot the hull of all Qc, Qr points for different (action, budget).
+            If a threshold beta and corresponding mixture is provided, plot them.
+        :param SummaryWriter writer: will log the image to tensorboard if not None
+        :param epoch: timestep for tensorboard log
+        :param title: figure title
+        :param figsize: figure size, inches
+        :return: the string description of the image, and its size
+        """
+        # Figure creation
+        fig = plt.figure(figsize=figsize, tight_layout=True)
+        ax = fig.add_subplot(1, 1, 1)
+        plt.title(title)
+        center, cov, beta = ellipsoid
+        cov = np.linalg.inv(cov / beta)
+        if cls.PREVIOUS_ELLIPSES is not None:
+            cls.PREVIOUS_ELLIPSES.append((center, cov))
+        for (center, cov) in cls.PREVIOUS_ELLIPSES[::12]:
+            facecolor = (1, 0.3, 0.3, 0.1)
+            confidence_ellipse(center, cov, ax, facecolor=facecolor,
+                               edgecolor="black", linewidth=0.5, label=None)
+        center, cov = cls.PREVIOUS_ELLIPSES[-1]
+        confidence_ellipse(center, cov, ax, edgecolor='red', label=r"$\mathcal{C}_{[N],\delta}$")
+        plt.plot(true[0], true[1], '.', label=r"$\theta$")
+        plt.legend()
+        ax.set_xlim(-0.2, 0.7)
+        ax.set_ylim(-0.2, 0.7)
 
-        If a threshold beta and corresponding mixture is provided, plot them.
-    :param SummaryWriter writer: will log the image to tensorboard if not None
-    :param epoch: timestep for tensorboard log
-    :param title: figure title
-    :param figsize: figure size, inches
-    :return: the string description of the image, and its size
-    """
-    # Figure creation
-    fig = plt.figure(figsize=figsize, tight_layout=True)
-    ax = fig.add_subplot(1, 1, 1)
-    plt.title(title)
-    center, cov, beta = ellipsoid
-    cov = np.linalg.inv(cov / beta)
-    confidence_ellipse(center, cov, ax, edgecolor='red', label=r"$\mathcal{C}_N$")
-    plt.plot(true[0], true[1], '.', label=r"$\theta$")
-    plt.legend()
-    ax.set_xlim(-0.2, 0.7)
-    ax.set_ylim(-0.2, 0.7)
-
-    # Figure export
-    fig.canvas.draw()
-    data_str = fig.canvas.tostring_rgb()
-    if writer:
-        data = np.fromstring(data_str, dtype=np.uint8, sep='')
-        data = np.rollaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), 2, 0)
-        writer.add_image(title, data, epoch)
-    plt.close()
-    return data_str, fig.canvas.get_width_height()
+        # Figure export
+        fig.canvas.draw()
+        data_str = fig.canvas.tostring_rgb()
+        if writer:
+            data = np.fromstring(data_str, dtype=np.uint8, sep='')
+            data = np.rollaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), 2, 0)
+            writer.add_image(title, data, epoch)
+        plt.close()
+        return data_str, fig.canvas.get_width_height()
 
 
 def confidence_ellipse(center, cov, ax, facecolor='none', **kwargs):
