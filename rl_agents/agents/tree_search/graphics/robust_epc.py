@@ -57,7 +57,7 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
                                edgecolor="black", linewidth=0.5, label=None)
         confidence_ellipse(ellipsoids[-1], ax, edgecolor='red', label=r"$\mathcal{C}_{[N],\delta}$")
         plt.plot(true_theta[0], true_theta[1], '.', label=r"$\theta$")
-        plt.legend()
+        plt.legend(loc="upper right")
         ax.set_xlim(-0.2, 0.7)
         ax.set_ylim(-0.2, 0.7)
 

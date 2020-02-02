@@ -1,5 +1,5 @@
 {
     "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
     "gamma": 0.8,
-    "budget": 100
+    "budget": 300
 }
