@@ -46,7 +46,7 @@ class IntervalRobustPlannerGraphics(object):
     """
         Graphical visualization of the IntervalRobustPlannerAgent interval observer.
     """
-    UNCERTAINTY_TIME_COLORMAP = cm.RdYlGn_r
+    UNCERTAINTY_TIME_COLORMAP = cm.RdYlGn
     MODEL_TRAJ_COLOR = (0, 0, 255)
     RED = (255, 0, 0)
     TRANSPARENCY = 128
