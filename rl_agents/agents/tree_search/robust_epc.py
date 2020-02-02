@@ -22,9 +22,7 @@ class RobustEPCAgent(AbstractAgent):
         self.data = []
         self.robust_env = None
         self.sub_agent = load_agent(self.config['sub_agent_path'], env)
-        self.theta_n_lambda = None
-        self.g_n_lambda = None
-        self.beta_n = None
+        self.ellipsoids = [self.ellipsoid()]
 
     @classmethod
     def default_config(cls):
@@ -51,20 +49,12 @@ class RobustEPCAgent(AbstractAgent):
 
     def automatic_record(self, state, derivative, control):
         self.data.append((state.copy(), control.copy(), derivative.copy()))
+        self.ellipsoids.append(self.ellipsoid())
 
     def plan(self, observation):
         self.robust_env = self.robustify_env()
         self.sub_agent.env = self.robust_env
         return self.sub_agent.plan(observation)
-
-    def get_plan(self):
-        return self.sub_agent.planner.get_plan()
-
-    def reset(self):
-        return self.sub_agent.reset()
-
-    def seed(self, seed=None):
-        return self.sub_agent.seed(seed)
 
     def ellipsoid(self):
         d = self.phi.shape[0]
@@ -75,7 +65,6 @@ class RobustEPCAgent(AbstractAgent):
         else:
             phi = np.array([np.squeeze(self.phi @ state, axis=2).transpose() for state, _, _ in self.data])
             dx = np.array([derivative for _, _, derivative in self.data])
-            x = np.array([state for state, _, _ in self.data])
             ax = np.array([self.A @ state for state, _, _ in self.data])
             bu = np.array([self.B @ control for _, control, _ in self.data])
             y = dx - ax - bu
@@ -91,10 +80,7 @@ class RobustEPCAgent(AbstractAgent):
         return theta_n_lambda.squeeze(axis=1), g_n_lambda, beta_n
 
     def polytope(self):
-        theta_n_lambda, g_n_lambda, beta_n = self.ellipsoid()
-        self.theta_n_lambda = theta_n_lambda
-        self.g_n_lambda = g_n_lambda
-        self.beta_n = beta_n
+        theta_n_lambda, g_n_lambda, beta_n = self.ellipsoids[-1]
         d = g_n_lambda.shape[0]
         values, p = np.linalg.eig(g_n_lambda)
         m = np.sqrt(beta_n) * np.linalg.inv(p) @ np.diag(np.sqrt(1 / values))
@@ -105,44 +91,31 @@ class RobustEPCAgent(AbstractAgent):
         da = [np.tensordot(d_theta, self.phi, axes=[0, 0]) for d_theta in d_theta_k]
         return a0, da
 
-    def act(self, state):
-        return self.plan(state)[0]
-
-    def save(self, filename):
-        pass
-
-    def load(self, filename):
-        pass
-
     def robustify_env(self):
         a0, da = self.polytope()
         lpv = LPV(a0=a0, da=da, x0=self.env.unwrapped.dynamics.state.squeeze(-1),
                   b=self.config["D"], d_i=self.config["omega"])
         robust_env = safe_deepcopy_env(self.env)
         robust_env.unwrapped.lpv = lpv
-        robust_env.unwrapped.automatic_record_callback = None
+        robust_env.unwrapped.automatic_record_callback = None # Disable this for closed-loop planning?
         return robust_env
 
-#
-# class RobustEnv(object):
-#     def __init__(self, true_env, lpv, config):
-#         self.true_env = true_env
-#         self.lpv = lpv
-#         self.config = config
-#         self.action_space = true_env.action_space
-#         self.interval_trajectory = []
-#         self.time = true_env.time
-#
-#     def step(self, action):
-#         control = self.true_env.unwrapped.dynamics.action_to_control(action)
-#         self.lpv.set_control(np.array(self.config["B"]) @ control)
-#         for _ in range(self.config["simulation_frequency"] // self.config["policy_frequency"]):
-#             self.interval_trajectory.append(self.lpv.x_i_t)
-#             self.lpv.step(1 / self.config["simulation_frequency"])
-#         return self.lpv.x_i_t, self._reward(), self._done(), {}
-#
-#     def _reward(self):
-#         return self.true_env.unwrapped.pessimistic_reward(self.lpv.x_i_t)
-#
-#     def _done(self):
-#         return self.true_env.unwrapped.pessimistic_is_terminal(self.lpv.x_i_t)
+    def act(self, state):
+        return self.plan(state)[0]
+
+    def get_plan(self):
+        return self.sub_agent.planner.get_plan()
+
+    def reset(self):
+        self.data = []
+        self.ellipsoids = [self.ellipsoid()]
+        return self.sub_agent.reset()
+
+    def seed(self, seed=None):
+        return self.sub_agent.seed(seed)
+
+    def save(self, filename):
+        pass
+
+    def load(self, filename):
+        pass
