@@ -126,14 +126,11 @@ def plot_all(data_path, plot_path, data_range):
         start, end = data_range.split(':')
         df = df[df["time"].between(int(start), int(end))]
     print("Number of seeds found: {}".format(df.seed.nunique()))
+    df["regret"] = df["value"] - df["return"]
 
     fig, ax = plt.subplots()
-    # for field in ["return", "value", "reward"]:
-    #     sns.lineplot(x="time", y=field, ax=ax, hue="agent", data=df)
-    df = df[["time", "return", "value", "reward"]]
-    sns.lineplot(x="time", y='value', hue='variable', ax=ax,
-                 data=pd.melt(df, ['time']))
-    field = "reward"
+    sns.lineplot(x="time", y='regret', hue='agent', ax=ax, data=df)
+    field = "regret"
     field_path = plot_path / "{}.pdf".format(field)
     fig.savefig(field_path, bbox_inches='tight')
     field_path = plot_path / "{}.png".format(field)
