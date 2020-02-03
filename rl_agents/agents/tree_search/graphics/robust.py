@@ -9,11 +9,9 @@ from rl_agents.agents.tree_search.graphics.graphics import TreeGraphics
 class DiscreteRobustPlannerGraphics(TreeGraphics):
     @classmethod
     def display(cls, agent, agent_surface, sim_surface):
-        import pygame
-        horizon = 2
         plan = agent.planner.get_plan()
         for env in [preprocess_env(agent.true_env, preprocessors) for preprocessors in agent.config["models"]]:
-            IntervalRobustPlannerGraphics.display_vehicles_uncertainty(env, plan, sim_surface, trajectory=True)
+            IntervalRobustPlannerGraphics.display_uncertainty(env, plan, sim_surface, trajectory=True)
             # for vehicle in env.road.vehicles:
             #     if hasattr(vehicle, ):
             #         IntervalRobustPlannerGraphics.display(vehicle)
@@ -27,7 +25,7 @@ class DiscreteRobustPlannerGraphics(TreeGraphics):
             #     uncertainty_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA, 32)
             #     IntervalRobustPlannerGraphics.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface,
             #                                                      IntervalRobustPlannerGraphics.MODEL_TRAJ_COLOR)
-                sim_surface.blit(uncertainty_surface, (0, 0))
+            #     sim_surface.blit(uncertainty_surface, (0, 0))
         TreeGraphics.display(agent, agent_surface)
 
     @classmethod
