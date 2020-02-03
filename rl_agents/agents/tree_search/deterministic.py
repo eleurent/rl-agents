@@ -34,7 +34,6 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
         """
         leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
         if leaf_to_expand.done:
-            logger.info("Expanding a terminal state")
             return
         leaf_to_expand.expand()
         leaf_to_expand.backup_to_root()

@@ -119,3 +119,10 @@ class RobustEPCAgent(AbstractAgent):
 
     def load(self, filename):
         pass
+
+
+class NominalEPCAgent(RobustEPCAgent):
+    def polytope(self):
+        a0, da = super().polytope()
+        da = [np.zeros(a0.shape)]
+        return a0, da

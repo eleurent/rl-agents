@@ -73,7 +73,7 @@ def evaluate(experiment):
     evaluation.seed(episode=0)
     evaluation.reset()
     evaluation.training = False
-    gamma = agent.config["gamma"]
+    gamma = 0.99 or agent.config["gamma"]
     while not terminal:
         print("step", len(values))
         # Estimate state value
