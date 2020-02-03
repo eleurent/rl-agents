@@ -109,13 +109,13 @@ class IntervalRobustPlannerGraphics(object):
                 color = (color[0], color[1], color[2], cls.TRANSPARENCY)
                 if boxes:
                     cls.display_box(min_traj[i], max_traj[i], surface, sim_surface, color)
-                if i < len(min_traj)-1:
-                    input_points = [[(A[i][0], min_traj[i][1]), (A[i][0], max_traj[i][1])],
-                                    [(B[i][0], min_traj[i][1]), (A[i][0], max_traj[i][1])],
-                                    [(A[i][0], min_traj[i][1]), (B[i][0], max_traj[i][1])]]
-                    output_points = [[(B[i+1][0], min_traj[i+1][1]), (B[i+1][0], max_traj[i+1][1])],
-                                     [(A[i+1][0], min_traj[i+1][1]), (B[i+1][0], max_traj[i+1][1])],
-                                     [(B[i+1][0], min_traj[i+1][1]), (A[i+1][0], max_traj[i+1][1])]]
+                if i > 0:
+                    input_points = [[(A[i-1][0], min_traj[i-1][1]), (A[i-1][0], max_traj[i-1][1])],
+                                    [(B[i-1][0], min_traj[i-1][1]), (A[i-1][0], max_traj[i-1][1])],
+                                    [(A[i-1][0], min_traj[i-1][1]), (B[i-1][0], max_traj[i-1][1])]]
+                    output_points = [[(B[i][0], min_traj[i][1]), (B[i][0], max_traj[i][1])],
+                                     [(A[i][0], min_traj[i][1]), (B[i][0], max_traj[i][1])],
+                                     [(B[i][0], min_traj[i][1]), (A[i][0], max_traj[i][1])]]
                     for p1 in input_points:
                         for p2 in output_points:
                             try:

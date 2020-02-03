@@ -40,6 +40,8 @@ def env_configs():
 def agent_configs():
     agents = {
         "robust-epc": "configs/ObstacleEnv/RobustEPC.json",
+        "nominal-epc": "configs/ObstacleEnv/NominalEPC.json",
+        # "model-bias": "configs/ObstacleEnv/ModelBias.json",
         "oracle": "configs/ObstacleEnv/DeterministicPlannerAgent.json",
     }
     return agents
@@ -75,7 +77,6 @@ def evaluate(experiment):
     evaluation.training = False
     gamma = 0.99 or agent.config["gamma"]
     while not terminal:
-        print("step", len(values))
         # Estimate state value
         oracle_env = safe_deepcopy_env(agent.env)
         oracle = load_agent(agent_configs()["oracle"], oracle_env)

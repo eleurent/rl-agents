@@ -5,6 +5,7 @@ import numpy as np
 from highway_env.interval import LPV
 from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.common.factory import load_agent, safe_deepcopy_env
+from rl_agents.agents.tree_search.deterministic import DeterministicPlannerAgent
 
 
 class RobustEPCAgent(AbstractAgent):
@@ -122,7 +123,30 @@ class RobustEPCAgent(AbstractAgent):
 
 
 class NominalEPCAgent(RobustEPCAgent):
+    def __init__(self, env, config):
+        super().__init__(env, config)
+        self.config["omega"] = np.zeros(np.shape(self.config["omega"])).tolist()
+
     def polytope(self):
         a0, da = super().polytope()
         da = [np.zeros(a0.shape)]
         return a0, da
+
+
+class ModelBiasAgent(DeterministicPlannerAgent):
+    def plan(self, observation):
+        self.steps += 1
+        replanning_required = self.step(self.previous_actions)
+        if replanning_required:
+            env = safe_deepcopy_env(self.env)
+            dyn = env.unwrapped.dynamics
+            dyn.theta = np.array([0.5, 0.5])
+            dyn.A = dyn.A0 + np.tensordot(dyn.theta, dyn.phi, axes=[0, 0])
+            dyn.continuous = (dyn.A, dyn.B, dyn.C, dyn.D)
+            actions = self.planner.plan(state=env, observation=observation)
+        else:
+            actions = self.previous_actions[1:]
+        self.write_tree()
+
+        self.previous_actions = actions
+        return actions

@@ -76,6 +76,7 @@ class Evaluation(object):
                                  video_callable=(None if self.display_env else False))
         self.writer = SummaryWriter(str(self.run_directory))
         self.agent.set_writer(self.writer)
+        self.agent.set_directory(self.run_directory)
         self.write_logging()
         self.write_metadata()
         self.filtered_agent_stats = 0

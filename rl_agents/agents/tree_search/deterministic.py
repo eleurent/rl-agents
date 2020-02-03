@@ -33,6 +33,7 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
             Run an OptimisticDeterministicPlanner episode
         """
         leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
+        # leaf_to_expand.state.seed(self.np_random.randint(2**30))
         if leaf_to_expand.done:
             return
         leaf_to_expand.expand()

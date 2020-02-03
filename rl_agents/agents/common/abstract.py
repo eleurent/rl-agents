@@ -8,6 +8,7 @@ class AbstractAgent(Configurable, ABC):
     def __init__(self, config=None):
         super(AbstractAgent, self).__init__(config)
         self.writer = None  # Tensorboard writer
+        self.directoy = None  # Run directory
 
     """
         An abstract class specifying the interface of a generic agent.
@@ -88,6 +89,9 @@ class AbstractAgent(Configurable, ABC):
         :param SummaryWriter writer: a summary writer
         """
         self.writer = writer
+
+    def set_directory(self, directory):
+        self.directory = directory
 
     def set_time(self, time):
         """ Set a local time, to control the agent internal schedules (e.g. exploration) """
