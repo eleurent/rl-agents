@@ -13,20 +13,20 @@ class DiscreteRobustPlannerGraphics(TreeGraphics):
         horizon = 2
         plan = agent.planner.get_plan()
         for env in [preprocess_env(agent.true_env, preprocessors) for preprocessors in agent.config["models"]]:
-            IntervalRobustPlannerGraphics.display_vehicles_uncertainty(env, plan, sim_surface, trajectory=False)
-            for vehicle in env.road.vehicles:
-                if hasattr(vehicle, ):
-                    IntervalRobustPlannerGraphics.display(vehicle)
-            for vehicle in env.road.vehicles:
-                vehicle.trajectory = []
-            for action in plan[:horizon] + (horizon - len(plan)) * [1]:
-                env.step(action)
-            for vehicle in env.road.vehicles:
-                if vehicle is env.vehicle:
-                    continue
-                uncertainty_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA, 32)
-                IntervalRobustPlannerGraphics.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface,
-                                                                 IntervalRobustPlannerGraphics.MODEL_TRAJ_COLOR)
+            IntervalRobustPlannerGraphics.display_vehicles_uncertainty(env, plan, sim_surface, trajectory=True)
+            # for vehicle in env.road.vehicles:
+            #     if hasattr(vehicle, ):
+            #         IntervalRobustPlannerGraphics.display(vehicle)
+            # for vehicle in env.road.vehicles:
+            #     vehicle.trajectory = []
+            # for action in plan[:horizon] + (horizon - len(plan)) * [1]:
+            #     env.step(action)
+            # for vehicle in env.road.vehicles:
+            #     if vehicle is env.vehicle:
+            #         continue
+            #     uncertainty_surface = pygame.Surface(sim_surface.get_size(), pygame.SRCALPHA, 32)
+            #     IntervalRobustPlannerGraphics.display_trajectory(vehicle.trajectory, uncertainty_surface, sim_surface,
+            #                                                      IntervalRobustPlannerGraphics.MODEL_TRAJ_COLOR)
                 sim_surface.blit(uncertainty_surface, (0, 0))
         TreeGraphics.display(agent, agent_surface)
 
