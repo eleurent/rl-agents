@@ -6,8 +6,8 @@ Options:
   -h --help
   --generate <true or false>  Generate new data [default: True].
   --show <true_or_false>      Plot results [default: True].
-  --data_path <path>          Specify output data file path [default: ./out/planners/data.csv].
-  --plot_path <path>          Specify figure data file path [default: ./out/planners].
+  --filename <path>           Specify output data file path [default: data.csv].
+  --directory <path>          Specify figure data file path [default: ./out/planners].
   --seeds <(s,)n>             Number of evaluations of each configuration, with an optional first seed [default: 10].
   --processes <p>             Number of processes [default: 4]
   --chunksize <c>             Size of data chunks each processor receives
@@ -120,35 +120,68 @@ def prepare_experiments(seeds, path):
     return experiments
 
 
-def plot_all(data_path, plot_path, data_range):
-    print("Reading data from {}".format(data_path))
-    df = pd.read_csv(data_path)
+def plot_all(directory, filename, data_range):
+    print("Reading data from {}".format(directory))
+    df = pd.read_csv(directory / filename)
     if data_range:
         start, end = data_range.split(':')
         df = df[df["time"].between(int(start), int(end))]
     print("Number of seeds found: {}".format(df.seed.nunique()))
-    df["regret"] = df["value"] - df["return"]
+    df["regret"] = (df["value"] - df["return"]).clip(lower=0)
+    custom_processing(df)
+    df = df.replace({
+        "robust-epc": r"\texttt{Robust EPC}",
+        "nominal-epc": r"\texttt{Nominal EPC}",
+    })
 
     fig, ax = plt.subplots()
+    ax.set_yscale("symlog", linthreshy=1e-4)
     sns.lineplot(x="time", y='regret', hue='agent', ax=ax, data=df)
     field = "regret"
-    field_path = plot_path / "{}.pdf".format(field)
+    field_path = directory / "{}.pdf".format(field)
     fig.savefig(field_path, bbox_inches='tight')
-    field_path = plot_path / "{}.png".format(field)
+    field_path = directory / "{}.png".format(field)
+    fig.savefig(field_path, bbox_inches='tight')
+    print("Saving {} plot to {}".format(field, field_path))
+
+    fig, ax = plt.subplots()
+    ax.set_yscale("symlog", linthreshy=1e-4)
+    df = df.groupby(["agent", "time"], as_index=False).max()
+    sns.lineplot(x="time", y='regret', hue='agent', ax=ax, data=df)
+    field = "max_regret"
+    field_path = directory / "{}.pdf".format(field)
+    fig.savefig(field_path, bbox_inches='tight')
+    field_path = directory / "{}.png".format(field)
     fig.savefig(field_path, bbox_inches='tight')
     print("Saving {} plot to {}".format(field, field_path))
 
 
+def custom_processing(df):
+    print("Duration")
+    duration = df.groupby(["agent", "seed"]).max()
+    print("Worst case")
+    print(duration.groupby(["agent"]).min()["time"])
+    print("Mean")
+    print(duration.groupby(["agent"]).mean()["time"])
+    print("Collisions")
+    print(duration[duration["time"] < 19].groupby(["agent"]).count())
+
+    print("Return")
+    returns = df[df["time"] == 0]
+    print("Worst case")
+    print(returns.groupby(["agent"]).min())
+    print("Mean")
+    print(returns.groupby(["agent"]).mean())
+
+
 def main(args):
     if args["--generate"] == "True":
-        experiments = prepare_experiments(args['--seeds'], args["--data_path"])
+        experiments = prepare_experiments(args['--seeds'], Path(args["--directory"]) / args["--filename"])
         chunksize = int(args["--chunksize"]) if args["--chunksize"] else args["--chunksize"]
-        # for e in experiments:
-        #     evaluate(e)
         with Pool(processes=int(args["--processes"])) as p:
             p.map(evaluate, experiments, chunksize=chunksize)
     if args["--show"] == "True":
-        plot_all(Path(args["--data_path"]), Path(args["--plot_path"]), args["--range"])
+        plot_all(Path(args["--directory"]), args["--filename"], args["--range"])
 
 
 if __name__ == "__main__":
