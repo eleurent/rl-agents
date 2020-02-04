@@ -34,15 +34,21 @@ SEED_MAX = 1e9
 
 
 def env_configs():
-    return ['configs/ObstacleEnv/env_obs_state.json']
+    return [
+        # 'configs/ObstacleEnv/env_obs_state.json',
+        'configs/IntersectionEnv/env_linear.json'
+    ]
 
 
 def agent_configs():
     agents = {
-        "robust-epc": "configs/ObstacleEnv/RobustEPC.json",
-        "nominal-epc": "configs/ObstacleEnv/NominalEPC.json",
+        # "robust-epc": "configs/ObstacleEnv/RobustEPC.json",
+        # "nominal-epc": "configs/ObstacleEnv/NominalEPC.json",
         # "model-bias": "configs/ObstacleEnv/ModelBias.json",
-        "oracle": "configs/ObstacleEnv/DeterministicPlannerAgent.json",
+        # "robust-epc": "configs/IntersectionEnv/agents/DiscreteRobustPlannerAgent/routes_behaviours.json",
+        # "nominal-epc-route": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/assume_random_route.json",
+        # "nominal-epc-behaviour": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/assume_random_behaviour.json",
+        "oracle": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/baseline.json",
     }
     return agents
 
@@ -71,45 +77,65 @@ def evaluate(experiment):
                             display_env=False,
                             display_agent=False,
                             display_rewards=False)
-    rewards, values, terminal = [], [], False
-    evaluation.seed(episode=0)
-    evaluation.reset()
-    evaluation.training = False
-    gamma = 0.99 or agent.config["gamma"]
-    while not terminal:
-        # Estimate state value
-        oracle_env = safe_deepcopy_env(agent.env)
-        oracle = load_agent(agent_configs()["oracle"], oracle_env)
-        oracle_done, oracle_rewards = False, []
-        while not oracle_done:
-            action = oracle.act(None)
-            _, oracle_reward, oracle_done, _ = oracle_env.step(action)
-            oracle_rewards.append(oracle_reward)
-        value = np.sum([gamma**t * oracle_rewards[t] for t in range(len(oracle_rewards))])
-        values.append(value)
+    estimate_value = False
+    if estimate_value:
+        rewards, values, terminal = [], [], False
+        evaluation.seed(episode=0)
+        evaluation.reset()
+        evaluation.training = False
+        gamma = 0.99 or agent.config["gamma"]
+        while not terminal:
+            # Estimate state value
+            oracle_env = safe_deepcopy_env(agent.env)
+            oracle = load_agent(agent_configs()["oracle"], oracle_env)
+            oracle_done, oracle_rewards = False, []
+            while not oracle_done:
+                action = oracle.act(None)
+                _, oracle_reward, oracle_done, _ = oracle_env.step(action)
+                oracle_rewards.append(oracle_reward)
+            value = np.sum([gamma**t * oracle_rewards[t] for t in range(len(oracle_rewards))])
+            values.append(value)
 
-        reward, terminal = evaluation.step()
-        rewards.append(reward)
-    evaluation.close()
+            reward, terminal = evaluation.step()
+            rewards.append(reward)
+        evaluation.close()
 
-    returns = [np.sum([gamma**t * rewards[k+t] for t in range(len(rewards[k:]))]) for k in range(len(rewards))]
+        returns = [np.sum([gamma**t * rewards[k+t] for t in range(len(rewards[k:]))]) for k in range(len(rewards))]
 
-    # Save intermediate results
-    df = pd.DataFrame({
-        "agent": agent_name,
-        "time": range(len(rewards)),
-        "seed": [seed] * len(rewards),
-        "reward": rewards,
-        "return": returns,
-        "value": values
-    })
+        # Save intermediate results
+        df = pd.DataFrame({
+            "agent": agent_name,
+            "time": range(len(rewards)),
+            "seed": [seed] * len(rewards),
+            "reward": rewards,
+            "return": returns,
+            "value": values
+        })
+    else:
+        evaluation.test()
+        rewards = evaluation.monitor.stats_recorder.episode_rewards_[0]
+        length = evaluation.monitor.stats_recorder.episode_lengths[0]
+        total_reward = np.sum(rewards)
+
+        cum_discount = lambda signal, gamma: np.sum([gamma**t * signal[t] for t in range(len(signal))])
+        return_ = cum_discount(rewards, 0.9)
+        return_undisc = cum_discount(rewards, 0.99)
+        result = {
+            "agent": agent_name,
+            "seed": seed,
+            "total_reward": total_reward,
+            "return": return_,
+            "return_undisc": return_undisc,
+            "length": length,
+        }
+        df = pd.DataFrame.from_records([result])
     with open(path, 'a') as f:
         df.to_csv(f, sep=',', encoding='utf-8', header=f.tell() == 0, index=False)
 
 
 def prepare_experiments(seeds, path):
     agents = agent_configs()
-    agents = {a: v for a, v in agents.items() if a != "oracle"}
+    # agents = {a: v for a, v in agents.items() if a != "oracle"}
     seeds = seeds.split(",")
     first_seed = int(seeds[0]) if len(seeds) == 2 else np.random.randint(0, SEED_MAX, dtype=int)
     seeds_count = int(seeds[-1])
@@ -127,37 +153,45 @@ def plot_all(directory, filename, data_range):
         start, end = data_range.split(':')
         df = df[df["time"].between(int(start), int(end))]
     print("Number of seeds found: {}".format(df.seed.nunique()))
-    df["regret"] = (df["value"] - df["return"]).clip(lower=0)
-    custom_processing(df)
-    df = df.replace({
-        "robust-epc": r"\texttt{Robust EPC}",
-        "nominal-epc": r"\texttt{Nominal EPC}",
-    })
+    try:
+        custom_processing_return(df)
+    except Exception:
+        pass
+    # try:
+    #     df["regret"] = (df["value"] - df["return"]).clip(lower=0)
+    #     df[r"samples $N$"] = 5*df["time"]
+    #     custom_processing_regret(df)
+    # except Exception:
+    #     pass
+    # df = df.replace({
+    #     "robust-epc": r"\texttt{Robust EPC}",
+    #     "nominal-epc": r"\texttt{Nominal EPC}",
+    # })
+    #
+    # fig, ax = plt.subplots()
+    # ax.set_yscale("symlog", linthreshy=1e-4)
+    # sns.lineplot(x=r"samples $N$", y='regret', hue='agent', ax=ax, data=df)
+    # field = "regret"
+    # field_path = directory / "{}.pdf".format(field)
+    # fig.savefig(field_path, bbox_inches='tight')
+    # field_path = directory / "{}.png".format(field)
+    # fig.savefig(field_path, bbox_inches='tight')
+    # print("Saving {} plot to {}".format(field, field_path))
+    #
+    # fig, ax = plt.subplots()
+    # ax.set_yscale("symlog", linthreshy=1e-4)
+    # df = df.groupby(["agent", "time"], as_index=False).max()
+    # sns.lineplot(x="time", y='regret', hue='agent', ax=ax, data=df)
+    # field = "max_regret"
+    # field_path = directory / "{}.pdf".format(field)
+    # fig.savefig(field_path, bbox_inches='tight')
+    # field_path = directory / "{}.png".format(field)
+    # fig.savefig(field_path, bbox_inches='tight')
+    # print("Saving {} plot to {}".format(field, field_path))
 
-    fig, ax = plt.subplots()
-    ax.set_yscale("symlog", linthreshy=1e-4)
-    sns.lineplot(x="time", y='regret', hue='agent', ax=ax, data=df)
-    field = "regret"
-    field_path = directory / "{}.pdf".format(field)
-    fig.savefig(field_path, bbox_inches='tight')
-    field_path = directory / "{}.png".format(field)
-    fig.savefig(field_path, bbox_inches='tight')
-    print("Saving {} plot to {}".format(field, field_path))
 
-    fig, ax = plt.subplots()
-    ax.set_yscale("symlog", linthreshy=1e-4)
-    df = df.groupby(["agent", "time"], as_index=False).max()
-    sns.lineplot(x="time", y='regret', hue='agent', ax=ax, data=df)
-    field = "max_regret"
-    field_path = directory / "{}.pdf".format(field)
-    fig.savefig(field_path, bbox_inches='tight')
-    field_path = directory / "{}.png".format(field)
-    fig.savefig(field_path, bbox_inches='tight')
-    print("Saving {} plot to {}".format(field, field_path))
-
-
-def custom_processing(df):
-    print("Duration")
+def custom_processing_regret(df):
+    print("=== Duration ===")
     duration = df.groupby(["agent", "seed"]).max()
     print("Worst case")
     print(duration.groupby(["agent"]).min()["time"])
@@ -166,12 +200,28 @@ def custom_processing(df):
     print("Collisions")
     print(duration[duration["time"] < 19].groupby(["agent"]).count())
 
-    print("Return")
+    print("=== Return ===")
     returns = df[df["time"] == 0]
     print("Worst case")
     print(returns.groupby(["agent"]).min())
     print("Mean")
     print(returns.groupby(["agent"]).mean())
+    print("Std")
+    print(returns.groupby(["agent"]).std())
+
+def custom_processing_return(df):
+    print("Worst case")
+    print(df.groupby(["agent"]).min())
+    print("Mean")
+    print(df.groupby(["agent"]).mean())
+    print("Std")
+    print(df.groupby(["agent"]).std())
+    print("Max")
+    print(df.groupby(["agent"]).max())
+
+    print("Successes")
+    print(df[df["length"] == 14].groupby(["agent"]).count())
+    print(df[(df["length"] < 14)])
 
 
 def main(args):
