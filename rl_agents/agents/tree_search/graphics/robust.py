@@ -11,7 +11,7 @@ class DiscreteRobustPlannerGraphics(TreeGraphics):
     def display(cls, agent, agent_surface, sim_surface):
         plan = agent.planner.get_plan()
         for env in [preprocess_env(agent.true_env, preprocessors) for preprocessors in agent.config["models"]]:
-            IntervalRobustPlannerGraphics.display_uncertainty(env, plan, sim_surface, trajectory=True)
+            IntervalRobustPlannerGraphics.display_uncertainty(env, plan, sim_surface, trajectory=False)
             # for vehicle in env.road.vehicles:
             #     if hasattr(vehicle, ):
             #         IntervalRobustPlannerGraphics.display(vehicle)
