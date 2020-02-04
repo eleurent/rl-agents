@@ -5,6 +5,7 @@ import matplotlib.transforms as transforms
 import matplotlib
 matplotlib.rc('text', usetex=True)
 import seaborn as sns
+import os
 
 from rl_agents.agents.tree_search.graphics.robust import IntervalRobustPlannerGraphics
 
@@ -19,7 +20,7 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
             true_theta = agent.env.unwrapped.dynamics.theta
             surf_size = agent_surface.get_size()
             figsize = (surf_size[0]/100, surf_size[1]/100)
-            save_to = agent.directory / "ellipsoid_{}.pdf".format(len(agent.ellipsoids))
+            save_to = agent.evaluation.run_directory / "ellipsoid.{}.{}.pdf".format(agent.evaluation.episode, len(agent.ellipsoids))
             image_str, size = cls.plot_ellipsoid(agent.ellipsoids, true_theta, figsize=figsize, save_to=save_to)
             surf = pygame.image.fromstring(image_str, size, "RGB")
             agent_surface.blit(surf, (0, 0))
@@ -52,7 +53,7 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
         fig = plt.figure(figsize=figsize, tight_layout=True)
         ax = fig.add_subplot(1, 1, 1)
         plt.title(title)
-        for ellipsoid in ellipsoids[10:-1:10]:
+        for ellipsoid in ellipsoids[5:-1:5]:
             confidence_ellipse(ellipsoid, ax, facecolor=(1, 0.3, 0.3, 0.1),
                                edgecolor="black", linewidth=0.5, label=None)
         confidence_ellipse(ellipsoids[-1], ax, facecolor=(1, 0.3, 0.3, 0.1),
@@ -61,6 +62,16 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
         plt.legend(loc="upper right")
         ax.set_xlim(-0.2, 0.7)
         ax.set_ylim(-0.2, 0.7)
+        # ax.set_xlabel(r"$\theta_1$")
+        # ax.set_ylabel(r"$\theta_2$")
+        # plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
+        # plt.tick_params(axis='y', which='both', bottom=False, top=False, labelbottom=False)
+        # plt.xticks([]),plt.yticks([])
+        # plt.xticks(np.arange(-0.15, 0.7, step=0.15))
+        # plt.yticks(np.arange(-0.15, 0.7, step=0.15))
+        frame1 = plt.gca()
+        frame1.axes.xaxis.set_ticklabels([])
+        frame1.axes.yaxis.set_ticklabels([])
 
         # Figure export
         if save_to is not None and len(ellipsoids) % 10 == 0:

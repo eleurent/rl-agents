@@ -74,9 +74,10 @@ class Evaluation(object):
         self.monitor = MonitorV2(env,
                                  self.run_directory,
                                  video_callable=(None if self.display_env else False))
+        self.episode = 0
         self.writer = SummaryWriter(str(self.run_directory))
         self.agent.set_writer(self.writer)
-        self.agent.set_directory(self.run_directory)
+        self.agent.evaluation = self
         self.write_logging()
         self.write_metadata()
         self.filtered_agent_stats = 0
@@ -90,6 +91,7 @@ class Evaluation(object):
             try:
                 # Render the agent within the environment viewer, if supported
                 self.env.render()
+                self.env.unwrapped.viewer.directory = self.run_directory
                 self.env.unwrapped.viewer.set_agent_display(
                     lambda agent_surface, sim_surface: AgentGraphics.display(self.agent, agent_surface, sim_surface))
             except AttributeError:
@@ -121,10 +123,10 @@ class Evaluation(object):
         self.close()
 
     def run_episodes(self):
-        for episode in range(self.num_episodes):
+        for self.episode in range(self.num_episodes):
             # Run episode
             terminal = False
-            self.seed(episode)
+            self.seed(self.episode)
             self.reset()
             rewards = []
             while not terminal:
@@ -140,8 +142,8 @@ class Evaluation(object):
                     pass
 
             # End of episode
-            self.after_all_episodes(episode, rewards)
-            self.after_some_episodes(episode, rewards)
+            self.after_all_episodes(self.episode, rewards)
+            self.after_some_episodes(self.episode, rewards)
 
     def step(self):
         """
