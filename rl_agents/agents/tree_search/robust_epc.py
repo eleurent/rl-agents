@@ -13,6 +13,7 @@ class RobustEPCAgent(AbstractAgent):
         Cross-Entropy Method planner.
         The environment is copied and used as an oracle model to sample trajectories.
     """
+
     def __init__(self, env, config):
         super().__init__(config)
         self.A = np.array(self.config["A"])
@@ -76,8 +77,9 @@ class RobustEPCAgent(AbstractAgent):
 
             theta_n_lambda = np.linalg.inv(g_n_lambda) @ np.sum(
                 [np.transpose(phi[n]) @ sigma_inv @ y[n] for n in range(y.shape[0])], axis=0)
-        beta_n = np.sqrt(2*np.log(np.sqrt(np.linalg.det(g_n_lambda) / lambda_ ** d) / self.config["delta"])) \
-                 + np.sqrt(lambda_*d) * self.config["parameter_bound"]
+        beta_n = \
+            np.sqrt(2 * np.log(np.sqrt(np.linalg.det(g_n_lambda) / lambda_ ** d) / self.config["delta"])) \
+            + np.sqrt(lambda_ * d) * self.config["parameter_bound"]
         return theta_n_lambda.squeeze(axis=1), g_n_lambda, beta_n
 
     def polytope(self):
@@ -87,7 +89,6 @@ class RobustEPCAgent(AbstractAgent):
         m = np.sqrt(beta_n) * np.linalg.inv(p) @ np.diag(np.sqrt(1 / values))
         h = np.array(list(itertools.product([-1, 1], repeat=d)))
         d_theta_k = np.clip([m @ h_k for h_k in h], -self.config["parameter_bound"], self.config["parameter_bound"])
-
         a0 = self.A + np.tensordot(theta_n_lambda, self.phi, axes=[0, 0])
         da = [np.tensordot(d_theta, self.phi, axes=[0, 0]) for d_theta in d_theta_k]
         return a0, da
@@ -98,7 +99,7 @@ class RobustEPCAgent(AbstractAgent):
                   b=self.config["D"], d_i=self.config["omega"])
         robust_env = safe_deepcopy_env(self.env)
         robust_env.unwrapped.lpv = lpv
-        robust_env.unwrapped.automatic_record_callback = None # Disable this for closed-loop planning?
+        robust_env.unwrapped.automatic_record_callback = None  # Disable this for closed-loop planning?
         return robust_env
 
     def act(self, state):

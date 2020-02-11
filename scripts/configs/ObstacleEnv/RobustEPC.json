@@ -35,5 +35,8 @@
         [0, 0.2, 0, 0],
         [0, 0, 0.2, 0.0],
         [0, 0, 0.0, 0.2]
-    ]
+    ],
+    "simulation_frequency": 16,
+    "policy_frequency": 2,
+    "parameter_bound": 0.5
 }
