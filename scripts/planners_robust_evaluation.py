@@ -29,26 +29,29 @@ import seaborn as sns
 
 from rl_agents.agents.common.factory import load_environment, agent_factory, load_agent, safe_deepcopy_env
 from rl_agents.trainer.evaluation import Evaluation
+import os
+os.environ['SDL_VIDEODRIVER'] = 'x11'
 
 SEED_MAX = 1e9
 
 
 def env_configs():
     return [
-        # 'configs/ObstacleEnv/env_obs_state.json',
-        'configs/IntersectionEnv/env_linear.json'
+        'configs/ObstacleEnv/env_obs_state.json',
+        # 'configs/IntersectionEnv/env_linear.json'
     ]
 
 
 def agent_configs():
     agents = {
         # "robust-epc": "configs/ObstacleEnv/RobustEPC.json",
-        # "nominal-epc": "configs/ObstacleEnv/NominalEPC.json",
-        # "model-bias": "configs/ObstacleEnv/ModelBias.json",
+        "nominal-epc": "configs/ObstacleEnv/NominalEPC.json",
+        "model-bias": "configs/ObstacleEnv/ModelBias.json",
+        # "oracle": "configs/ObstacleEnv/oracle.json",
         # "robust-epc": "configs/IntersectionEnv/agents/DiscreteRobustPlannerAgent/routes_behaviours.json",
         # "nominal-epc-route": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/assume_random_route.json",
         # "nominal-epc-behaviour": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/assume_random_behaviour.json",
-        "oracle": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/baseline.json",
+        # "oracle": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/baseline.json",
     }
     return agents
 
@@ -71,11 +74,11 @@ def evaluate(experiment):
     print("Evaluating agent {} on seed {}".format(agent_name, seed))
     evaluation = Evaluation(env,
                             agent,
-                            directory=Path("out") / "planners" / agent_name,
+                            directory=path.parent / agent_name,
                             num_episodes=1,
                             sim_seed=seed,
-                            display_env=False,
-                            display_agent=False,
+                            display_env=True,
+                            display_agent=True,
                             display_rewards=False)
     estimate_value = False
     if estimate_value:
