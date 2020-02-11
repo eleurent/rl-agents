@@ -137,9 +137,12 @@ def prepare_experiments(seeds, path):
     agents = agent_configs()
     # agents = {a: v for a, v in agents.items() if a != "oracle"}
     seeds = seeds.split(",")
-    first_seed = int(seeds[0]) if len(seeds) == 2 else np.random.randint(0, SEED_MAX, dtype=int)
-    seeds_count = int(seeds[-1])
-    seeds = (first_seed + np.arange(seeds_count)).tolist()
+    if len(seeds) <= 2:
+        first_seed = int(seeds[0]) if len(seeds) == 2 else np.random.randint(0, SEED_MAX, dtype=int)
+        seeds_count = int(seeds[-1])
+        seeds = (first_seed + np.arange(seeds_count)).tolist()
+    else:
+        seeds = [int(seed) for seed in seeds]
     envs = env_configs()
     paths = [path]
     experiments = list(product(seeds, agents.items(), envs, paths))
