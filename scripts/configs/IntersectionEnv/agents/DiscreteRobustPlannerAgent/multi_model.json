@@ -1,0 +1,27 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.robust.DiscreteRobustPlannerAgent'>",
+    "budget": 20,
+    "gamma": 0.9,
+    "models": [
+        [
+            {
+                "method": "set_vehicle_field",
+                "args": ["collecting_data", false]
+            },
+            {
+                "method":"call_vehicle_method",
+                "args": ["assume_model_is_valid", [0]]
+            }
+        ],
+        [
+            {
+                "method": "set_vehicle_field",
+                "args": ["collecting_data", false]
+            },
+            {
+                "method":"call_vehicle_method",
+                "args": ["assume_model_is_valid", [2]]
+            }
+        ]
+    ]
+}
