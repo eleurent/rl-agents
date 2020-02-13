@@ -20,6 +20,16 @@
             },
             {
                 "method":"call_vehicle_method",
+                "args": ["assume_model_is_valid", [1]]
+            }
+        ],
+        [
+            {
+                "method": "set_vehicle_field",
+                "args": ["collecting_data", false]
+            },
+            {
+                "method":"call_vehicle_method",
                 "args": ["assume_model_is_valid", [2]]
             }
         ]
