@@ -37,21 +37,21 @@ SEED_MAX = 1e9
 
 def env_configs():
     return [
-        'configs/ObstacleEnv/env_obs_state.json',
-        # 'configs/IntersectionEnv/env_linear.json'
+        # 'configs/ObstacleEnv/env_obs_state.json',
+        'configs/IntersectionEnv/env_linear.json'
     ]
 
 
 def agent_configs():
     agents = {
         # "robust-epc": "configs/ObstacleEnv/RobustEPC.json",
-        "nominal-epc": "configs/ObstacleEnv/NominalEPC.json",
-        "model-bias": "configs/ObstacleEnv/ModelBias.json",
+        # "nominal-epc": "configs/ObstacleEnv/NominalEPC.json",
+        # "model-bias": "configs/ObstacleEnv/ModelBias.json",
         # "oracle": "configs/ObstacleEnv/oracle.json",
-        # "robust-epc": "configs/IntersectionEnv/agents/DiscreteRobustPlannerAgent/routes_behaviours.json",
+        # "robust-epc": "configs/IntersectionEnv/agents/DiscreteRobustPlannerAgent/multi_model.json",
         # "nominal-epc-route": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/assume_random_route.json",
         # "nominal-epc-behaviour": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/assume_random_behaviour.json",
-        # "oracle": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/baseline.json",
+        "oracle": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/baseline.json",
     }
     return agents
 
