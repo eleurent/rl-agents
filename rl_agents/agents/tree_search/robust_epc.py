@@ -1,17 +1,14 @@
 import itertools
-
 import numpy as np
 
 from highway_env.interval import LPV
 from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.common.factory import load_agent, safe_deepcopy_env
-from rl_agents.agents.tree_search.deterministic import DeterministicPlannerAgent
 
 
 class RobustEPCAgent(AbstractAgent):
     """
-        Cross-Entropy Method planner.
-        The environment is copied and used as an oracle model to sample trajectories.
+        Robust Estimation, Prediction and Control.
     """
 
     def __init__(self, env, config):
@@ -20,7 +17,7 @@ class RobustEPCAgent(AbstractAgent):
         self.B = np.array(self.config["B"])
         self.phi = np.array(self.config["phi"])
         self.env = env
-        self.env.unwrapped.automatic_record_callback = self.automatic_record
+        self.env.unwrapped.automatic_record_callback = self.record_transition
         self.data = []
         self.robust_env = None
         self.sub_agent = load_agent(self.config['sub_agent_path'], env)
@@ -44,21 +41,53 @@ class RobustEPCAgent(AbstractAgent):
         }
 
     def record(self, state, action, reward, next_state, done, info):
-        if not self.env.unwrapped.automatic_record_callback:
-            control = self.env.unwrapped.dynamics.action_to_control(action)
-            derivative = self.env.unwrapped.dynamics.derivative
-            self.data.append((state.copy(), control.copy(), derivative.copy()))
+        """
+            Add a transition to the dataset D_[N].
 
-    def automatic_record(self, state, derivative, control):
+            The environment must be able to convert a discrete action to a continuous control.
+        :param state: state x_t at time t
+        :param action: action a_t performed
+        :param reward: reward r_t obtained
+        :param next_state: next state x_{t+dt} at time t+dt
+        :param done: is the state terminal
+        :param info: information about the transition
+        """
+        if hasattr(self.env.unwrapped, "automatic_record_callback"):
+            return
+        control = self.env.unwrapped.dynamics.action_to_control(action)
+        try:
+            derivative = self.env.unwrapped.dynamics.derivative
+        except AttributeError:
+            derivative = (next_state - state) * self.config["policy_frequency"]
+        self.record_transition((state, control, derivative))
+
+    def record_transition(self, state, derivative, control):
+        """
+            A callback that can be called by the environment in place of RobustEPCAgent.record(),
+            in order to record several transitions when the environment simulates an action execution.
+        :param state: state x_t at time t
+        :param derivative: state derivative dot x_t at time t
+        :param control: control u_t at time t
+        """
         self.data.append((state.copy(), control.copy(), derivative.copy()))
         self.ellipsoids.append(self.ellipsoid())
 
     def plan(self, observation):
+        """
+            Perform OPD planning with make a pessimistic version of the environment, that propagates
+            state intervals and computes pessimistic rewards.
+        """
         self.robust_env = self.robustify_env()
         self.sub_agent.env = self.robust_env
         return self.sub_agent.plan(observation)
 
     def ellipsoid(self):
+        """
+            Compute a confidence ellipsoid over the parameter theta, where
+                    dot{x} = A x + (phi x) theta + B u + D omega
+                         y = dot{x} + C nu
+        :return: estimated theta, Gramian matrix G_N_lambda, and radius beta_N_lambda
+        """
         d = self.phi.shape[0]
         lambda_ = self.config["lambda"]
         if not self.data:
@@ -75,14 +104,18 @@ class RobustEPCAgent(AbstractAgent):
             g_n = np.sum([np.transpose(phi_n) @ sigma_inv @ phi_n for phi_n in phi], axis=0)
             g_n_lambda = g_n + lambda_ * np.identity(d)
 
-            theta_n_lambda = np.linalg.inv(g_n_lambda) @ np.sum(
-                [np.transpose(phi[n]) @ sigma_inv @ y[n] for n in range(y.shape[0])], axis=0)
+            theta_n_lambda = (np.linalg.inv(g_n_lambda) @ np.sum(
+                [np.transpose(phi[n]) @ sigma_inv @ y[n] for n in range(y.shape[0])], axis=0)).squeeze(axis=1)
         beta_n = \
             np.sqrt(2 * np.log(np.sqrt(np.linalg.det(g_n_lambda) / lambda_ ** d) / self.config["delta"])) \
             + np.sqrt(lambda_ * d) * self.config["parameter_bound"]
-        return theta_n_lambda.squeeze(axis=1), g_n_lambda, beta_n
+        return theta_n_lambda, g_n_lambda, beta_n
 
     def polytope(self):
+        """
+            Confidence polytope, computed from the confidence ellipsoid.
+        :return: nominal matrix A0, list of vertices dA, such that A(theta) = A0 + alpha^T dA.
+        """
         theta_n_lambda, g_n_lambda, beta_n = self.ellipsoids[-1]
         d = g_n_lambda.shape[0]
         values, p = np.linalg.eig(g_n_lambda)
@@ -94,12 +127,20 @@ class RobustEPCAgent(AbstractAgent):
         return a0, da
 
     def robustify_env(self):
+        """
+            Make a robust version of the environment:
+                1. compute the dynamics polytope (A0, dA)
+                2. set the LPV interval predictor, so that it can be stepped with the environment
+                3. the environment, when provided with an interval predictor, should return pessimistic rewards
+                4. disable the recording of environment transitions, since we are not observing when planning.
+        :return: the robust version of the environment.
+        """
         a0, da = self.polytope()
         lpv = LPV(a0=a0, da=da, x0=self.env.unwrapped.dynamics.state.squeeze(-1),
                   b=self.config["D"], d_i=self.config["omega"])
         robust_env = safe_deepcopy_env(self.env)
         robust_env.unwrapped.lpv = lpv
-        robust_env.unwrapped.automatic_record_callback = None  # Disable this for closed-loop planning?
+        robust_env.unwrapped.automatic_record_callback = None
         return robust_env
 
     def act(self, state):
@@ -129,25 +170,9 @@ class NominalEPCAgent(RobustEPCAgent):
         self.config["omega"] = np.zeros(np.shape(self.config["omega"])).tolist()
 
     def polytope(self):
+        """
+            Do not consider uncertainty over the estimated dynamics.
+        """
         a0, da = super().polytope()
         da = [np.zeros(a0.shape)]
         return a0, da
-
-
-class ModelBiasAgent(DeterministicPlannerAgent):
-    def plan(self, observation):
-        self.steps += 1
-        replanning_required = self.step(self.previous_actions)
-        if replanning_required:
-            env = safe_deepcopy_env(self.env)
-            dyn = env.unwrapped.dynamics
-            dyn.theta = np.array([0.5, 0.5])
-            dyn.A = dyn.A0 + np.tensordot(dyn.theta, dyn.phi, axes=[0, 0])
-            dyn.continuous = (dyn.A, dyn.B, dyn.C, dyn.D)
-            actions = self.planner.plan(state=env, observation=observation)
-        else:
-            actions = self.previous_actions[1:]
-        self.write_tree()
-
-        self.previous_actions = actions
-        return actions
