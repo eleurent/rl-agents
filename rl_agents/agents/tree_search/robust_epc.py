@@ -4,6 +4,7 @@ import numpy as np
 from highway_env.interval import LPV
 from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.common.factory import load_agent, safe_deepcopy_env
+from rl_agents.agents.tree_search.deterministic import DeterministicPlannerAgent
 
 
 class RobustEPCAgent(AbstractAgent):
@@ -92,7 +93,7 @@ class RobustEPCAgent(AbstractAgent):
         lambda_ = self.config["lambda"]
         if not self.data:
             g_n_lambda = lambda_ * np.identity(d)
-            theta_n_lambda = np.zeros((d, 1))
+            theta_n_lambda = np.zeros(d)
         else:
             phi = np.array([np.squeeze(self.phi @ state, axis=2).transpose() for state, _, _ in self.data])
             dx = np.array([derivative for _, _, derivative in self.data])

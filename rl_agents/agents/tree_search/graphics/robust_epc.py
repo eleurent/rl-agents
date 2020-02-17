@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 import matplotlib.transforms as transforms
 import matplotlib
+
+from rl_agents.agents.tree_search.robust_epc import NominalEPCAgent
+
 matplotlib.rc('text', usetex=True)
 import seaborn as sns
 import os
@@ -17,7 +20,8 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
     def display(cls, agent, agent_surface, sim_surface):
         import pygame
         robust_env = agent.robustify_env()
-        cls.display_uncertainty(robust_env=robust_env, plan=agent.get_plan(), surface=sim_surface)
+        show_traj = isinstance(agent, NominalEPCAgent)
+        cls.display_uncertainty(robust_env=robust_env, plan=agent.get_plan(), surface=sim_surface, trajectory=show_traj)
         if agent_surface and hasattr(agent, "sub_agent"):
             true_theta = agent.env.unwrapped.dynamics.theta
             surf_size = agent_surface.get_size()
@@ -33,6 +37,8 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
     def display_uncertainty(cls, robust_env, plan, surface, trajectory=True):
         import pygame
         horizon = 3
+        robust_env.unwrapped.trajectory = []
+
         if plan:
             plan = plan[1:]  # First action has already been performed
         plan = plan[:horizon]
@@ -41,7 +47,10 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
         min_traj = [o[0] for o in robust_env.unwrapped.interval_trajectory]
         max_traj = [o[1] for o in robust_env.unwrapped.interval_trajectory]
         uncertainty_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA, 32)
-        cls.display_traj_uncertainty(min_traj, max_traj, uncertainty_surface, surface, cls.UNCERTAINTY_TIME_COLORMAP)
+        if trajectory:
+            cls.display_trajectory(robust_env.unwrapped.trajectory, uncertainty_surface, surface, cls.MODEL_TRAJ_COLOR)
+        else:
+            cls.display_traj_uncertainty(min_traj, max_traj, uncertainty_surface, surface, cls.UNCERTAINTY_TIME_COLORMAP)
         surface.blit(uncertainty_surface, (0, 0))
 
     @classmethod

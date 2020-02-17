@@ -82,10 +82,11 @@ class IntervalRobustPlannerGraphics(object):
     def display_trajectory(cls, trajectory, surface, sim_surface, color):
         import pygame
         color = (color[0], color[1], color[2], cls.TRANSPARENCY)
+        pos = lambda x: getattr(x, "position", x)
         for i in range(len(trajectory)-1):
             pygame.draw.line(surface, color,
-                             (sim_surface.vec2pix(trajectory[i].position)),
-                             (sim_surface.vec2pix(trajectory[i+1].position)),
+                             sim_surface.vec2pix(pos(trajectory[i])),
+                             sim_surface.vec2pix(pos(trajectory[i+1])),
                              2)
 
     @classmethod

@@ -1,6 +1,6 @@
 {
     "__class__": "<class 'rl_agents.agents.tree_search.robust_epc.RobustEPCAgent'>",
-    "sub_agent_path": "configs/ObstacleEnv/DeterministicPlannerAgent.json",
+    "sub_agent_path": "configs/ObstacleEnv/oracle.json",
     "A":[[0, 0, 1, 0],
          [0, 0, 0, 1],
          [0, 0, 0, 0],
@@ -31,10 +31,10 @@
           [0]],
     "omega": [[-0.1], [0.1]],
     "sigma": [
-        [0.2, 0, 0, 0],
-        [0, 0.2, 0, 0],
-        [0, 0, 0.2, 0.0],
-        [0, 0, 0.0, 0.2]
+        [0.3, 0, 0, 0],
+        [0, 0.3, 0, 0],
+        [0, 0, 0.3, 0.0],
+        [0, 0, 0.0, 0.3]
     ],
     "simulation_frequency": 16,
     "policy_frequency": 2,
