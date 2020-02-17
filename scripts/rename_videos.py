@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from shutil import copyfile
 
-p = Path('out/obstacle_noise3/robust-epc')
+p = Path('out/obstacle_noise3/nominal-epc')
 for stat in p.glob('**/openaigym.episode_batch.*.stats*'):
     with open(stat) as f:
         results = json.load(f)

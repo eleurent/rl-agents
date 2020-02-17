@@ -47,7 +47,7 @@ def agent_configs():
         # "robust-epc": "configs/ObstacleEnv/RobustEPC.json",
         "nominal-epc": "configs/ObstacleEnv/NominalEPC.json",
         # "model-bias": "configs/ObstacleEnv/ModelBias.json",
-        "oracle": "configs/ObstacleEnv/oracle.json",
+        # "oracle": "configs/ObstacleEnv/oracle.json",
         # "robust-epc": "configs/IntersectionEnv/agents/DiscreteRobustPlannerAgent/multi_model.json",
         # "nominal-epc-route": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/assume_random_route.json",
         # "nominal-epc-behaviour": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/assume_random_behaviour.json",

@@ -107,6 +107,7 @@ class RobustEPCAgent(AbstractAgent):
 
             theta_n_lambda = (np.linalg.inv(g_n_lambda) @ np.sum(
                 [np.transpose(phi[n]) @ sigma_inv @ y[n] for n in range(y.shape[0])], axis=0)).squeeze(axis=1)
+            theta_n_lambda = theta_n_lambda.clip(0, 1)
         beta_n = \
             np.sqrt(2 * np.log(np.sqrt(np.linalg.det(g_n_lambda) / lambda_ ** d) / self.config["delta"])) \
             + np.sqrt(lambda_ * d) * self.config["parameter_bound"]
