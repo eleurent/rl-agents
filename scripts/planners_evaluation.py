@@ -134,6 +134,11 @@ def agent_configs():
         #     "horizon_from_accuracy": True,
         #     # "env_preprocessors": [{"method": "simplify"}]
         # },
+        "brue": {
+            "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
+            "gamma": gamma,
+            "step_strategy": "reset",
+        },
         "value_iteration": {
             "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
             "gamma": gamma,
