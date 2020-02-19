@@ -99,7 +99,7 @@ def agent_configs():
         #     "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
         #     "gamma": gamma,
         # },
-        "mdp_gape": {
+        "mdp-gape": {
             "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
             "gamma": gamma,
             "accuracy": 0.1,
@@ -116,7 +116,7 @@ def agent_configs():
             "step_strategy": "reset",
             # "env_preprocessors": [{"method": "simplify"}]
         },
-        # "mdp_gape_conf": {
+        # "mdp-gape-conf": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
         #     "gamma": gamma,
         #     "accuracy": 0.2,
@@ -135,7 +135,7 @@ def agent_configs():
         #     # "env_preprocessors": [{"method": "simplify"}]
         # },
         "brue": {
-            "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
+            "__class__": "<class 'rl_agents.agents.tree_search.brue.BRUEAgent'>",
             "gamma": gamma,
             "step_strategy": "reset",
         },
@@ -244,9 +244,10 @@ latex_names = {
     "total_reward": "total reward $R$",
     "mean_return": "mean return $E[R]$",
     "1/epsilon": r"${1}/{\epsilon}$",
-    "bai_mcts_conf": r"\texttt{MDP-GapE}",
-    "bai_mcts": r"\texttt{MDP-GapE}",
+    "mdp-gape-conf": r"\texttt{MDP-GapE}",
+    "mdp-gape": r"\texttt{MDP-GapE}",
     "kl-olop": r"\texttt{KL-OLOP}",
+    "brue": r"\texttt{BRUE}",
     "budget": r"budget $n$",
 }
 
@@ -278,7 +279,7 @@ def plot_all(data_file, directory, data_range):
             fig, ax = plt.subplots()
             ax.set(xscale="log")
             if field in ["simple_regret"]:
-                ax.set_yscale("symlog", linthreshy=1e-3)
+                ax.set_yscale("symlog", linthreshy=1e-4)
             sns.lineplot(x=rename("budget"), y=rename(field), ax=ax, hue="agent", data=df)
             field_path = directory / "{}.pdf".format(field)
             fig.savefig(field_path, bbox_inches='tight')

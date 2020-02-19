@@ -30,7 +30,8 @@ class AbstractTreeSearchAgent(AbstractAgent):
     def default_config(cls):
         return {
             "env_preprocessors": [],
-            "display_tree": False
+            "display_tree": False,
+            "receding_horizon": 1
         }
 
     def make_planner(self):
@@ -107,8 +108,7 @@ class AbstractPlanner(Configurable):
     def default_config(cls):
         return dict(budget=500,
                     gamma=0.8,
-                    step_strategy="reset",
-                    receding_horizon=1)
+                    step_strategy="reset")
 
     def make_root(self):
         raise NotImplementedError()

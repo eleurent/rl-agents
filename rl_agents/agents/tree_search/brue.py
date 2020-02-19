@@ -3,6 +3,7 @@ import numpy as np
 
 from rl_agents.agents.common.factory import safe_deepcopy_env
 from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
+from rl_agents.agents.tree_search.olop import OLOP
 from rl_agents.utils import hoeffding_upper_bound, kl_upper_bound, laplace_upper_bound
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ class BRUEAgent(AbstractTreeSearchAgent):
         return BRUE(self.env, self.config)
 
 
-class BRUE(AbstractPlanner):
+class BRUE(OLOP):
     """
        Best Recommendation with Uniform Exploration algorithm.
     """
@@ -34,6 +35,8 @@ class BRUE(AbstractPlanner):
         return cfg
 
     def make_root(self):
+        if "horizon" not in self.config:
+            self.allocate_budget()
         root = DecisionNode(parent=None, planner=self)
         return root
 
@@ -60,7 +63,7 @@ class BRUE(AbstractPlanner):
 
         # Update counts, rewards and estimated returns
         for state_node, chance_node, reward, next_state_node in reversed(to_update):
-            next_state_node.update(reward)
+            next_state_node.update(reward)  # R(s,a,s')
             estimated_return = reward + self.config["gamma"] * self.estimate(next_state_node)
             chance_node.update(estimated_return)
 
@@ -69,7 +72,9 @@ class BRUE(AbstractPlanner):
         for d in range(self.config["horizon"] - state_node.depth):
             if not state_node.children:
                 break
+            # Best estimated action
             chance_node = max(state_node.children.values(), key=lambda child: child.value)
+            # Random estimated outcome
             next_states = list(chance_node.children.values())
             counts = np.array([state.count for state in next_states])
             state_node = self.np_random.choice(next_states, p=counts / counts.sum())
@@ -95,9 +100,8 @@ class DecisionNode(Node):
         self.reward = 0
 
     def update(self, reward):
-        if reward is not None:
-            self.count += 1
-            self.reward = (self.count - 1) / self.count * self.reward + reward / self.count
+        self.count += 1
+        self.reward = (self.count - 1) / self.count * self.reward + reward / self.count
 
     def selection_rule(self):
         actions = list(self.children.keys())
