@@ -104,29 +104,29 @@ class MDPGapE(OLOP):
                                      for k, n in self.root.children.items()]))
 
         # Follow selection policy, expand tree if needed, collect rewards and update confidence bounds.
-        state_node = self.root
+        decision_node = self.root
         for h in range(self.config["horizon"]):
             # Select action
-            if not state_node.children:  # Break ties at leaves
+            if not decision_node.children:  # Break ties at leaves
                 action = self.np_random.randint(state.action_space.n) \
                     if self.config["continuation_type"] == "uniform" else 0
-            elif state_node == self.root:  # Run BAI at the root
+            elif decision_node == self.root:  # Run BAI at the root
                 selected_child, best, challenger = self.root.best_arm_identification_selection()
                 action = next(selected_child.path())
             else:  # Run UCB elsewhere
-                action, _ = max([child for child in state_node.children.items()], key=lambda c: c[1].value)
+                action, _ = max([child for child in decision_node.children.items()], key=lambda c: c[1].value)
 
             # Perform transition
-            action_node, action = state_node.get_child(action, state)
+            chance_node, action = decision_node.get_child(action, state)
             observation, reward, done, _ = state.step(action)
-            state_node = action_node.get_child(observation)
+            decision_node = chance_node.get_child(observation)
 
             # Update local statistics
-            action_node.update(np.nan, False)
-            state_node.update(reward, done)
+            chance_node.update(np.nan, False)
+            decision_node.update(reward, done)
 
         # Backup global statistics
-        state_node.backup_to_root()
+        decision_node.backup_to_root()
         return best, challenger
 
     def plan(self, state, observation):
