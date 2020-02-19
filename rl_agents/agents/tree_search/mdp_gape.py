@@ -1,23 +1,23 @@
 import logging
 import numpy as np
 
-from rl_agents.agents.tree_search.ugape_mcts import UGapEMCTSNode, UgapEMCTS, UgapEMCTSAgent
-from rl_agents.utils import max_expectation_under_constraint
+from rl_agents.agents.common.factory import safe_deepcopy_env
+from rl_agents.agents.tree_search.olop import OLOP, OLOPAgent, OLOPNode
+from rl_agents.utils import max_expectation_under_constraint, kl_upper_bound
 
 logger = logging.getLogger(__name__)
 
 
-class BaiMCTSAgent(UgapEMCTSAgent):
+class MDPGapEAgent(OLOPAgent):
     """
-        An agent that uses BAI to plan a sequence of actions in an MDP.
+        An agent that uses best-arm-identification to plan a sequence of actions in an MDP.
     """
     def make_planner(self):
-        return BaiMCTS(self.env, self.config)
+        return MDPGapE(self.env, self.config)
 
     def step(self, actions):
         """
-            Handle receding horizon mechanism
-        :return: whether a replanning is required
+            Handle receding horizon mechanism with chance nodes
         """
         replanning_required = self.remaining_horizon == 0  # Cannot check remaining actions here
         if replanning_required:
@@ -40,23 +40,33 @@ class BaiMCTSAgent(UgapEMCTSAgent):
         self.planner.next_observation = next_state
 
 
-class BaiMCTS(UgapEMCTS):
+class MDPGapE(OLOP):
     """
        Best-Arm Identification MCTS.
     """
     def __init__(self, env, config=None):
         super().__init__(env, config)
         self.next_observation = None
+        self.budget_used = 0
 
     @classmethod
     def default_config(cls):
         cfg = super().default_config()
         cfg.update(
             {
+                "accuracy": 1.0,
+                "confidence": 0.9,
+                "continuation_type": "uniform",
+                "horizon_from_accuracy": False,
+                "max_next_states_count": 1,
                 "upper_bound": {
+                    "type": "kullback-leibler",
+                    "time": "global",
+                    "threshold": "3*np.log(1 + np.log(count))"
+                                 "+ horizon*np.log(actions)"
+                                 "+ np.log(1/(1-confidence))",
                     "transition_threshold": "0.1*np.log(time)"
                 },
-                "max_next_states_count": 1
             }
         )
         return cfg
@@ -64,12 +74,25 @@ class BaiMCTS(UgapEMCTS):
     def make_root(self):
         if "horizon" not in self.config:
             self.allocate_budget()
-        root = BaiStateNode(parent=None, planner=self)
+        root = DecisionNode(parent=None, planner=self)
         return root
+
+    def allocate_budget(self):
+        """
+            Allocate the computational budget into tau episodes of fixed horizon H.
+        """
+        if self.config["horizon_from_accuracy"]:
+            self.config["horizon"] = int(np.ceil(np.log(self.config["accuracy"] * (1 - self.config["gamma"]) / 2) \
+                                     / np.log(self.config["gamma"])))
+            self.config["episodes"] = self.config["budget"] // self.config["horizon"]
+            assert self.config["episodes"] > 1
+            logger.debug("Planning at depth H={}".format(self.config["horizon"]))
+        else:
+            super().allocate_budget()
 
     def run(self, state):
         """
-            Run a BAI MCTS episode.
+            Run an MDP-GapE episode.
 
         :param state: the initial environment state
         """
@@ -106,6 +129,24 @@ class BaiMCTS(UgapEMCTS):
         state_node.backup_to_root()
         return best, challenger
 
+    def plan(self, state, observation):
+        done = False
+        episode = 0
+        while not done:
+            best, challenger = self.run(safe_deepcopy_env(state))
+
+            # Stopping rule
+            done = challenger.value - best.value_lower < self.config["accuracy"] if best is not None else False
+            done = done or episode > self.config["episodes"]
+
+            episode += 1
+            if episode % 10 == 0:
+                logger.debug('Episode {}: delta = {}/{}'.format(episode,
+                                                                challenger.value - best.value_lower,
+                                                                self.config["accuracy"]))
+        self.budget_used = episode * self.config["horizon"]
+        return self.get_plan()
+
     def step(self, actions):
         """
             Update the planner tree when the agent performs an action and observes the next state
@@ -128,9 +169,33 @@ class BaiMCTS(UgapEMCTS):
         return [self.root.selection_rule()]
 
 
-class BaiStateNode(UGapEMCTSNode):
+class DecisionNode(OLOPNode):
     def __init__(self, parent, planner):
         super().__init__(parent, planner)
+        self.depth = 0 if parent is None else parent.depth + 1
+
+        self.mu_lcb = -np.infty
+        """ Lower bound of the node mean reward. """
+
+        if self.planner.config["upper_bound"]["type"] == "kullback-leibler":
+            self.mu_lcb = 0
+
+        gamma = self.planner.config["gamma"]
+        H = self.planner.config["horizon"]
+        self.value = (1 - gamma ** (H-self.depth)) / (1 - gamma)
+
+        """ Lower bound on the node optimal reward-to-go """
+        self.value_lower = 0
+
+        self.gap = -np.infty
+        """ Maximum possible gap from this node to its neighbours, based on their value confidence intervals """
+
+    def get_child(self, action, state):
+        if not self.children:
+            self.expand(state)
+        if action not in self.children:  # Default action may not be available
+            action = list(self.children.keys())[0]  # Pick first available action instead
+        return self.children[action], action
 
     def expand(self, state):
         if state is None:
@@ -140,14 +205,34 @@ class BaiStateNode(UGapEMCTSNode):
         except AttributeError:
             actions = range(state.action_space.n)
         for action in actions:
-            self.children[action] = BaiActionNode(self, self.planner)
+            self.children[action] = ChanceNode(self, self.planner)
 
-    def get_child(self, action, state):
-        if not self.children:
-            self.expand(state)
-        if action not in self.children:  # Default action may not be available
-            action = list(self.children.keys())[0]  # Pick first available action instead
-        return self.children[action], action
+    def selection_rule(self):
+        # Best arm identification at the root
+        if self.planner.root == self:
+            _, best_node, _ = self.best_arm_identification_selection()
+            return next(best_node.path())
+
+        # Then follow the optimistic values
+        actions = list(self.children.keys())
+        index = self.random_argmax([self.children[a].value for a in actions])
+        return actions[index]
+
+    def compute_ucb(self):
+        if self.planner.config["upper_bound"]["type"] == "kullback-leibler":
+            # Variables available for threshold evaluation
+            horizon = self.planner.config["horizon"]
+            actions = self.planner.env.action_space.n
+            confidence = self.planner.config["confidence"]
+            count = self.count
+            time = self.planner.config["episodes"]
+            threshold = eval(self.planner.config["upper_bound"]["threshold"])
+            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, 0,
+                                         threshold=str(threshold))
+            self.mu_lcb = kl_upper_bound(self.cumulative_reward, self.count, 0,
+                                         threshold=str(threshold), lower=True)
+        else:
+            logger.error("Unknown upper-bound type")
 
     def backup_to_root(self):
         """
@@ -163,18 +248,41 @@ class BaiStateNode(UGapEMCTSNode):
         if self.parent:
             self.parent.backup_to_root()
 
+    def compute_children_gaps(self):
+        """
+            For best arm identification: compute for each child how much the other actions are potentially better.
+        """
+        for child in self.children.values():
+            child.gap = -np.infty
+            for other in self.children.values():
+                if other is not child:
+                    child.gap = max(child.gap, other.value - child.value_lower)
 
-class BaiActionNode(UGapEMCTSNode):
+    def best_arm_identification_selection(self):
+        """
+            Run UGapE on the children on this node, based on their value confidence intervals.
+        :return: selected arm, best candidate, challenger
+        """
+        # Best candidate child has the lowest potential gap
+        self.compute_children_gaps()
+        best = min(self.children.values(), key=lambda c: c.gap)
+        # Challenger: not best and highest value upper bound
+        challenger = max([c for c in self.children.values() if c is not best], key=lambda c: c.value)
+        # Selection: the one with highest uncertainty
+        return max([best, challenger], key=lambda n: n.value - n.value_lower), best, challenger
+
+
+class ChanceNode(OLOPNode):
     def __init__(self, parent, planner):
         assert parent is not None
         super().__init__(parent, planner)
         self.depth = parent.depth
         gamma = self.planner.config["gamma"]
         self.value = (1 - gamma ** (self.planner.config["horizon"] - self.depth)) / (1 - gamma)
+        self.value_lower = 0
         self.p_hat, self.p_plus, self.p_minus = None, None, None
         delattr(self, 'cumulative_reward')
         delattr(self, 'mu_ucb')
-        delattr(self, 'mu_lcb')
 
     def update(self, reward, done):
         self.count += 1
@@ -182,7 +290,7 @@ class BaiActionNode(UGapEMCTSNode):
     def expand(self, state):
         # Generate placeholder nodes
         for i in range(self.planner.config["max_next_states_count"]):
-            self.children["placeholder_{}".format(i)] = BaiStateNode(self, self.planner)
+            self.children["placeholder_{}".format(i)] = DecisionNode(self, self.planner)
 
     def get_child(self, observation, hash=False):
         if not self.children:

@@ -1,5 +1,5 @@
 {
-    "__class__": "<class 'rl_agents.agents.tree_search.bai_mcts.BaiMCTSAgent'>",
+    "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
     "gamma": 0.7,
     "budget": 3000,
     "max_depth": 4,
@@ -16,5 +16,5 @@
     },
     "continuation_type": "uniform",
     "step_strategy": "subtree",
-    "receding_horizon": 100
+    "receding_horizon": 0
 }
