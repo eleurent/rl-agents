@@ -21,6 +21,7 @@ class MCTSAgent(AbstractTreeSearchAgent):
     def default_config(cls):
         config = super().default_config()
         config.update({
+            "max_depth": 6,
             "prior_policy": {"type": "random_available"},
             "rollout_policy": {"type": "random_available"},
             "env_preprocessors": []

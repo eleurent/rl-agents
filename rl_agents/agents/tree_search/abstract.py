@@ -93,7 +93,7 @@ class AbstractTreeSearchAgent(AbstractAgent):
 
     def write_tree(self):
         if self.config["display_tree"] and self.writer:
-            TreePlot(self.planner, max_depth=self.config["max_depth"]).plot_to_writer(self.writer, epoch=self.steps, show=True)
+            TreePlot(self.planner, max_depth=6).plot_to_writer(self.writer, epoch=self.steps, show=True)
 
 
 class AbstractPlanner(Configurable):
@@ -107,7 +107,6 @@ class AbstractPlanner(Configurable):
     def default_config(cls):
         return dict(budget=500,
                     gamma=0.8,
-                    max_depth=6,
                     step_strategy="reset",
                     receding_horizon=1)
 

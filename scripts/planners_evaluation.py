@@ -57,7 +57,6 @@ def agent_configs():
         # "olop": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         #     "gamma": gamma,
-        #     "max_depth": 4,
         #     "upper_bound": {
         #         "type": "hoeffding",
         #         "c": 4
@@ -68,7 +67,6 @@ def agent_configs():
         # "kl-olop": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         #     "gamma": gamma,
-        #     "max_depth": 4,
         #     "upper_bound": {
         #         "type": "kullback-leibler",
         #         "threshold": "2*np.log(time) + 2*np.log(np.log(time))"
@@ -79,7 +77,6 @@ def agent_configs():
         "kl-olop": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
             "gamma": gamma,
-            "max_depth": 4,
             "upper_bound": {
                 "type": "kullback-leibler",
                 "threshold": "1*np.log(time)"
@@ -102,23 +99,8 @@ def agent_configs():
         #     "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
         #     "gamma": gamma,
         # },
-        # "ugape_mcts": {
-        #     "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
-        #     "gamma": gamma,
-        #     "accuracy": 0.1,
-        #     "confidence": 1,
-        #     "upper_bound":
-        #     {
-        #         "type": "kullback-leibler",
-        #         "time": "global",
-        #         "threshold": "1*np.log(time)"
-        #     },
-        #     "continuation_type": "uniform",
-        #     "step_strategy": "reset",
-        #     "env_preprocessors": [{"method": "simplify"}]
-        # },
-        "bai_mcts": {
-            "__class__": "<class 'rl_agents.agents.tree_search.bai_mcts.BaiMCTSAgent'>",
+        "mdp_gape": {
+            "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
             "gamma": gamma,
             "accuracy": 0.1,
             "confidence": 1,
@@ -134,8 +116,8 @@ def agent_configs():
             "step_strategy": "reset",
             # "env_preprocessors": [{"method": "simplify"}]
         },
-        # "bai_mcts_conf": {
-        #     "__class__": "<class 'rl_agents.agents.tree_search.bai_mcts.BaiMCTSAgent'>",
+        # "mdp_gape_conf": {
+        #     "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
         #     "gamma": gamma,
         #     "accuracy": 0.2,
         #     "confidence": 0.9,
