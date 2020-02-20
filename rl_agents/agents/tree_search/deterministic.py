@@ -98,7 +98,9 @@ class DeterministicNode(Node):
         self.reward = reward
         self.value = self.parent.value + (gamma ** (self.depth - 1)) * reward
         self.done = done
-        self.value_upper_bound = self.value + (1 - done) * (gamma ** self.depth) / (1 - gamma)
+        self.value_upper_bound = self.value + (gamma ** self.depth) / (1 - gamma)
+        if done:
+            self.value = self.value_upper_bound
 
         for node in self.sequence():
             node.count += 1
