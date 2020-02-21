@@ -22,9 +22,8 @@ class BRUE(OLOP):
        Best Recommendation with Uniform Exploration algorithm.
     """
     def __init__(self, env, config=None):
-        self.env = env
+        super().__init__(env, config)
         self.available_budget = 0
-        super().__init__(config)
 
     @classmethod
     def default_config(cls):

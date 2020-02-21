@@ -1,6 +1,6 @@
 {
     "__class__": "<class 'rl_agents.agents.tree_search.brue.BRUEAgent'>",
-    "gamma": 0.7,
-    "budget": 200,
-    "horizon": 6
+    "gamma": 0.99,
+    "budget": 10000,
+    "horizon": 12
 }
