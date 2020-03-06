@@ -21,7 +21,7 @@ class StateAwareMDPPlanner(AbstractPlanner):
     def run(self, observation):
         while str(observation) not in self.sinks:
             actions, action_values = self.nodes[str(observation)].action_values()
-            reward, observation = actions[np.argmax(action_values)]
+            observation = self.nodes[str(observation)].transitions[actions[np.argmax(action_values)]]
         self.expand(observation)
         self.value_iteration()
 
