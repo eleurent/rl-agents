@@ -2,7 +2,7 @@
 
 A collection of Reinforcement Learning agents
 
-[![Build Status](https://travis-ci.org/eleurent/rl-agents.svg?branch=master)](https://travis-ci.org/eleurent/rl-agents/)
+![build](https://github.com/eleurent/rl-agents/workflows/build/badge.svg)
 
 * [Installation](#installation)
 * [Usage](#usage)
