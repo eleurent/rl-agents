@@ -11,8 +11,8 @@ from rl_agents.agents.tree_search.graphics.graphics import TreeGraphics, MCTSGra
 from rl_agents.agents.tree_search.graphics.robust_epc import RobustEPCGraphics
 from rl_agents.agents.tree_search.graphics.robust import DiscreteRobustPlannerGraphics, IntervalRobustPlannerGraphics
 from rl_agents.agents.tree_search.mcts import MCTSAgent
-from rl_agents.agents.tree_search.robust import DiscreteRobustPlannerAgent, IntervalRobustPlannerAgent
-from rl_agents.agents.tree_search.robust_epc import RobustEPCAgent
+from rl_agents.agents.robust.robust import DiscreteRobustPlannerAgent, IntervalRobustPlannerAgent
+from rl_agents.agents.robust.robust_epc import RobustEPCAgent
 
 
 class AgentGraphics(object):

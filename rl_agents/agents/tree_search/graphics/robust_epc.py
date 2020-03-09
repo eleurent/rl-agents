@@ -4,11 +4,10 @@ from matplotlib.patches import Ellipse
 import matplotlib.transforms as transforms
 import matplotlib
 
-from rl_agents.agents.tree_search.robust_epc import NominalEPCAgent
+from rl_agents.agents.robust.robust_epc import NominalEPCAgent
 
 matplotlib.rc('text', usetex=True)
 import seaborn as sns
-import os
 
 from rl_agents.agents.tree_search.graphics.robust import IntervalRobustPlannerGraphics
 
