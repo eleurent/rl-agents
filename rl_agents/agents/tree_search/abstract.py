@@ -235,7 +235,7 @@ class Node(object):
             if (condition is None) or condition(node):
                 returned = operator(node, path) if operator else (node, path)
                 yield returned
-            if (condition is None) or not condition_blocking or not condition(next_node):
+            if (condition is None) or not condition_blocking or not condition(node):
                 for next_key, next_node in node.children.items():
                     queue.append((next_node, path + [next_key]))
 
