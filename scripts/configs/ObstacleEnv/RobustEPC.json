@@ -1,5 +1,5 @@
 {
-    "__class__": "<class 'rl_agents.agents.tree_search.robust_epc.RobustEPCAgent'>",
+    "__class__": "<class 'rl_agents.agents.robust.robust_epc.RobustEPCAgent'>",
     "sub_agent_path": "configs/ObstacleEnv/oracle.json",
     "A":[[0, 0, 1, 0],
          [0, 0, 0, 1],
