@@ -1,0 +1,4 @@
+{
+    "__class__": "<class 'rl_agents.agents.simple.linear_command.LinearCommandAgent'>",
+    "K": [[1e-1, 2, 0, 1]]
+}
