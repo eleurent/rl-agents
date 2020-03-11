@@ -10,12 +10,24 @@ class LinearCommandAgent(AbstractAgent):
 
     @classmethod
     def default_config(cls):
-        return {"K": 0}
+        return {
+            "K": [0],
+            "discrete": False
+        }
 
     def act(self, observation):
-        u = np.dot(self.K, -observation)
-        action = 1 if u < 0 else 0
-        return action
+        if isinstance(observation, dict):
+            state = observation["state"]
+            reference = observation["reference_state"]
+        else:
+            state = observation
+            reference = np.zeros(observation.shape)
+        control = self.K @ (reference - state)
+        if self.config["discrete"]:
+            control = 1 if control < 0 else 0
+        else:
+            control = control.squeeze(-1)
+        return control
 
     def reset(self):
         pass
