@@ -4,7 +4,6 @@ import numpy as np
 from highway_env.interval import LPV
 from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.common.factory import load_agent, safe_deepcopy_env
-from rl_agents.agents.tree_search.deterministic import DeterministicPlannerAgent
 
 
 class RobustEPCAgent(AbstractAgent):
@@ -18,7 +17,8 @@ class RobustEPCAgent(AbstractAgent):
         self.B = np.array(self.config["B"])
         self.phi = np.array(self.config["phi"])
         self.env = env
-        self.env.unwrapped.automatic_record_callback = self.record_transition
+        if hasattr(self.env.unwrapped, "automatic_record_callback"):
+            self.env.unwrapped.automatic_record_callback = self.record_transition
         self.data = []
         self.robust_env = None
         self.sub_agent = load_agent(self.config['sub_agent_path'], env)
@@ -41,26 +41,28 @@ class RobustEPCAgent(AbstractAgent):
             "parameter_bound": 1
         }
 
-    def record(self, state, action, reward, next_state, done, info):
+    def record(self, observation, action, reward, next_observation, done, info):
         """
             Add a transition to the dataset D_[N].
 
-            The environment must be able to convert a discrete action to a continuous control.
-        :param state: state x_t at time t
+            The state space should be a Dict with two fields: "state" and "derivative"
+            The environment might be able to convert a discrete action to a continuous control.
+        :param observation: state x_t and derivative \dot{x}_t at time t
         :param action: action a_t performed
         :param reward: reward r_t obtained
-        :param next_state: next state x_{t+dt} at time t+dt
+        :param next_observation: next state and derivative at time t+dt
         :param done: is the state terminal
         :param info: information about the transition
         """
         if hasattr(self.env.unwrapped, "automatic_record_callback"):
             return
-        control = self.env.unwrapped.dynamics.action_to_control(action)
         try:
-            derivative = self.env.unwrapped.dynamics.derivative
+            control = self.env.unwrapped.dynamics.action_to_control(action)
         except AttributeError:
-            derivative = (next_state - state) * self.config["policy_frequency"]
-        self.record_transition((state, control, derivative))
+            control = np.array([action])
+        state = next_observation["state"]
+        derivative = next_observation["derivative"]
+        self.record_transition(state, derivative, control)
 
     def record_transition(self, state, derivative, control):
         """
@@ -87,6 +89,7 @@ class RobustEPCAgent(AbstractAgent):
             Compute a confidence ellipsoid over the parameter theta, where
                     dot{x} = A x + (phi x) theta + B u + D omega
                          y = dot{x} + C nu
+            under a sub-Gaussian noise assumption.
         :return: estimated theta, Gramian matrix G_N_lambda, and radius beta_N_lambda
         """
         d = self.phi.shape[0]
@@ -121,7 +124,7 @@ class RobustEPCAgent(AbstractAgent):
         theta_n_lambda, g_n_lambda, beta_n = self.ellipsoids[-1]
         d = g_n_lambda.shape[0]
         values, p = np.linalg.eig(g_n_lambda)
-        m = np.sqrt(beta_n) * np.linalg.inv(p) @ np.diag(np.sqrt(1 / values))
+        m = beta_n * np.linalg.inv(p) @ np.diag(np.sqrt(1 / values))
         h = np.array(list(itertools.product([-1, 1], repeat=d)))
         d_theta_k = np.clip([m @ h_k for h_k in h], -self.config["parameter_bound"], self.config["parameter_bound"])
         a0 = self.A + np.tensordot(theta_n_lambda, self.phi, axes=[0, 0])
@@ -138,7 +141,7 @@ class RobustEPCAgent(AbstractAgent):
         :return: the robust version of the environment.
         """
         a0, da = self.polytope()
-        lpv = LPV(a0=a0, da=da, x0=self.env.unwrapped.dynamics.state.squeeze(-1),
+        lpv = LPV(a0=a0, da=da, x0=self.env.unwrapped.state.squeeze(-1),
                   b=self.config["D"], d_i=self.config["omega"])
         robust_env = safe_deepcopy_env(self.env)
         robust_env.unwrapped.lpv = lpv
