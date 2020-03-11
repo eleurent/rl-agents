@@ -20,7 +20,7 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
         import pygame
         robust_env = agent.robustify_env()
         show_traj = isinstance(agent, NominalEPCAgent)
-        cls.display_uncertainty(robust_env=robust_env, plan=agent.get_plan(), surface=sim_surface, trajectory=show_traj)
+        # cls.display_uncertainty(robust_env=robust_env, plan=agent.get_plan(), surface=sim_surface, trajectory=show_traj)
         if agent_surface and hasattr(agent, "sub_agent"):
             true_theta = agent.env.unwrapped.dynamics.theta
             surf_size = agent_surface.get_size()
@@ -28,7 +28,7 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
             save_to = None
             if cls.SAVE_IMAGES:
                 save_to = agent.evaluation.run_directory / "ellipsoid.{}.{}.pdf".format(agent.evaluation.episode, len(agent.ellipsoids))
-            image_str, size = cls.plot_ellipsoid(agent.ellipsoids, true_theta, figsize=figsize, save_to=save_to)
+            image_str, size = cls.plot_ellipsoid(agent.ellipsoids, true_theta, config=agent.config, figsize=figsize, save_to=save_to)
             surf = pygame.image.fromstring(image_str, size, "RGB")
             agent_surface.blit(surf, (0, 0))
 
@@ -53,7 +53,7 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
         surface.blit(uncertainty_surface, (0, 0))
 
     @classmethod
-    def plot_ellipsoid(cls, ellipsoids, true_theta, title="", figsize=(8, 6), save_to=None):
+    def plot_ellipsoid(cls, ellipsoids, true_theta, config, title="", figsize=(8, 6), save_to=None):
         """
             Plot the hull of all ellipsoids.
 
@@ -65,15 +65,16 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
         fig = plt.figure(figsize=figsize, tight_layout=True)
         ax = fig.add_subplot(1, 1, 1)
         plt.title(title)
-        for ellipsoid in ellipsoids[10:-1:10]:
+        for ellipsoid in ellipsoids[20:-1:20]:
             confidence_ellipse(ellipsoid, ax, facecolor=(1, 0.3, 0.3, 0.1),
                                edgecolor="black", linewidth=0.5, label=None)
         confidence_ellipse(ellipsoids[-1], ax, facecolor=(1, 0.3, 0.3, 0.1),
                            edgecolor='red', label=r"$\mathcal{C}_{[N],\delta}$")
         plt.plot(true_theta[0], true_theta[1], '.', label=r"$\theta$")
         plt.legend(loc="upper right")
-        ax.set_xlim(-0.2, 0.7)
-        ax.set_ylim(-0.2, 0.7)
+        bound = config["parameter_bound"]
+        ax.set_xlim(-1.1*bound, 1.1*bound)
+        ax.set_ylim(-1.1*bound, 1.1*bound)
         ax.set_xlabel(r"$\theta_1$")
         ax.set_ylabel(r"$\theta_2$")
         # plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
@@ -97,7 +98,7 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
 
 def confidence_ellipse(ellipsoid, ax, facecolor="none", **kwargs):
     center, cov, beta = ellipsoid
-    cov = np.linalg.inv(cov / beta)
+    cov = np.linalg.inv(cov / beta ** 2)
     pearson = cov[0, 1] / np.sqrt(cov[0, 0] * cov[1, 1])
     ell_radius_x = np.sqrt(1 + pearson)
     ell_radius_y = np.sqrt(1 - pearson)
