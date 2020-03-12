@@ -43,15 +43,15 @@ class IntervalFeedback(LinearFeedbackAgent):
     def synthesize_controller(self):
         import cvxpy as cp
         A0 = np.array(
-            [[0, 1],
-             [-1, -0.1]]
+            [[-1, 0],
+             [0, -2]]
         )
         dA = np.array([
             [[0, 0],
-             [-0.01,   0]],
+             [0, 0]],
 
-            [[0,   0],
-             [0, -0.01]],
+            [[0.1, 0],
+             [0, 0.1]],
         ])
         B = np.array(
             [[1, 0],
@@ -99,32 +99,45 @@ class IntervalFeedback(LinearFeedbackAgent):
             [I2p,     I2p,     -I2p,   -cp.diag(Tau)]
         ])
 
+        C = Q + cp.minimum(Qp, Qn) + 2*cp.minimum(Psi_p, Psi_n)
         constraints = [
             P >= 0,
             Zp >= 0,
             Zn >= 0,
             Tau >= 0,
-            Q + cp.minimum(Qp, Qn) + 2*cp.minimum(Psi_p, Psi_n) >= 0,
+            C >= 0,
             Pi << 0
         ]
 
         prob = cp.Problem(cp.Minimize(0), constraints=constraints)
-        prob.solve(solver=cp.SCS, eps=1e-8)
-        print("status", prob.status, "value", prob.value)
-
-        print("P")
-        print(P.value)
-        print("Pi")
+        prob.solve(solver=cp.SCS)
+        print("status: {}, value: {}".format(prob.status, prob.value))
+        np.set_printoptions(precision=2)
+        print("Matrices:")
+        print("- P:", P.value)
+        print("- Q:", Q.value)
+        print("- Qp:", Qp.value)
+        print("- Qn:", Qn.value)
+        print("- Zp:", Zp.value)
+        print("- Zn:", Zn.value)
+        print("- Psi:", Psi.value)
+        print("- Psi_p:", Psi_p.value)
+        print("- Psi_n:", Psi_n.value)
+        print("- Tau:", Tau.value)
+        print("- U0:", U0.value)
+        print("- U1:", U1.value)
+        print("- U2:", U2.value)
+        print("- Pi:")
         print(Pi.value)
+        print("Constraints:")
+        print("- Q + cp.minimum(Qp, Qn) + 2*cp.minimum(Psi_p, Psi_n):", C.value)
         if Pi.value is not None:
-            print(np.all(np.linalg.eigvals(Pi.value) <= 0))
+            print("- lambda(Pi):", np.linalg.eigvals(Pi.value))
 
     def example(self):
         import cvxpy as cp
         A = np.array([[0, 1],
                       [-1, -1]])
-
-
         p = A.shape[0]
         B = cp.Variable((2*p, 2*p), PSD=True)
 
@@ -165,5 +178,5 @@ class IntervalFeedback(LinearFeedbackAgent):
 
 if __name__ == '__main__':
     agent = IntervalFeedback(None)
-    agent.example()
-    # agent.synthesize_controller()
+    # agent.example()
+    agent.synthesize_controller()
