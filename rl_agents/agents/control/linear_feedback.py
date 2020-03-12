@@ -2,16 +2,16 @@ import numpy as np
 from rl_agents.agents.common.abstract import AbstractAgent
 
 
-class LinearCommandAgent(AbstractAgent):
+class LinearFeedbackAgent(AbstractAgent):
     def __init__(self, env, config=None):
-        super(LinearCommandAgent, self).__init__(config)
+        super().__init__(config)
         self.K = np.array(self.config["K"])
         self.env = env
 
     @classmethod
     def default_config(cls):
         return {
-            "K": [0],
+            "K": [[0]],
             "discrete": False
         }
 
