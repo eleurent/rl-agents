@@ -6,7 +6,7 @@ import matplotlib
 
 from rl_agents.agents.robust.robust_epc import NominalEPCAgent
 
-matplotlib.rc('text', usetex=True)
+matplotlib.rc('text', usetex=False)
 import seaborn as sns
 
 from rl_agents.agents.tree_search.graphics.robust import IntervalRobustPlannerGraphics

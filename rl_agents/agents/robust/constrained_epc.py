@@ -1,7 +1,11 @@
 import itertools
+
+import gym
 import numpy as np
+from gym import Wrapper
 from numpy.linalg import LinAlgError
 
+from rl_agents.agents.control.interval_feedback import IntervalFeedback
 from rl_agents.agents.robust.robust_epc import RobustEPCAgent
 
 
@@ -13,7 +17,8 @@ class ConstrainedEPCAgent(RobustEPCAgent):
     def default_config(cls):
         cfg = super().default_config()
         cfg.update({
-            "noise_bound": 1
+            "noise_bound": 1,
+            "perturbation_bound": 1
         })
         return cfg
 
@@ -64,5 +69,29 @@ class ConstrainedEPCAgent(RobustEPCAgent):
         da = [np.tensordot(d_theta, self.phi, axes=[0, 0]) for d_theta in d_theta_k]
         return a0, da
 
+    def plan(self, observation):
+        a0, da = self.polytope()
+        self.config.update({
+            "A0": a0,
+            "dA": np.array(da)/10,
+        })
+        feedback = IntervalFeedback(self.env, self.config)
+        observation["interval_min"] = observation["state"] - 0.1
+        observation["interval_max"] = observation["state"] + 0.1
+        observation["perturbation_min"] = [[self.config["perturbation_bound"]]]
+        observation["perturbation_max"] = [[-self.config["perturbation_bound"]]]
+        action = feedback.act(observation)
+        return [action]
+
     def get_plan(self):
         return [0]
+
+
+class IntervalWrapper(Wrapper):
+    def __init__(self, lpv):
+        self.lpv = lpv
+
+    def step(self, action):
+        pass
+
+
