@@ -17,7 +17,7 @@ sns.set()
 logger = logging.getLogger(__name__)
 
 out = Path("out/planners")
-gamma = 0.8
+gamma = 0.95
 
 envs = {
     "highway": Path("configs") / "HighwayEnv" / "env.json",
@@ -171,10 +171,16 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
 
 def show_state_map(title, agent_name, values, state_limits, v_max=None):
     fig, ax = plt.subplots()
-    img = ax.imshow(values.T,
-                    extent=(-state_limits, state_limits, -state_limits, state_limits),
-                    norm=colors.LogNorm(vmax=v_max),
-                    cmap=plt.cm.coolwarm)
+    try:
+        img = ax.imshow(values.T,
+                        extent=(-state_limits, state_limits, -state_limits, state_limits),
+                        norm=colors.LogNorm(vmax=v_max),
+                        cmap=plt.cm.coolwarm)
+    except ValueError:
+        print("Data {}/{} has no positive values, and therefore can not be log-scaled".format(agent_name, title))
+        img = ax.imshow(values.T,
+                        extent=(-state_limits, state_limits, -state_limits, state_limits),
+                        cmap=plt.cm.coolwarm)
     fig.colorbar(img, ax=ax)
     plt.title(agent_name)
     plt.savefig(out / "{}_{}.pdf".format(title, agent_name))
@@ -191,16 +197,16 @@ def show_trajectories(agent_name, trajectories, axes=None, color=None):
 
 
 if __name__ == "__main__":
-    configure("configs/verbose.json", gym_level=gym.logger.DEBUG)
-    selected_env = load_environment(envs["env_garnet"])
+    configure("configs/logging.json", gym_level=gym.logger.INFO)
+    selected_env = load_environment(envs["gridenv"])
     selected_agents = [
-         # "deterministic",
-         # "state_aware",
+         "deterministic",
+         "state_aware",
          "kl-olop-1",
-         "ugape_mcts",
+         # "ugape_mcts",
     ]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
-    budget = 4 * (4 ** 5 - 1) / (4 - 1)
+    budget = 4 * (4 ** 6 - 1) / (4 - 1)
     # budget = 200
     compare_agents(selected_env, selected_agents, budget=budget,
                    show_tree=True, show_states=True, show_trajs=False)
