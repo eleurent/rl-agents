@@ -60,7 +60,7 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
             If a threshold beta and corresponding mixture is provided, plot them.
         """
         # Figure creation
-        sns.set(font_scale=2)
+        sns.set(font_scale=1)
         # sns.set_style("white")
         fig = plt.figure(figsize=figsize, tight_layout=True)
         ax = fig.add_subplot(1, 1, 1)
@@ -73,8 +73,8 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
         plt.plot(true_theta[0], true_theta[1], '.', label=r"$\theta$")
         plt.legend(loc="upper right")
         bound = config["parameter_bound"]
-        ax.set_xlim(-1.1*bound, 1.1*bound)
-        ax.set_ylim(-1.1*bound, 1.1*bound)
+        ax.set_xlim(-0.1*bound, 1.1*bound)
+        ax.set_ylim(-0.1*bound, 1.1*bound)
         ax.set_xlabel(r"$\theta_1$")
         ax.set_ylabel(r"$\theta_2$")
         # plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
