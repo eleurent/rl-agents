@@ -36,7 +36,7 @@ class ConstrainedEPCAgent(RobustEPCAgent):
         """
         d = self.phi.shape[0]
         if not self.data:
-            theta_n = 10*np.ones(d)
+            theta_n = np.zeros(d)
             g_n = np.eye(d)
             beta_n = np.sqrt(d) * self.config["parameter_bound"]
         else:
@@ -75,12 +75,17 @@ class ConstrainedEPCAgent(RobustEPCAgent):
 
     def plan(self, observation):
         a0, da = self.polytope()
-        self.config.update({
+        config = self.config.copy()
+        config.update({
             "A0": a0,
             "dA": np.array(da)/10,
         })
         if not self.feedback:
-            self.feedback = IntervalFeedback(self.env, self.config)
+            self.feedback = IntervalFeedback(self.env, config)
+        else:
+            config.update({"K0": None})
+            self.feedback.update_config(config)
+            self.feedback.reset()
         observation["interval_min"] = observation["state"] - 0.1*np.abs(observation["state"])
         observation["interval_max"] = observation["state"] + 0.1*np.abs(observation["state"])
         observation["perturbation_min"] = [[self.config["perturbation_bound"]]]

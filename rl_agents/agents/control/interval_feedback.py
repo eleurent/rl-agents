@@ -16,10 +16,7 @@ class IntervalFeedback(LinearFeedbackAgent):
         self.K2 = np.array(self.config["K2"])
         self.S = np.array(self.config["S"])
         self.D = np.array(self.config["D"])
-        if self.config["K0"] is None:
-            self.synthesize_controller(self.config["pole_placement"], self.config["ensure_stability"])
-        if config["S"] is None:
-            self.synthesize_perturbation_rejection()
+        self.reset()
 
     @classmethod
     def default_config(cls):
@@ -32,22 +29,32 @@ class IntervalFeedback(LinearFeedbackAgent):
             "D": None,
             "discrete": False,
             "pole_placement": False,
-            "ensure_stability": True
+            "ensure_stability": True,
+            "control_bound": np.infty
         })
         return cfg
+
+    def reset(self):
+        if self.config["K0"] is None:
+            self.synthesize_controller(self.config["pole_placement"], self.config["ensure_stability"])
+        if self.config["S"] is None:
+            self.synthesize_perturbation_rejection()
+        super().reset()
 
     def act(self, observation):
         if not isinstance(observation, dict):
             raise ValueError("The observation should be a dict containing the two interval bounds")
         x_m = observation["interval_min"]
         x_M = observation["interval_max"]
-        xi = np.concatenate((x_m, x_M))
+        x_ref = observation["reference_state"]
+        xi = np.concatenate((x_m - x_ref, x_M - x_ref))
         omega_m = observation["perturbation_min"]
         omega_M = observation["perturbation_max"]
         delta = np.concatenate((np.concatenate((pos(self.D), -neg(self.D)), axis=1),
                                 np.concatenate((-neg(self.D), pos(self.D)), axis=1)))
         delta = delta @ np.concatenate((omega_m, omega_M))
         control = self.K0 @ xi + self.K1 @ pos(xi) + self.K2 @ neg(xi) + self.S @ delta
+        control = np.clip(control, -self.config["control_bound"], self.config["control_bound"])
         return np.asarray(control).squeeze(-1)
 
     def synthesize_controller(self, pole_placement=False, ensure_stability=True):
@@ -84,7 +91,8 @@ class IntervalFeedback(LinearFeedbackAgent):
             import control
             logger.debug("The eigenvalues of the matrix A0 = {},  Uncontrollable states = {}".format(
                 np.linalg.eigvals(A0), p - np.rank(control.ctrb(A0, B))))
-            K = -control.place(A0, B, 0*np.linalg.eigvals(A0)-np.arange(1, p+1))
+            poles = self.config.get("poles", -np.arange(1, p+1))
+            K = -control.place(A0, B, poles)
             logger.debug("The eigenvalues of the matrix A0+BK = {}".format(np.linalg.eigvals(A0+B*K)))
             logger.debug("The eigenvalues of the matrix A0+BK+DA = {}".format(np.linalg.eigvals(A0+B*K+DA)))
             logger.debug("The eigenvalues of the matrix A0+BK-DA = {}".format(np.linalg.eigvals(A0+B*K-DA)))
