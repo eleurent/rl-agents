@@ -13,6 +13,10 @@ class ConstrainedEPCAgent(RobustEPCAgent):
     """
         Robust Estimation, Prediction and Control.
     """
+    def __init__(self, env, config=None):
+        super().__init__(env, config)
+        self.feedback = None
+
     @classmethod
     def default_config(cls):
         cfg = super().default_config()
@@ -32,7 +36,7 @@ class ConstrainedEPCAgent(RobustEPCAgent):
         """
         d = self.phi.shape[0]
         if not self.data:
-            theta_n = np.zeros(d)
+            theta_n = 10*np.ones(d)
             g_n = np.eye(d)
             beta_n = np.sqrt(d) * self.config["parameter_bound"]
         else:
@@ -75,12 +79,13 @@ class ConstrainedEPCAgent(RobustEPCAgent):
             "A0": a0,
             "dA": np.array(da)/10,
         })
-        feedback = IntervalFeedback(self.env, self.config)
-        observation["interval_min"] = observation["state"] - 0.1
-        observation["interval_max"] = observation["state"] + 0.1
+        if not self.feedback:
+            self.feedback = IntervalFeedback(self.env, self.config)
+        observation["interval_min"] = observation["state"] - 0.1*np.abs(observation["state"])
+        observation["interval_max"] = observation["state"] + 0.1*np.abs(observation["state"])
         observation["perturbation_min"] = [[self.config["perturbation_bound"]]]
         observation["perturbation_max"] = [[-self.config["perturbation_bound"]]]
-        action = feedback.act(observation)
+        action = self.feedback.act(observation)
         return [action]
 
     def get_plan(self):

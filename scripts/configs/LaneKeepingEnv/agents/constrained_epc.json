@@ -34,5 +34,9 @@
     "policy_frequency": 10,
     "parameter_bound": 11.0,
     "noise_bound": 0.1,
-    "perturbation_bound": 0.1
+    "perturbation_bound": 0.0,
+    "pole_placement": true,
+    "ensure_stability": false,
+    "S": [[-9.10516244e-20, 1.39474764e-17, -2.14692169e-02, -8.70745066e-03,
+           -1.00818071e-17, 7.03269333e-18, -2.14692169e-02, -8.70745066e-03]]
 }
