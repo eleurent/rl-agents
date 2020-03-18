@@ -25,7 +25,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
                                    lr=5e-4,
                                    weight_decay=0,
                                    k=5),
-                    loss_function="smooth_l1",
+                    loss_function="l2",
                     memory_capacity=50000,
                     batch_size=100,
                     gamma=0.99,
