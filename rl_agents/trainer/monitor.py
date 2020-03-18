@@ -25,6 +25,9 @@ class MonitorV2(Monitor):
 
     def __init__(self, env, directory, video_callable=None, force=False, resume=True,
                  write_upon_reset=False, uid=None, mode=None):
+        # path-like objects only supported since python 3.6,
+        # see https://python.readthedocs.io/en/stable/library/os.path.html#os.path.exists
+        directory = str(directory)
         super(MonitorV2, self).__init__(env, directory, video_callable, force, resume, write_upon_reset, uid, mode)
 
     def _start(self, directory, video_callable=None, force=False, resume=False, write_upon_reset=False, uid=None,
