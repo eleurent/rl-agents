@@ -78,7 +78,11 @@ agents = {
         "gamma": gamma,
         "backup_aggregated_nodes": True,
         "prune_suboptimal_leaves": True,
-        "stopping_accuracy": 0
+        "stopping_accuracy": 1e-1
+    },
+    "GBOP": {
+        "__class__": "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>",
+        "gamma": 0.9,
     },
     "ugape_mcts": {
         "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
@@ -124,19 +128,7 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
     for agent, agent_name in evaluate_agents(env, agents, budget, seed):
         trajectories[agent_name] = agent.planner.root.get_trajectories(env)
         # Aggregate visits
-        visits = defaultdict(int)
-        updates = defaultdict(int)
-        for observation in agent.planner.root.get_trajectories(env,
-                                                        full_trajectories=False,
-                                                        as_observations=True,
-                                                        include_leaves=False):
-            visits[str(observation)] += 1
-        for node in agent.planner.root.get_trajectories(env,
-                                                        full_trajectories=False,
-                                                        as_observations=False,
-                                                        include_leaves=False):
-            if hasattr(node, "observation"):
-                updates[str(node.observation)] += node.updated_nodes
+        visits, updates = agent.planner.root.get_obs_visits()
 
         if isinstance(env, GridEnv):
             state_occupations[agent_name] = np.zeros((2 * state_limits + 1, 2 * state_limits + 1))
@@ -171,17 +163,12 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
 
 def show_state_map(title, agent_name, values, state_limits, v_max=None):
     fig, ax = plt.subplots()
-    try:
-        img = ax.imshow(values.T,
-                        extent=(-state_limits, state_limits, -state_limits, state_limits),
-                        norm=colors.LogNorm(vmax=v_max),
-                        cmap=plt.cm.coolwarm)
-    except ValueError:
-        print("Data {}/{} has no positive values, and therefore can not be log-scaled".format(agent_name, title))
-        img = ax.imshow(values.T,
-                        extent=(-state_limits, state_limits, -state_limits, state_limits),
-                        cmap=plt.cm.coolwarm)
+    img = ax.imshow(values.T,
+                    extent=(-state_limits, state_limits, -state_limits, state_limits),
+                    norm=colors.SymLogNorm(linthresh=1, linscale=1, vmax=v_max),
+                    cmap=plt.cm.coolwarm)
     fig.colorbar(img, ax=ax)
+    plt.grid(False)
     plt.title(agent_name)
     plt.savefig(out / "{}_{}.pdf".format(title, agent_name))
     plt.show()
@@ -191,7 +178,7 @@ def show_trajectories(agent_name, trajectories, axes=None, color=None):
     if not axes:
         fig, axes = plt.subplots()
         for trajectory in trajectories:
-            x, y = zip(*trajectory)
+            x, y = zip(*trajectory.observation)
             plt.plot(x, y, linestyle='dotted', linewidth=0.5, label=agent_name, color=color)
     return axes
 
@@ -200,13 +187,12 @@ if __name__ == "__main__":
     configure("configs/logging.json", gym_level=gym.logger.INFO)
     selected_env = load_environment(envs["gridenv"])
     selected_agents = [
-         "deterministic",
-         "state_aware",
-         "kl-olop-1",
-         # "ugape_mcts",
+         # "deterministic",
+         # "state_aware",
+         "GBOP",
     ]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
-    budget = 4 * (4 ** 6 - 1) / (4 - 1)
-    # budget = 200
+    # budget = 4 * (4 ** 5 - 1) / (4 - 1)
+    budget = 1000
     compare_agents(selected_env, selected_agents, budget=budget,
                    show_tree=True, show_states=True, show_trajs=False)

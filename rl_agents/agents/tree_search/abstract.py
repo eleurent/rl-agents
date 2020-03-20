@@ -1,4 +1,6 @@
 import logging
+from collections import defaultdict
+
 import numpy as np
 from gym.utils import seeding
 
@@ -291,35 +293,35 @@ class Node(object):
     def __repr__(self):
         return '<node {}>'.format(id(self))
 
-    def get_trajectories(self, initial_state, initial_observation=None,
-                         as_observations=True, full_trajectories=True, include_leaves=True):
+    def get_trajectories(self, full_trajectories=True, include_leaves=True):
         """
-            Get a list of visited nodes/states/trajectories corresponding to the node subtree
+            Get a list of visited nodes corresponding to the node subtree
 
-        :param initial_state: the state at the root
-        :param initial_observation: the observation for the root state
-        :param as_observations: return nodes instead of observations
         :param full_trajectories: return a list of observation sequences, else a list of observations
         :param include_leaves: include leaves or only expanded nodes
         :return: the list of trajectories
         """
         trajectories = []
-        if initial_observation is None:
-            initial_observation = initial_state.reset()
-        if not as_observations:
-            initial_observation = self  # Return this node instead of this observation
         if self.children:
             for action, child in self.children.items():
-                next_state = safe_deepcopy_env(initial_state)
-                next_observation, _, _, _ = next_state.step(action)
-                child_trajectories = child.get_trajectories(next_state, next_observation,
-                                                            as_observations, full_trajectories, include_leaves)
+                child_trajectories = child.get_trajectories(full_trajectories, include_leaves)
                 if full_trajectories:
-                    trajectories.extend([[initial_observation] + trajectory for trajectory in child_trajectories])
+                    trajectories.extend([[self] + trajectory for trajectory in child_trajectories])
                 else:
                     trajectories.extend(child_trajectories)
             if not full_trajectories:
-                trajectories.append(initial_observation)
+                trajectories.append(self)
         elif include_leaves:
-            trajectories = [[initial_observation]] if full_trajectories else [initial_observation]
+            trajectories = [[self]] if full_trajectories else [self]
         return trajectories
+
+    def get_obs_visits(self):
+        visits = defaultdict(int)
+        updates = defaultdict(int)
+        for node in self.get_trajectories(full_trajectories=False,
+                                          include_leaves=False):
+            if hasattr(node, "observation"):
+                visits[str(node.observation)] += 1
+                if hasattr(node, "updated_nodes"):
+                    updates[str(node.observation)] += node.updated_nodes
+        return visits, updates

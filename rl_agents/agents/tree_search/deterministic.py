@@ -61,6 +61,7 @@ class DeterministicNode(Node):
     def __init__(self, parent, planner, state=None, depth=0):
         super(DeterministicNode, self).__init__(parent, planner)
         self.state = state
+        self.observation = None
         self.depth = depth
         self.reward = 0
         self.value_upper_bound = 0
@@ -96,8 +97,9 @@ class DeterministicNode(Node):
             raise ValueError("This planner assumes that all rewards are normalized in [0, 1]")
         gamma = self.planner.config["gamma"]
         self.reward = reward
-        self.value = self.parent.value + (gamma ** (self.depth - 1)) * reward
+        self.observation = observation
         self.done = done
+        self.value = self.parent.value + (gamma ** (self.depth - 1)) * reward
         self.value_upper_bound = self.value + (gamma ** self.depth) / (1 - gamma)
         if done:
             self.value = self.value_upper_bound
