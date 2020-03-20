@@ -48,9 +48,9 @@ class StateAwarePlanner(OptimisticDeterministicPlanner):
         if leaf_to_expand.done:
             logger.warning("Expanding a terminal state")
         leaf_to_expand.expand()
-        leaf_to_expand.updated_nodes = leaf_to_expand.backup_to_root()
+        leaf_to_expand.updates_count = leaf_to_expand.backup_to_root()
         logger.debug("{} updated nodes for state {} from path {}".format(
-            leaf_to_expand.updated_nodes,
+            leaf_to_expand.updates_count,
             leaf_to_expand.observation,
             list(leaf_to_expand.path())))
         for leaf in reversed(self.leaves.copy()):
@@ -117,7 +117,7 @@ class StateAwareNode(DeterministicNode):
 
     def backup_to_root(self):
         gamma = self.planner.config["gamma"]
-        updated_nodes = 0
+        updates_count = 0
         queue = [self]
         while queue:
             node = queue.pop(0)
@@ -128,7 +128,7 @@ class StateAwareNode(DeterministicNode):
                 backup = best_child.reward + gamma * self.planner.state_values[str(best_child.observation)]
                 # Update state ucb with this new bound
                 delta = self.planner.update_value(node.observation, backup)
-                updated_nodes += 1
+                updates_count += 1
 
             # Should we propagate the update by backing-up the parents?
             for neighbour in self.planner.state_nodes[str(node.observation)]:
@@ -136,7 +136,7 @@ class StateAwareNode(DeterministicNode):
                         (neighbour is node or self.planner.config["backup_aggregated_nodes"]) and \
                         delta > self.planner.config["stopping_accuracy"] * (1 - gamma) * gamma ** (neighbour.depth - 1):
                     queue.append(neighbour.parent)
-        return updated_nodes
+        return updates_count
 
     def get_value_upper_bound(self):
         return self.value + \

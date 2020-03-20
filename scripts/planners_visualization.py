@@ -69,7 +69,7 @@ agents = {
         "lazy_tree_construction": True,
         "continuation_type": "uniform",
     },
-    "deterministic": {
+    "OPD": {
         "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
         "gamma": gamma,
     },
@@ -187,12 +187,12 @@ if __name__ == "__main__":
     configure("configs/logging.json", gym_level=gym.logger.INFO)
     selected_env = load_environment(envs["gridenv"])
     selected_agents = [
-         # "deterministic",
+         "OPD",
          # "state_aware",
          "GBOP",
     ]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
-    # budget = 4 * (4 ** 5 - 1) / (4 - 1)
-    budget = 1000
+    budget = 4 * (4 ** 5 - 1) / (4 - 1)
+    # budget = 200
     compare_agents(selected_env, selected_agents, budget=budget,
                    show_tree=True, show_states=True, show_trajs=False)

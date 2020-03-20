@@ -37,7 +37,8 @@ class GraphBasedPlanner(AbstractPlanner):
         for k in range(self.config["sampling_timeout"]):
             if str(observation) in self.sinks:
                 self.expand(observation)
-                self.value_iteration()
+                self.nodes[str(observation)].partial_value_iteration()
+                # self.value_iteration()
                 break
             else:
                 action_values_bound = self.nodes[str(observation)].action_values_upper_bound()
@@ -61,6 +62,7 @@ class GraphBasedPlanner(AbstractPlanner):
                 self.sinks.append(str(next_observation))
             node.rewards[action] = reward
             node.transitions[action] = next_observation
+            self.nodes[str(next_observation)].parents.append(node)
         self.sinks.remove(str(observation))
 
     def value_iteration(self, eps=1e-2):
@@ -93,10 +95,9 @@ class GraphBasedPlanner(AbstractPlanner):
         for _ in range(self.config["sampling_timeout"]):
             if str(node.observation) in self.sinks:
                 break
-            action_values_bound = node.backup("value_lower_bound")
-            conservative_action = max(action_values_bound.items(), key=operator.itemgetter(1))[0]
-            actions.append(conservative_action)
-            node = self.nodes[str(node.transitions[conservative_action])]
+            action = node.selection_rule()
+            actions.append(action)
+            node = self.nodes[str(node.transitions[action])]
         return actions
 
 
@@ -109,9 +110,15 @@ class StateNode(Node):
         self.value_upper_bound = 1/(1 - self.planner.config["gamma"])
         self.transitions = {}
         self.rewards = {}
+        self.parents = []
+        self.updates_count = 0
 
     def selection_rule(self):
-        pass
+        """
+            Conservative action selection
+        """
+        action_values_bound = self.backup("value_lower_bound")
+        return max(action_values_bound.items(), key=operator.itemgetter(1))[0]
 
     def backup(self, field):
         gamma = self.planner.config["gamma"]
@@ -130,7 +137,22 @@ class StateNode(Node):
         updates = defaultdict(int)
         for obs in self.planner.nodes.keys():
             visits[obs] += 1
+            updates[obs] += self.planner.nodes[obs].updates_count
         return visits, updates
+
+    def partial_value_iteration(self, eps=1e-2):
+        queue = [self]
+        while queue:
+            self.updates_count += 1
+            node = queue.pop(0)
+            delta = 0
+            for field in ["value_lower_bound", "value_upper_bound"]:
+                action_value_bound = node.backup(field)
+                state_value_bound = np.amax(list(action_value_bound.values()))
+                delta = max(delta, abs(getattr(node, field) - state_value_bound))
+                setattr(node, field, state_value_bound)
+            if delta > eps:
+                queue.extend(node.parents)
 
     def __str__(self):
         return "{} (L:{:.2f}, U:{:.2f})".format(str(self.observation), self.value_lower_bound, self.value_upper_bound)

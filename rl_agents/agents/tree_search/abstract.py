@@ -322,6 +322,6 @@ class Node(object):
                                           include_leaves=False):
             if hasattr(node, "observation"):
                 visits[str(node.observation)] += 1
-                if hasattr(node, "updated_nodes"):
-                    updates[str(node.observation)] += node.updated_nodes
+                if hasattr(node, "updates_count"):
+                    updates[str(node.observation)] += node.updates_count
         return visits, updates
