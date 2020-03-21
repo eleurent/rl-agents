@@ -141,3 +141,65 @@ class GraphNode(Node):
 
     def __str__(self):
         return "{} (L:{:.2f}, U:{:.2f})".format(str(self.observation), self.value_lower, self.value_upper)
+
+
+
+
+class GraphDecisionNode(GraphNode):
+    """
+        Decision nodes have different meanings depending on their location:
+            - planner.nodes[s] stores a DecisionsNode holding information about s: N(s), V(s)
+            - DecisionNode.transition[a] stores a ChanceNode holding information about (s,a): N(s,a), Q(s,a), p(s'|s,a)
+            - ChanceNode.children[s'] stores a DecisionNode holding information about (s,a,s'): N(s,a,s'), R(s,a,s')
+
+
+                                              planner.nodes
+                                                    |
+                                              DecisionNode(s)
+                                                 |     |
+                                        ActionNode(s,a) ...
+                                          |      |
+                                  DecisonNode(s,a,s')   ...
+    """
+    def __init__(self, planner, state, observation):
+        super().__init__(planner, state, observation)
+        self.count = 0
+        """ Visit count N(s) (when in planner.nodes) or N(s,a,s') (when child of a chance node)"""
+        self.cumulative_reward = 0
+        """ Sum of all rewards r(s,a,s') (when child of a chance node). """
+        self.mu_ucb = 1
+        """ Upper bound on mean r(s,a,s') (when child of a chance node). """
+        self.mu_lcb = 0
+        """ Lower bound on mean r(s,a,s') (when child of a chance node)"""
+
+    def selection_rule(self):
+        """
+            Conservative action selection
+        """
+        action_values_bound = self.backup("value_lower")
+        return max(action_values_bound.items(), key=operator.itemgetter(1))[0]
+
+    def update(self, reward=None):
+        self.count += 1
+        if reward is not None:
+            self.cumulative_reward += reward
+            self.compute_reward_ucb()
+
+    def compute_reward_ucb(self):
+        if self.planner.config["upper_bound"]["type"] == "kullback-leibler":
+            # Variables available for threshold evaluation
+            horizon = self.planner.config["horizon"]
+            actions = self.planner.env.action_space.n
+            confidence = self.planner.config["confidence"]
+            count = self.count
+            time = self.planner.config["episodes"]
+            threshold = eval(self.planner.config["upper_bound"]["threshold"])
+            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, 0,
+                                         threshold=str(threshold))
+            self.mu_lcb = kl_upper_bound(self.cumulative_reward, self.count, 0,
+                                         threshold=str(threshold), lower=True)
+        else:
+            logger.error("Unknown upper-bound type")
+
+    def __str__(self):
+        return "{} (L:{:.2f}, U:{:.2f})".format(str(self.observation), self.value_lower, self.value_upper)

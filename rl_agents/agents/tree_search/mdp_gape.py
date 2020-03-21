@@ -218,7 +218,7 @@ class DecisionNode(OLOPNode):
         index = self.random_argmax([self.children[a].value_upper for a in actions])
         return actions[index]
 
-    def compute_ucb(self):
+    def compute_reward_ucb(self):
         if self.planner.config["upper_bound"]["type"] == "kullback-leibler":
             # Variables available for threshold evaluation
             horizon = self.planner.config["horizon"]

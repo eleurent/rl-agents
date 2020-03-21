@@ -146,9 +146,9 @@ class OLOPNode(Node):
             reward = 0
         self.cumulative_reward += reward
         self.count += 1
-        self.compute_ucb()
+        self.compute_reward_ucb()
 
-    def compute_ucb(self):
+    def compute_reward_ucb(self):
         if self.planner.config["upper_bound"]["time"] == "local":
             time = self.planner.episode + 1
         elif self.planner.config["upper_bound"]["time"] == "global":
