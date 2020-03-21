@@ -29,7 +29,6 @@ class GraphBasedPlanner(AbstractPlanner):
         super().__init__(config)
         self.env = env
         self.nodes = {}
-        self.sinks = []
 
     def make_root(self):
         root = GraphNode(planner=self, state=None, observation=None)
@@ -38,13 +37,12 @@ class GraphBasedPlanner(AbstractPlanner):
     def run(self, observation):
         node = self.nodes[str(observation)]
         for k in range(self.config["sampling_timeout"]):
-            if node in self.sinks:
+            if not node.children:
                 self.expand(node)
                 node.partial_value_iteration()
                 break
             else:
-                q_values_upper_bound = node.action_values_upper_bound()
-                optimistic_action = max(q_values_upper_bound.items(), key=operator.itemgetter(1))[0]
+                optimistic_action = node.sampling_rule()
                 node = node.children[optimistic_action]
         else:
             logger.info("The optimistic sampling strategy could not find a sink. We probably found an optimal loop.")
@@ -60,16 +58,13 @@ class GraphBasedPlanner(AbstractPlanner):
             # Add new state node
             if str(next_observation) not in self.nodes:
                 self.nodes[str(next_observation)] = GraphNode(self, next_state, next_observation)
-                self.sinks.append(self.nodes[str(next_observation)])
             node.rewards[action] = reward
             node.children[action] = self.nodes[str(next_observation)]
             self.nodes[str(next_observation)].parents.append(node)
-        self.sinks.remove(node)
 
     def plan(self, state, observation):
         if str(observation) not in self.nodes:
             self.root = self.nodes[str(observation)] = GraphNode(self, state, observation)
-            self.sinks.append(self.root)
         for epoch in np.arange(self.config["budget"] // state.action_space.n):
             logger.debug("Expansion {}/{}".format(epoch + 1, self.config["budget"] // state.action_space.n))
             self.run(observation)
@@ -80,7 +75,7 @@ class GraphBasedPlanner(AbstractPlanner):
         node = self.root
         actions = []
         for _ in range(self.config["sampling_timeout"]):
-            if node in self.sinks:
+            if not node.children:
                 break
             action = node.selection_rule()
             actions.append(action)
@@ -99,6 +94,13 @@ class GraphNode(Node):
         self.parents = []
         self.updates_count = 0
 
+    def sampling_rule(self):
+        """
+            Optimistic action sampling
+        """
+        q_values_upper_bound = self.backup("value_upper")
+        return max(q_values_upper_bound.items(), key=operator.itemgetter(1))[0]
+
     def selection_rule(self):
         """
             Conservative action selection
@@ -110,9 +112,6 @@ class GraphNode(Node):
         gamma = self.planner.config["gamma"]
         return {action: self.rewards[action] + gamma * getattr(self.children[action], field)
                 for action in self.children.keys()}
-
-    def action_values_upper_bound(self):
-        return self.backup("value_upper")
 
     def get_value(self):
         return self.value_lower
@@ -144,8 +143,6 @@ class GraphNode(Node):
 
     def __str__(self):
         return "{} (L:{:.2f}, U:{:.2f})".format(str(self.observation), self.value_lower, self.value_upper)
-
-
 
 
 class GraphDecisionNode(GraphNode):
