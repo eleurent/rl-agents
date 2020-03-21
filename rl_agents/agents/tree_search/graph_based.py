@@ -80,7 +80,7 @@ class GraphBasedPlanner(AbstractPlanner):
         node = self.root
         actions = []
         for _ in range(self.config["sampling_timeout"]):
-            if str(node.observation) in self.sinks:
+            if node in self.sinks:
                 break
             action = node.selection_rule()
             actions.append(action)
@@ -124,6 +124,9 @@ class GraphNode(Node):
             visits[obs] += 1
             updates[obs] += self.planner.nodes[obs].updates_count
         return visits, updates
+
+    def get_trajectories(self, full_trajectories=True, include_leaves=True):
+        return []
 
     def partial_value_iteration(self, eps=1e-2):
         queue = [self]
