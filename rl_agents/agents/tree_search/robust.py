@@ -59,7 +59,7 @@ class RobustNode(DeterministicNode):
         return np.min(self.value)
 
     def get_value_upper_bound(self):
-        return np.min(self.value_upper_bound)
+        return np.min(self.value_upper)
 
 
 class IntervalRobustPlannerAgent(AbstractAgent):

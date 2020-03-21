@@ -100,7 +100,7 @@ class MDPGapE(OLOP):
         state.seed(self.np_random.randint(2**30))
         best, challenger = None, None
         if self.root.children:
-            logger.debug(" / ".join(["a{} ({}): [{:.3f}, {:.3f}]".format(k, n.count, n.value_lower, n.value)
+            logger.debug(" / ".join(["a{} ({}): [{:.3f}, {:.3f}]".format(k, n.count, n.value_lower, n.value_upper)
                                      for k, n in self.root.children.items()]))
 
         # Follow selection policy, expand tree if needed, collect rewards and update confidence bounds.
@@ -114,7 +114,7 @@ class MDPGapE(OLOP):
                 selected_child, best, challenger = self.root.best_arm_identification_selection()
                 action = next(selected_child.path())
             else:  # Run UCB elsewhere
-                action, _ = max([child for child in decision_node.children.items()], key=lambda c: c[1].value)
+                action, _ = max([child for child in decision_node.children.items()], key=lambda c: c[1].value_upper)
 
             # Perform transition
             chance_node, action = decision_node.get_child(action, state)
@@ -136,13 +136,13 @@ class MDPGapE(OLOP):
             best, challenger = self.run(safe_deepcopy_env(state))
 
             # Stopping rule
-            done = challenger.value - best.value_lower < self.config["accuracy"] if best is not None else False
+            done = challenger.value_upper - best.value_lower < self.config["accuracy"] if best is not None else False
             done = done or episode > self.config["episodes"]
 
             episode += 1
             if episode % 10 == 0:
                 logger.debug('Episode {}: delta = {}/{}'.format(episode,
-                                                                challenger.value - best.value_lower,
+                                                                challenger.value_upper - best.value_lower,
                                                                 self.config["accuracy"]))
         self.budget_used = episode * self.config["horizon"]
         return self.get_plan()
@@ -182,7 +182,7 @@ class DecisionNode(OLOPNode):
 
         gamma = self.planner.config["gamma"]
         H = self.planner.config["horizon"]
-        self.value = (1 - gamma ** (H-self.depth)) / (1 - gamma)
+        self.value_upper = (1 - gamma ** (H - self.depth)) / (1 - gamma)
 
         """ Lower bound on the node optimal reward-to-go """
         self.value_lower = 0
@@ -215,7 +215,7 @@ class DecisionNode(OLOPNode):
 
         # Then follow the optimistic values
         actions = list(self.children.keys())
-        index = self.random_argmax([self.children[a].value for a in actions])
+        index = self.random_argmax([self.children[a].value_upper for a in actions])
         return actions[index]
 
     def compute_ucb(self):
@@ -239,11 +239,11 @@ class DecisionNode(OLOPNode):
             Bellman V(s) = max_a Q(s,a)
         """
         if self.children:
-            self.value = np.amax([child.value for child in self.children.values()])
+            self.value_upper = np.amax([child.value_upper for child in self.children.values()])
             self.value_lower = np.amax([child.value_lower for child in self.children.values()])
         else:
             assert self.depth == self.planner.config["horizon"]
-            self.value = 0  # Maybe count bound over r(H..inf) ?
+            self.value_upper = 0  # Maybe count bound over r(H..inf) ?
             self.value_lower = 0  # Maybe count bound over r(H..inf) ?
         if self.parent:
             self.parent.backup_to_root()
@@ -256,7 +256,7 @@ class DecisionNode(OLOPNode):
             child.gap = -np.infty
             for other in self.children.values():
                 if other is not child:
-                    child.gap = max(child.gap, other.value - child.value_lower)
+                    child.gap = max(child.gap, other.value_upper - child.value_lower)
 
     def best_arm_identification_selection(self):
         """
@@ -269,7 +269,7 @@ class DecisionNode(OLOPNode):
         # Challenger: not best and highest value upper bound
         challenger = max([c for c in self.children.values() if c is not best], key=lambda c: c.value)
         # Selection: the one with highest uncertainty
-        return max([best, challenger], key=lambda n: n.value - n.value_lower), best, challenger
+        return max([best, challenger], key=lambda n: n.value_upper - n.value_lower), best, challenger
 
 
 class ChanceNode(OLOPNode):
@@ -278,7 +278,7 @@ class ChanceNode(OLOPNode):
         super().__init__(parent, planner)
         self.depth = parent.depth
         gamma = self.planner.config["gamma"]
-        self.value = (1 - gamma ** (self.planner.config["horizon"] - self.depth)) / (1 - gamma)
+        self.value_upper = (1 - gamma ** (self.planner.config["horizon"] - self.depth)) / (1 - gamma)
         self.value_lower = 0
         self.p_hat, self.p_plus, self.p_minus = None, None, None
         delattr(self, 'cumulative_reward')
@@ -316,14 +316,14 @@ class ChanceNode(OLOPNode):
         assert self.parent
         gamma = self.planner.config["gamma"]
         children = list(self.children.values())
-        u_next = np.array([c.mu_ucb + gamma * c.value for c in children])
+        u_next = np.array([c.mu_ucb + gamma * c.value_upper for c in children])
         l_next = np.array([c.mu_lcb + gamma * c.value_lower for c in children])
         self.p_hat = np.array([child.count for child in children]) / self.count
         threshold = self.transition_threshold() / self.count
 
         self.p_plus = max_expectation_under_constraint(u_next, self.p_hat, threshold)
         self.p_minus = max_expectation_under_constraint(-l_next, self.p_hat, threshold)
-        self.value = self.p_plus @ u_next
+        self.value_upper = self.p_plus @ u_next
         self.value_lower = self.p_minus @ l_next
         self.parent.backup_to_root()
 

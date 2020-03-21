@@ -33,7 +33,8 @@ class AbstractTreeSearchAgent(AbstractAgent):
         return {
             "env_preprocessors": [],
             "display_tree": False,
-            "receding_horizon": 1
+            "receding_horizon": 1,
+            "terminal_reward": 0
         }
 
     def make_planner(self):
@@ -207,11 +208,11 @@ class Node(object):
         self.count = 0
         """ Number of times the node was visited."""
 
-        self.value = 0
+        self.value_upper = 0
         """ Estimated value of the node's action sequence"""
 
     def get_value(self):
-        return self.value
+        return self.value_upper
 
     def expand(self, branching_factor):
         for a in range(branching_factor):
@@ -288,7 +289,7 @@ class Node(object):
         return self.planner.np_random.choice(indices)
 
     def __str__(self):
-        return "{} (n:{}, v:{:.2f})".format(list(self.path()), self.count, self.value)
+        return "{} (n:{}, v:{:.2f})".format(list(self.path()), self.count, self.value_upper)
 
     def __repr__(self):
         return '<node {}>'.format(id(self))

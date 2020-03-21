@@ -241,7 +241,7 @@ class MCTSNode(Node):
         :param total_reward: the total reward obtained through a trajectory passing by this node
         """
         self.count += 1
-        self.value += self.K / self.count * (total_reward - self.value)
+        self.value_upper += self.K / self.count * (total_reward - self.value_upper)
 
     def update_branch(self, total_reward):
         """

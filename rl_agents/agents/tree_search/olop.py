@@ -125,7 +125,7 @@ class OLOPNode(Node):
         gamma = self.planner.config["gamma"]
 
         self.depth = self.parent.depth + 1 if self.parent is not None else 0
-        self.value = (1 - gamma ** (self.planner.config["horizon"] + 1 - self.depth)) / (1 - gamma)
+        self.value_upper = (1 - gamma ** (self.planner.config["horizon"] + 1 - self.depth)) / (1 - gamma)
 
         self.done = False
         """ Is this node a terminal node, for all random realizations (!)"""
@@ -192,9 +192,9 @@ class OLOPNode(Node):
         """
         if self.children:
             gamma = self.planner.config["gamma"]
-            self.value = self.mu_ucb + gamma * np.amax([c.value for c in self.children.values()])
+            self.value_upper = self.mu_ucb + gamma * np.amax([c.value for c in self.children.values()])
         else:
             assert self.depth == self.planner.config["horizon"]
-            self.value = self.mu_ucb
+            self.value_upper = self.mu_ucb
         if self.parent:
             self.parent.backup_to_root()

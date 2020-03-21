@@ -5,6 +5,7 @@ import numpy as np
 import logging
 from rl_agents.agents.common.factory import safe_deepcopy_env
 from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
+from rl_agents.agents.tree_search.mdp_gape import DecisionNode
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ class GraphBasedPlanner(AbstractPlanner):
         self.sinks = []
 
     def make_root(self):
-        root = StateNode(planner=self, state=None, observation=None)
+        root = GraphNode(planner=self, state=None, observation=None)
         return root
 
     def run(self, observation):
@@ -58,7 +59,7 @@ class GraphBasedPlanner(AbstractPlanner):
             next_observation, reward, done, _ = next_state.step(action)
             # Add new state node
             if str(next_observation) not in self.nodes:
-                self.nodes[str(next_observation)] = StateNode(self, next_state, next_observation)
+                self.nodes[str(next_observation)] = GraphNode(self, next_state, next_observation)
                 self.sinks.append(str(next_observation))
             node.rewards[action] = reward
             node.transitions[action] = next_observation
@@ -68,7 +69,7 @@ class GraphBasedPlanner(AbstractPlanner):
     def value_iteration(self, eps=1e-2):
         for _ in range(int(3 / np.log(1 / self.config["gamma"]))):
             delta = 0
-            for field in ["value_lower_bound", "value_upper_bound"]:
+            for field in ["value_lower", "value_upper"]:
                 for node in self.nodes.values():
                     if str(node.observation) in self.sinks:
                         continue
@@ -81,7 +82,7 @@ class GraphBasedPlanner(AbstractPlanner):
 
     def plan(self, state, observation):
         if str(observation) not in self.nodes:
-            self.root = self.nodes[str(observation)] = StateNode(self, state, observation)
+            self.root = self.nodes[str(observation)] = GraphNode(self, state, observation)
             self.sinks.append(str(observation))
         for epoch in np.arange(self.config["budget"] // state.action_space.n):
             logger.debug("Expansion {}/{}".format(epoch + 1, self.config["budget"] // state.action_space.n))
@@ -101,13 +102,13 @@ class GraphBasedPlanner(AbstractPlanner):
         return actions
 
 
-class StateNode(Node):
+class GraphNode(Node):
     def __init__(self, planner, state, observation):
         super().__init__(parent=None, planner=planner)
         self.state = state
         self.observation = observation
-        self.value_lower_bound = 0
-        self.value_upper_bound = 1/(1 - self.planner.config["gamma"])
+        self.value_lower = 0
+        self.value_upper = 1 / (1 - self.planner.config["gamma"])
         self.transitions = {}
         self.rewards = {}
         self.parents = []
@@ -117,7 +118,7 @@ class StateNode(Node):
         """
             Conservative action selection
         """
-        action_values_bound = self.backup("value_lower_bound")
+        action_values_bound = self.backup("value_lower")
         return max(action_values_bound.items(), key=operator.itemgetter(1))[0]
 
     def backup(self, field):
@@ -127,10 +128,10 @@ class StateNode(Node):
                 for action in self.transitions.keys()}
 
     def action_values_upper_bound(self):
-        return self.backup("value_upper_bound")
+        return self.backup("value_upper")
 
     def get_value(self):
-        return self.value_lower_bound
+        return self.value_lower
 
     def get_obs_visits(self):
         visits = defaultdict(int)
@@ -146,7 +147,7 @@ class StateNode(Node):
             self.updates_count += 1
             node = queue.pop(0)
             delta = 0
-            for field in ["value_lower_bound", "value_upper_bound"]:
+            for field in ["value_lower", "value_upper"]:
                 action_value_bound = node.backup(field)
                 state_value_bound = np.amax(list(action_value_bound.values()))
                 delta = max(delta, abs(getattr(node, field) - state_value_bound))
@@ -155,4 +156,4 @@ class StateNode(Node):
                 queue.extend(node.parents)
 
     def __str__(self):
-        return "{} (L:{:.2f}, U:{:.2f})".format(str(self.observation), self.value_lower_bound, self.value_upper_bound)
+        return "{} (L:{:.2f}, U:{:.2f})".format(str(self.observation), self.value_lower, self.value_upper)

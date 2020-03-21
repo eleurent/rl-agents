@@ -52,7 +52,7 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
             self.leaves = [self.root]
         #  v0 = r0 + g r1 + g^2 r2 +... and v1 = r1 + g r2 + ... = (v0-r0)/g
         for leaf in self.leaves:
-            leaf.value = (leaf.value - self.root.reward) / self.config["gamma"]
+            leaf.value_lower = (leaf.value_lower - self.root.reward) / self.config["gamma"]
             leaf.value_upper_bound = (leaf.value_upper_bound - self.root.reward) / self.config["gamma"]
         self.root.backup_values()
 
@@ -64,7 +64,8 @@ class DeterministicNode(Node):
         self.observation = None
         self.depth = depth
         self.reward = 0
-        self.value_upper_bound = 0
+        self.value_upper = 0
+        self.value_lower = 0
         self.count = 1
         self.done = False
 
@@ -99,10 +100,11 @@ class DeterministicNode(Node):
         self.reward = reward
         self.observation = observation
         self.done = done
-        self.value = self.parent.value + (gamma ** (self.depth - 1)) * reward
-        self.value_upper_bound = self.value + (gamma ** self.depth) / (1 - gamma)
+        self.value_lower = self.parent.value_lower + (gamma ** (self.depth - 1)) * reward
+        self.value_upper = self.value_lower + (gamma ** self.depth) / (1 - gamma)
         if done:
-            self.value = self.value_upper_bound
+            self.value_lower = self.value_upper = self.value_lower + \
+                self.planner.config["terminal_reward"] * (gamma ** self.depth) / (1 - gamma)
 
         for node in self.sequence():
             node.count += 1
@@ -110,16 +112,16 @@ class DeterministicNode(Node):
     def backup_values(self):
         if self.children:
             backup_children = [child.backup_values() for child in self.children.values()]
-            self.value = np.amax([b[0] for b in backup_children])
-            self.value_upper_bound = np.amax([b[1] for b in backup_children])
+            self.value_lower = np.amax([b[0] for b in backup_children])
+            self.value_upper = np.amax([b[1] for b in backup_children])
         return self.get_value(), self.get_value_upper_bound()
 
     def backup_to_root(self):
         if self.children:
-            self.value = np.amax([child.value for child in self.children.values()])
-            self.value_upper_bound = np.amax([child.value_upper_bound for child in self.children.values()])
+            self.value_lower = np.amax([child.value_lower for child in self.children.values()])
+            self.value_upper = np.amax([child.value_upper for child in self.children.values()])
             if self.parent:
                 self.parent.backup_to_root()
 
     def get_value_upper_bound(self):
-        return self.value_upper_bound
+        return self.value_upper
