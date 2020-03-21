@@ -106,15 +106,7 @@ class MDPGapE(OLOP):
         # Follow selection policy, expand tree if needed, collect rewards and update confidence bounds.
         decision_node = self.root
         for h in range(self.config["horizon"]):
-            # Select action
-            if not decision_node.children:  # Break ties at leaves
-                action = self.np_random.randint(state.action_space.n) \
-                    if self.config["continuation_type"] == "uniform" else 0
-            elif decision_node == self.root:  # Run BAI at the root
-                selected_child, best, challenger = self.root.best_arm_identification_selection()
-                action = next(selected_child.path())
-            else:  # Run UCB elsewhere
-                action, _ = max([child for child in decision_node.children.items()], key=lambda c: c[1].value_upper)
+            action, best, challenger = decision_node.sampling_rule(n_actions=state.action_space.n)
 
             # Perform transition
             chance_node, action = decision_node.get_child(action, state)
@@ -213,10 +205,27 @@ class DecisionNode(OLOPNode):
             _, best_node, _ = self.best_arm_identification_selection()
             return next(best_node.path())
 
-        # Then follow the optimistic values
+        # Then follow the conservative values
         actions = list(self.children.keys())
-        index = self.random_argmax([self.children[a].value_upper for a in actions])
+        index = self.random_argmax([self.children[a].value_lower for a in actions])
         return actions[index]
+
+    def sampling_rule(self, n_actions):
+        best, challenger = None
+        # Break ties at leaves
+        if not self.children:
+            action = self.planner.np_random.randint(n_actions) \
+                if self.planner.config["continuation_type"] == "uniform" else 0
+        # Best arm identification at the root
+        elif self == self.planner.root:  # Run BAI at the root
+            selected_child, best, challenger = self.best_arm_identification_selection()
+            action = next(selected_child.path())
+        # Elsewhere, follow the optimistic values
+        else:
+            actions = list(self.children.keys())
+            index = self.random_argmax([self.children[a].value_upper for a in actions])
+            action = actions[index]
+        return action, best, challenger
 
     def compute_reward_ucb(self):
         if self.planner.config["upper_bound"]["type"] == "kullback-leibler":
