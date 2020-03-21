@@ -23,6 +23,9 @@ class StochasticGraphBasedPlannerAgent(GraphBasedPlannerAgent):
 
 
 class StochasticGraphBasedPlanner(GraphBasedPlanner):
+    def make_root(self):
+        return GraphDecisionNode(self, None, None)
+
     def run(self, state):
         """
         :param state: the initial environment state

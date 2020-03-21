@@ -53,18 +53,22 @@ class OLOP(AbstractPlanner):
         return max(int(np.ceil(np.log(episodes) / (2 * np.log(1 / gamma)))), 1)
 
     def allocate_budget(self):
+        budget = max(self.env.action_space.n, self.config["budget"])
+        self.config["episodes"], self.config["horizon"] = self.allocate_budget(budget, self.config["gamma"])
+
+    @staticmethod
+    def allocation(budget, gamma):
         """
             Allocate the computational budget into M episodes of fixed horizon L.
         """
-        if self.config["budget"] < self.env.action_space.n:
-            self.config["budget"] = self.env.action_space.n
-        for episodes in range(1, int(self.config["budget"])):
-            if episodes * OLOP.horizon(episodes, self.config["gamma"]) > self.config["budget"]:
-                self.config["episodes"] = max(episodes - 1, 1)
-                self.config["horizon"] = OLOP.horizon(self.config["episodes"], self.config["gamma"])
+        for episodes in range(1, int(budget)):
+            if episodes * OLOP.horizon(episodes, gamma) > budget:
+                episodes = max(episodes - 1, 1)
+                horizon = OLOP.horizon(episodes, gamma)
                 break
         else:
-            raise ValueError("Could not split budget {} with gamma {}".format(self.config["budget"], self.config["gamma"]))
+            raise ValueError("Could not split budget {} with gamma {}".format(budget, gamma))
+        return episodes, horizon
 
     def run(self, state):
         """

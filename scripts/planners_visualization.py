@@ -25,6 +25,7 @@ envs = {
     "env_loop": Path("configs") / "FiniteMDPEnv" / "env_loop.json",
     "env_garnet": Path("configs") / "FiniteMDPEnv" / "env_garnet.json",
     "gridenv": Path("configs") / "DummyEnv" / "gridenv.json",
+    "gridenv-stoch": Path("configs") / "DummyEnv" / "gridenv-stoch.json",
     "dynamics": Path("configs") / "DummyEnv" / "dynamics.json",
 }
 
@@ -80,9 +81,18 @@ agents = {
         "prune_suboptimal_leaves": True,
         "stopping_accuracy": 1e-1
     },
-    "GBOP": {
+    "GBOPD": {
         "__class__": "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>",
         "gamma": 0.9,
+    },
+    "GBOP": {
+        "__class__": "<class 'rl_agents.agents.tree_search.graph_based_stochastic.StochasticGraphBasedPlannerAgent'>",
+        "gamma": 0.9,
+        "upper_bound":
+        {
+            "type": "kullback-leibler",
+            "threshold": "1*np.log(time)"
+        },
     },
     "ugape_mcts": {
         "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
