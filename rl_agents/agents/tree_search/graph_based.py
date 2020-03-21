@@ -6,6 +6,7 @@ import logging
 from rl_agents.agents.common.factory import safe_deepcopy_env
 from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
 from rl_agents.agents.tree_search.mdp_gape import DecisionNode
+from rl_agents.utils import kl_upper_bound
 
 logger = logging.getLogger(__name__)
 
@@ -35,21 +36,20 @@ class GraphBasedPlanner(AbstractPlanner):
         return root
 
     def run(self, observation):
+        node = self.nodes[str(observation)]
         for k in range(self.config["sampling_timeout"]):
-            if str(observation) in self.sinks:
-                self.expand(observation)
-                self.nodes[str(observation)].partial_value_iteration()
-                # self.value_iteration()
+            if node in self.sinks:
+                self.expand(node)
+                node.partial_value_iteration()
                 break
             else:
-                action_values_bound = self.nodes[str(observation)].action_values_upper_bound()
-                optimistic_action = max(action_values_bound.items(), key=operator.itemgetter(1))[0]
-                observation = self.nodes[str(observation)].transitions[optimistic_action]
+                q_values_upper_bound = node.action_values_upper_bound()
+                optimistic_action = max(q_values_upper_bound.items(), key=operator.itemgetter(1))[0]
+                node = node.children[optimistic_action]
         else:
             logger.info("The optimistic sampling strategy could not find a sink. We probably found an optimal loop.")
 
-    def expand(self, observation):
-        node = self.nodes[str(observation)]
+    def expand(self, node):
         try:
             actions = node.state.get_available_actions()
         except AttributeError:
@@ -60,30 +60,16 @@ class GraphBasedPlanner(AbstractPlanner):
             # Add new state node
             if str(next_observation) not in self.nodes:
                 self.nodes[str(next_observation)] = GraphNode(self, next_state, next_observation)
-                self.sinks.append(str(next_observation))
+                self.sinks.append(self.nodes[str(next_observation)])
             node.rewards[action] = reward
-            node.transitions[action] = next_observation
+            node.children[action] = self.nodes[str(next_observation)]
             self.nodes[str(next_observation)].parents.append(node)
-        self.sinks.remove(str(observation))
-
-    def value_iteration(self, eps=1e-2):
-        for _ in range(int(3 / np.log(1 / self.config["gamma"]))):
-            delta = 0
-            for field in ["value_lower", "value_upper"]:
-                for node in self.nodes.values():
-                    if str(node.observation) in self.sinks:
-                        continue
-                    action_value_bound = node.backup(field)
-                    state_value_bound = np.amax(list(action_value_bound.values()))
-                    delta = max(delta, abs(getattr(node, field) - state_value_bound))
-                    setattr(node, field, state_value_bound)
-            if delta < eps:
-                break
+        self.sinks.remove(node)
 
     def plan(self, state, observation):
         if str(observation) not in self.nodes:
             self.root = self.nodes[str(observation)] = GraphNode(self, state, observation)
-            self.sinks.append(str(observation))
+            self.sinks.append(self.root)
         for epoch in np.arange(self.config["budget"] // state.action_space.n):
             logger.debug("Expansion {}/{}".format(epoch + 1, self.config["budget"] // state.action_space.n))
             self.run(observation)
@@ -98,7 +84,7 @@ class GraphBasedPlanner(AbstractPlanner):
                 break
             action = node.selection_rule()
             actions.append(action)
-            node = self.nodes[str(node.transitions[action])]
+            node = node.children[action]
         return actions
 
 
@@ -109,7 +95,6 @@ class GraphNode(Node):
         self.observation = observation
         self.value_lower = 0
         self.value_upper = 1 / (1 - self.planner.config["gamma"])
-        self.transitions = {}
         self.rewards = {}
         self.parents = []
         self.updates_count = 0
@@ -123,9 +108,8 @@ class GraphNode(Node):
 
     def backup(self, field):
         gamma = self.planner.config["gamma"]
-        return {action: self.rewards[action] +
-                gamma * getattr(self.planner.nodes[str(self.transitions[action])], field)
-                for action in self.transitions.keys()}
+        return {action: self.rewards[action] + gamma * getattr(self.children[action], field)
+                for action in self.children.keys()}
 
     def action_values_upper_bound(self):
         return self.backup("value_upper")
