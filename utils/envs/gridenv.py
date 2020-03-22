@@ -40,7 +40,7 @@ class GridEnv(Env):
         elif action == 7:
             self.x[0] -= 1
             self.x[1] -= 1
-        return self.x, self.reward(), False, {}
+        return self.x.copy(), self.reward(), False, {}
 
     def reward(self):
         return np.clip(1 - 1/self.REWARD_RADIUS**2 * ((self.REWARD_CENTER[0] - self.x[0])**2

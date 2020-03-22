@@ -50,7 +50,7 @@ agents = {
         "lazy_tree_construction": True,
         "continuation_type": "uniform",
     },
-    "kl-olop-1": {
+    "KL-OLOP": {
         "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         "gamma": gamma,
         "upper_bound": {
@@ -81,7 +81,7 @@ agents = {
         "prune_suboptimal_leaves": True,
         "stopping_accuracy": 1e-1
     },
-    "GBOPD": {
+    "GBOP-D": {
         "__class__": "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>",
         "gamma": 0.9,
     },
@@ -91,7 +91,8 @@ agents = {
         "upper_bound":
         {
             "type": "kullback-leibler",
-            "threshold": "1*np.log(time)"
+            "threshold": "0*np.log(time)",
+            "transition_threshold": "0*np.log(time)"
         },
     },
     "ugape_mcts": {
@@ -138,7 +139,7 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
     for agent, agent_name in evaluate_agents(env, agents, budget, seed):
         trajectories[agent_name] = agent.planner.root.get_trajectories(env)
         # Aggregate visits
-        visits, updates = agent.planner.root.get_obs_visits()
+        visits, updates = agent.planner.root.get_obs_visits(state=env)
 
         if isinstance(env, GridEnv):
             state_occupations[agent_name] = np.zeros((2 * state_limits + 1, 2 * state_limits + 1))
@@ -197,12 +198,13 @@ if __name__ == "__main__":
     configure("configs/logging.json", gym_level=gym.logger.INFO)
     selected_env = load_environment(envs["gridenv"])
     selected_agents = [
-         # "OPD",
-         # "state_aware",
+         "OPD",
+         "GBOP-D",
+         "KL-OLOP",
          "GBOP",
     ]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
     budget = 4 * (4 ** 6 - 1) / (4 - 1)
     # budget = 200
     compare_agents(selected_env, selected_agents, budget=budget,
-                   show_tree=True, show_states=True, show_trajs=False)
+                   show_tree=True, show_states=True, show_trajs=False, seed=0)
