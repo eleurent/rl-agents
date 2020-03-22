@@ -69,11 +69,13 @@ class MDPGapE(OLOP):
         if self.root.children:
             logger.debug(" / ".join(["a{} ({}): [{:.3f}, {:.3f}]".format(k, n.count, n.value_lower, n.value_upper)
                                      for k, n in self.root.children.items()]))
+        else:
+            self.root.expand(state)
 
         # Follow selection policy, expand tree if needed, collect rewards and update confidence bounds.
         decision_node = self.root
         for h in range(self.config["horizon"]):
-            action, best, challenger = decision_node.sampling_rule(n_actions=state.action_space.n)
+            action = decision_node.sampling_rule(n_actions=state.action_space.n)
 
             # Perform transition
             chance_node, action = decision_node.get_child(action, state)
@@ -86,6 +88,7 @@ class MDPGapE(OLOP):
 
         # Backup global statistics
         decision_node.backup_to_root()
+        _, best, challenger = self.root.best_arm_identification_selection()
         return best, challenger
 
     def plan(self, state, observation):
@@ -178,21 +181,21 @@ class DecisionNode(OLOPNode):
         return actions[index]
 
     def sampling_rule(self, n_actions):
-        best, challenger = None
-        # Break ties at leaves
-        if not self.children:
-            action = self.planner.np_random.randint(n_actions) \
-                if self.planner.config["continuation_type"] == "uniform" else 0
         # Best arm identification at the root
-        elif self == self.planner.root:  # Run BAI at the root
-            selected_child, best, challenger = self.best_arm_identification_selection()
+        if self == self.planner.root:  # Run BAI at the root
+            selected_child, _, _ = self.best_arm_identification_selection()
             action = next(selected_child.path())
         # Elsewhere, follow the optimistic values
-        else:
+        elif self.children:
             actions = list(self.children.keys())
             index = self.random_argmax([self.children[a].value_upper for a in actions])
             action = actions[index]
-        return action, best, challenger
+        # Break ties at leaves
+        else:
+            action = self.planner.np_random.randint(n_actions) \
+                if self.planner.config["continuation_type"] == "uniform" else 0
+
+        return action
 
     def compute_reward_ucb(self):
         if self.planner.config["upper_bound"]["type"] == "kullback-leibler":
@@ -243,7 +246,7 @@ class DecisionNode(OLOPNode):
         self.compute_children_gaps()
         best = min(self.children.values(), key=lambda c: c.gap)
         # Challenger: not best and highest value upper bound
-        challenger = max([c for c in self.children.values() if c is not best], key=lambda c: c.value)
+        challenger = max([c for c in self.children.values() if c is not best], key=lambda c: c.value_upper)
         # Selection: the one with highest uncertainty
         return max([best, challenger], key=lambda n: n.value_upper - n.value_lower), best, challenger
 

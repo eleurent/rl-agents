@@ -83,11 +83,11 @@ agents = {
     },
     "GBOP-D": {
         "__class__": "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>",
-        "gamma": 0.9,
+        "gamma": gamma,
     },
     "GBOP": {
         "__class__": "<class 'rl_agents.agents.tree_search.graph_based_stochastic.StochasticGraphBasedPlannerAgent'>",
-        "gamma": 0.9,
+        "gamma": gamma,
         "upper_bound":
         {
             "type": "kullback-leibler",
@@ -95,8 +95,8 @@ agents = {
             "transition_threshold": "0*np.log(time)"
         },
     },
-    "ugape_mcts": {
-        "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
+    "MDP-GapE": {
+        "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
         "gamma": gamma,
         "accuracy": 0,
         "confidence": 1,
@@ -104,11 +104,13 @@ agents = {
         {
             "type": "kullback-leibler",
             "time": "global",
-            "threshold": "1*np.log(time)"
+            "threshold": "0*np.log(time)",
+            "transition_threshold": "0*np.log(time)"
         },
+        "max_next_states_count": 1,
         "continuation_type": "uniform",
-        "step_strategy": "reset"
-    }
+        "step_strategy": "reset",
+    },
 }
 
 
@@ -158,10 +160,10 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
         if v_max > 0:
             for agent_name, occupations in state_occupations.items():
                 show_state_map("occupations", agent_name, occupations, state_limits, v_max)
-        v_max = max([st.max() for st in state_updates.values()] + [0])
-        if v_max > 0:
-            for agent_name, updates in state_updates.items():
-                show_state_map("updates", agent_name, updates, state_limits, v_max)
+        # v_max = max([st.max() for st in state_updates.values()] + [0])
+        # if v_max > 0:
+        #     for agent_name, updates in state_updates.items():
+        #         show_state_map("updates", agent_name, updates, state_limits, v_max)
 
     if show_trajs:
         axes = None
@@ -200,7 +202,8 @@ if __name__ == "__main__":
     selected_agents = [
          "OPD",
          "GBOP-D",
-         "KL-OLOP",
+         # "KL-OLOP",
+         "MDP-GapE",
          "GBOP",
     ]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
