@@ -1,19 +1,10 @@
 from collections import defaultdict
 
-import numpy as np
 import logging
 from rl_agents.agents.tree_search.deterministic import DeterministicPlannerAgent, OptimisticDeterministicPlanner, \
     DeterministicNode
 
 logger = logging.getLogger(__name__)
-
-
-class StateAwarePlannerAgent(DeterministicPlannerAgent):
-    """
-        An agent that performs state-aware optimistic planning in deterministic MDPs.
-    """
-    def make_planner(self):
-        return StateAwarePlanner(self.env, self.config)
 
 
 class StateAwarePlanner(OptimisticDeterministicPlanner):
@@ -39,9 +30,8 @@ class StateAwarePlanner(OptimisticDeterministicPlanner):
         return cfg
 
     def make_root(self):
-        root = StateAwareNode(None, planner=self)
-        self.leaves = [root]
-        return root
+        self.root = StateAwareNode(None, planner=self)
+        self.leaves = [self.root]
 
     def run(self):
         leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
@@ -141,3 +131,10 @@ class StateAwareNode(DeterministicNode):
     def get_value_upper_bound(self):
         return self.value + \
                (self.planner.config["gamma"] ** self.depth) * self.planner.state_values[str(self.observation)]
+
+
+class StateAwarePlannerAgent(DeterministicPlannerAgent):
+    """
+        An agent that performs state-aware optimistic planning in deterministic MDPs.
+    """
+    PLANNER_TYPE = StateAwarePlanner

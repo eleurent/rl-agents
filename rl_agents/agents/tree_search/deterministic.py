@@ -6,14 +6,6 @@ from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent,
 logger = logging.getLogger(__name__)
 
 
-class DeterministicPlannerAgent(AbstractTreeSearchAgent):
-    """
-        An agent that performs optimistic planning in deterministic MDPs.
-    """
-    def make_planner(self):
-        return OptimisticDeterministicPlanner(self.env, self.config)
-
-
 class OptimisticDeterministicPlanner(AbstractPlanner):
     """
        An implementation of Open Loop Optimistic Planning.
@@ -23,10 +15,9 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
         self.env = env
         self.leaves = None
 
-    def make_root(self):
-        root = DeterministicNode(None, planner=self)
-        self.leaves = [root]
-        return root
+    def reset(self):
+        self.root = DeterministicNode(None, planner=self)
+        self.leaves = [self.root]
 
     def run(self):
         """
@@ -125,3 +116,10 @@ class DeterministicNode(Node):
 
     def get_value_upper_bound(self):
         return self.value_upper
+
+
+class DeterministicPlannerAgent(AbstractTreeSearchAgent):
+    """
+        An agent that performs optimistic planning in deterministic MDPs.
+    """
+    PLANNER_TYPE = OptimisticDeterministicPlanner

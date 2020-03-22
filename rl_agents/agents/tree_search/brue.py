@@ -9,14 +9,6 @@ from rl_agents.utils import hoeffding_upper_bound, kl_upper_bound, laplace_upper
 logger = logging.getLogger(__name__)
 
 
-class BRUEAgent(AbstractTreeSearchAgent):
-    """
-        An agent that uses BRUE to plan a sequence of actions in an MDP.
-    """
-    def make_planner(self):
-        return BRUE(self.env, self.config)
-
-
 class BRUE(OLOP):
     """
        Best Recommendation with Uniform Exploration algorithm.
@@ -33,11 +25,10 @@ class BRUE(OLOP):
         })
         return cfg
 
-    def make_root(self):
+    def reset(self):
         if "horizon" not in self.config:
             self.allocate_budget()
-        root = DecisionNode(parent=None, planner=self)
-        return root
+        self.root = DecisionNode(parent=None, planner=self)
 
     def rollout(self, state, observation):
         for h in range(self.config["horizon"]):
@@ -130,3 +121,10 @@ class ChanceNode(Node):
         if str(obs) not in self.children:
             self.children[str(obs)] = DecisionNode(self, self.planner)
         return self.children[str(obs)]
+
+
+class BRUEAgent(AbstractTreeSearchAgent):
+    """
+        An agent that uses BRUE to plan a sequence of actions in an MDP.
+    """
+    PLANNER_TYPE = BRUE

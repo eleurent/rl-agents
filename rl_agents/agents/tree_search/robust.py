@@ -6,28 +6,6 @@ from rl_agents.agents.tree_search.deterministic import DeterministicPlannerAgent
     DeterministicNode
 
 
-class DiscreteRobustPlannerAgent(DeterministicPlannerAgent):
-    def __init__(self,
-                 env,
-                 config=None):
-        self.true_env = env
-        super(DiscreteRobustPlannerAgent, self).__init__(env, config)
-
-    def make_planner(self):
-        return DiscreteRobustPlanner(self.config)
-
-    @classmethod
-    def default_config(cls):
-        config = super(DiscreteRobustPlannerAgent, cls).default_config()
-        config.update(dict(models=[]))
-        return config
-
-    def plan(self, observation):
-        envs = [preprocess_env(self.true_env, preprocessors) for preprocessors in self.config["models"]]
-        self.env = JointEnv(envs)
-        return super(DiscreteRobustPlannerAgent, self).plan(observation)
-
-
 class JointEnv(object):
     def __init__(self, envs):
         self.joint_state = envs
@@ -48,10 +26,9 @@ class JointEnv(object):
 
 
 class DiscreteRobustPlanner(OptimisticDeterministicPlanner):
-    def make_root(self):
-        root = RobustNode(parent=None, planner=self)
-        self.leaves = [root]
-        return root
+    def reset(self):
+        self.root = RobustNode(parent=None, planner=self)
+        self.leaves = [self.root]
 
 
 class RobustNode(DeterministicNode):
@@ -60,6 +37,27 @@ class RobustNode(DeterministicNode):
 
     def get_value_upper_bound(self):
         return np.min(self.value_upper)
+
+
+class DiscreteRobustPlannerAgent(DeterministicPlannerAgent):
+    PLANNER_TYPE = DiscreteRobustPlanner
+
+    def __init__(self,
+                 env,
+                 config=None):
+        self.true_env = env
+        super().__init__(env, config)
+
+    @classmethod
+    def default_config(cls):
+        config = super().default_config()
+        config.update(dict(models=[]))
+        return config
+
+    def plan(self, observation):
+        envs = [preprocess_env(self.true_env, preprocessors) for preprocessors in self.config["models"]]
+        self.env = JointEnv(envs)
+        return super().plan(observation)
 
 
 class IntervalRobustPlannerAgent(AbstractAgent):

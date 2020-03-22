@@ -8,14 +8,6 @@ from rl_agents.utils import hoeffding_upper_bound, kl_upper_bound, laplace_upper
 logger = logging.getLogger(__name__)
 
 
-class OLOPAgent(AbstractTreeSearchAgent):
-    """
-        An agent that uses Open Loop Optimistic Planning to plan a sequence of actions in an MDP.
-    """
-    def make_planner(self):
-        return OLOP(self.env, self.config)
-
-
 class OLOP(AbstractPlanner):
     """
        An implementation of Open Loop Optimistic Planning.
@@ -41,12 +33,11 @@ class OLOP(AbstractPlanner):
         )
         return cfg
 
-    def make_root(self):
+    def reset(self):
         if "horizon" not in self.config:
             self.allocate_budget()
-        root = OLOPNode(parent=None, planner=self)
-        self.leaves = [root]
-        return root
+        self.root = OLOPNode(parent=None, planner=self)
+        self.leaves = [self.root]
 
     @staticmethod
     def horizon(episodes, gamma):
@@ -54,7 +45,7 @@ class OLOP(AbstractPlanner):
 
     def allocate_budget(self):
         budget = max(self.env.action_space.n, self.config["budget"])
-        self.config["episodes"], self.config["horizon"] = self.allocate_budget(budget, self.config["gamma"])
+        self.config["episodes"], self.config["horizon"] = self.allocation(budget, self.config["gamma"])
 
     @staticmethod
     def allocation(budget, gamma):
@@ -89,7 +80,7 @@ class OLOP(AbstractPlanner):
                 action = self.np_random.randint(state.action_space.n) \
                     if self.config["continuation_type"] == "uniform" else 0
             else:  # Run UCB elsewhere
-                action, _ = max([child for child in node.children.items()], key=lambda c: c[1].value)
+                action, _ = max([child for child in node.children.items()], key=lambda c: c[1].value_upper)
 
             # Perform transition
             observation, reward, done, _ = state.step(action)
@@ -196,9 +187,16 @@ class OLOPNode(Node):
         """
         if self.children:
             gamma = self.planner.config["gamma"]
-            self.value_upper = self.mu_ucb + gamma * np.amax([c.value for c in self.children.values()])
+            self.value_upper = self.mu_ucb + gamma * np.amax([c.value_upper for c in self.children.values()])
         else:
             assert self.depth == self.planner.config["horizon"]
             self.value_upper = self.mu_ucb
         if self.parent:
             self.parent.backup_to_root()
+
+
+class OLOPAgent(AbstractTreeSearchAgent):
+    """
+        An agent that uses Open Loop Optimistic Planning to plan a sequence of actions in an MDP.
+    """
+    PLANNER_TYPE = OLOP

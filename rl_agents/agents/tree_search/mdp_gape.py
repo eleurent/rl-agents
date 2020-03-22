@@ -8,38 +8,6 @@ from rl_agents.utils import max_expectation_under_constraint, kl_upper_bound
 logger = logging.getLogger(__name__)
 
 
-class MDPGapEAgent(OLOPAgent):
-    """
-        An agent that uses best-arm-identification to plan a sequence of actions in an MDP.
-    """
-    def make_planner(self):
-        return MDPGapE(self.env, self.config)
-
-    def step(self, actions):
-        """
-            Handle receding horizon mechanism with chance nodes
-        """
-        replanning_required = self.remaining_horizon == 0  # Cannot check remaining actions here
-        if replanning_required:
-            self.remaining_horizon = self.config["receding_horizon"] - 1
-            self.planner.step_by_reset()
-        else:
-            self.remaining_horizon -= 1
-            self.planner.step(actions)
-
-            # Check for remaining children here instead
-            if self.planner.root.children:
-                self.previous_actions.extend(self.planner.get_plan())
-            else:  # After stepping the transition in the tree, the subtree is empty
-                replanning_required = True
-                self.planner.step_by_reset()
-
-        return replanning_required
-
-    def record(self, state, action, reward, next_state, done, info):
-        self.planner.next_observation = next_state
-
-
 class MDPGapE(OLOP):
     """
        Best-Arm Identification MCTS.
@@ -71,11 +39,10 @@ class MDPGapE(OLOP):
         )
         return cfg
 
-    def make_root(self):
+    def reset(self):
         if "horizon" not in self.config:
             self.allocate_budget()
-        root = DecisionNode(parent=None, planner=self)
-        return root
+        self.root = DecisionNode(parent=None, planner=self)
 
     def allocate_budget(self):
         """
@@ -343,3 +310,34 @@ class ChanceNode(OLOPNode):
         count = self.count
         time = self.planner.config["episodes"]
         return eval(self.planner.config["upper_bound"]["transition_threshold"])
+
+
+class MDPGapEAgent(OLOPAgent):
+    """
+        An agent that uses best-arm-identification to plan a sequence of actions in an MDP.
+    """
+    PLANNER_TYPE = MDPGapE
+
+    def step(self, actions):
+        """
+            Handle receding horizon mechanism with chance nodes
+        """
+        replanning_required = self.remaining_horizon == 0  # Cannot check remaining actions here
+        if replanning_required:
+            self.remaining_horizon = self.config["receding_horizon"] - 1
+            self.planner.step_by_reset()
+        else:
+            self.remaining_horizon -= 1
+            self.planner.step(actions)
+
+            # Check for remaining children here instead
+            if self.planner.root.children:
+                self.previous_actions.extend(self.planner.get_plan())
+            else:  # After stepping the transition in the tree, the subtree is empty
+                replanning_required = True
+                self.planner.step_by_reset()
+
+        return replanning_required
+
+    def record(self, state, action, reward, next_state, done, info):
+        self.planner.next_observation = next_state

@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractTreeSearchAgent(AbstractAgent):
+    PLANNER_TYPE = None
+    NODE_TYPE = None
+
     def __init__(self,
                  env,
                  config=None):
@@ -38,7 +41,10 @@ class AbstractTreeSearchAgent(AbstractAgent):
         }
 
     def make_planner(self):
-        raise NotImplementedError()
+        if self.PLANNER_TYPE:
+            return self.PLANNER_TYPE(self.env, self.config)
+        else:
+            raise NotImplementedError()
 
     def plan(self, observation):
         """
@@ -104,7 +110,8 @@ class AbstractPlanner(Configurable):
     def __init__(self, config=None):
         super(AbstractPlanner, self).__init__(config)
         self.np_random = None
-        self.root = self.make_root()
+        self.root = None
+        self.reset()
         self.seed()
 
     @classmethod
@@ -112,9 +119,6 @@ class AbstractPlanner(Configurable):
         return dict(budget=500,
                     gamma=0.8,
                     step_strategy="reset")
-
-    def make_root(self):
-        raise NotImplementedError()
 
     def seed(self, seed=None):
         """
@@ -171,7 +175,7 @@ class AbstractPlanner(Configurable):
         """
             Reset the planner tree to a root node for the new state.
         """
-        self.root = self.make_root()
+        self.reset()
 
     def step_by_subtree(self, action):
         """
@@ -185,6 +189,9 @@ class AbstractPlanner(Configurable):
         else:
             # The selected action was never explored, start a new tree.
             self.step_by_reset()
+
+    def reset(self):
+        raise NotImplementedError
 
 
 class Node(object):
@@ -316,13 +323,21 @@ class Node(object):
             trajectories = [[self]] if full_trajectories else [self]
         return trajectories
 
-    def get_obs_visits(self):
+    def get_obs_visits(self, state=None):
         visits = defaultdict(int)
         updates = defaultdict(int)
-        for node in self.get_trajectories(full_trajectories=False,
-                                          include_leaves=False):
-            if hasattr(node, "observation"):
-                visits[str(node.observation)] += 1
-                if hasattr(node, "updates_count"):
-                    updates[str(node.observation)] += node.updates_count
+        if hasattr(self, "observation"):
+            for node in self.get_trajectories(full_trajectories=False,
+                                              include_leaves=False):
+                if hasattr(node, "observation"):
+                    visits[str(node.observation)] += 1
+                    if hasattr(node, "updates_count"):
+                        updates[str(node.observation)] += node.updates_count
+        else:  # Replay required
+            for node in self.get_trajectories(full_trajectories=False,
+                                              include_leaves=False):
+                replay_state = safe_deepcopy_env(state)
+                for action in node.path():
+                    observation, _, _, _ = replay_state.step(action)
+                visits[str(observation)] += 1
         return visits, updates

@@ -118,8 +118,8 @@ class MCTS(AbstractPlanner):
         d.update(dict(temperature=40))
         return d
 
-    def make_root(self):
-        return MCTSNode(parent=None, planner=self)
+    def reset(self):
+        self.root = MCTSNode(parent=None, planner=self)
 
     def run(self, state, observation):
         """
