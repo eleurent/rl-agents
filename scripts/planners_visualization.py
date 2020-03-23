@@ -40,16 +40,6 @@ agents = {
         "lazy_tree_construction": True,
         "continuation_type": "uniform",
     },
-    "kl-olop": {
-        "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-        "gamma": gamma,
-        "upper_bound": {
-            "type": "kullback-leibler",
-            "threshold": "2*np.log(time) + 2*np.log(np.log(time))"
-        },
-        "lazy_tree_construction": True,
-        "continuation_type": "uniform",
-    },
     "KL-OLOP": {
         "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
         "gamma": gamma,
@@ -110,6 +100,11 @@ agents = {
         },
         "max_next_states_count": 1,
         "continuation_type": "uniform",
+        "step_strategy": "reset",
+    },
+    "BRUE": {
+        "__class__": "<class 'rl_agents.agents.tree_search.brue.BRUEAgent'>",
+        "gamma": gamma,
         "step_strategy": "reset",
     },
 }
@@ -203,9 +198,10 @@ if __name__ == "__main__":
     selected_agents = [
          "OPD",
          "GBOP-D",
-         # "KL-OLOP",
+         "KL-OLOP",
          "MDP-GapE",
          "GBOP",
+         "BRUE",
     ]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
     budget = 4 * (4 ** 6 - 1) / (4 - 1)
