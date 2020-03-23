@@ -8,17 +8,24 @@ class GridEnv(Env):
     REWARD_CENTER = [10, 10]
     REWARD_RADIUS = 5
 
-    def __init__(self, use_diagonals=False, stochasticity=0):
-        self.stochasticity = stochasticity
+    config = {
+        "use_diagonals": False,
+        "stochasticity": 0
+    }
+
+    def __init__(self, config=None):
         self.x = np.zeros(2)
-        num_actions = 8 if use_diagonals else 4
+        num_actions = 8 if self.config["use_diagonals"] else 4
         self.action_space = spaces.Discrete(num_actions)
         self.np_random = None
         self.seed()
 
+    def configure(self, config):
+        self.config.update(config)
+
     def step(self, action):
-        if self.stochasticity > 0:
-            if self.np_random.uniform() < self.stochasticity:
+        if self.config["stochasticity"] > 0:
+            if self.np_random.uniform() < self.config["stochasticity"]:
                 action = -1
         if action == 0:
             self.x[0] += 1
@@ -98,20 +105,11 @@ class LineEnv(Env):
         return [seed]
 
 
-class GridEnvStochastic(GridEnv):
-    def __init__(self):
-        super().__init__(stochasticity=0.5)
-
-
 register(
     id='gridenv-v0',
     entry_point='utils.envs:GridEnv'
 )
 
-register(
-    id='gridenv-stoch-v0',
-    entry_point='utils.envs:GridEnvStochastic',
-)
 register(
     id='line_env-v0',
     entry_point='utils.envs:LineEnv',

@@ -25,7 +25,7 @@ envs = {
     "env_loop": Path("configs") / "FiniteMDPEnv" / "env_loop.json",
     "env_garnet": Path("configs") / "FiniteMDPEnv" / "env_garnet.json",
     "gridenv": Path("configs") / "DummyEnv" / "gridenv.json",
-    "gridenv-stoch": Path("configs") / "DummyEnv" / "gridenv-stoch.json",
+    "gridenv_stoch": Path("configs") / "DummyEnv" / "gridenv_stoch.json",
     "dynamics": Path("configs") / "DummyEnv" / "dynamics.json",
 }
 
@@ -94,6 +94,7 @@ agents = {
             "threshold": "0*np.log(time)",
             "transition_threshold": "0*np.log(time)"
         },
+        "max_next_states_count": 1,
     },
     "MDP-GapE": {
         "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
@@ -152,7 +153,7 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
                     state_updates[agent_name][i, j] = updates[str(np.array([x, y]))]
 
         if show_tree:
-            TreePlot(agent.planner, max_depth=100).plot(out / "{}.pdf".format(agent_name), title=agent_name)
+            TreePlot(agent.planner, max_depth=100).plot(out / "tree_{}.pdf".format(agent_name), title=agent_name)
             plt.show()
 
     if show_states:
