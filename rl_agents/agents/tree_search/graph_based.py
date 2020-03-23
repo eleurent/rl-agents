@@ -59,12 +59,11 @@ class GraphNode(Node):
         return self.value_lower
 
     def get_obs_visits(self, state=None):
-        visits = defaultdict(int)
         updates = defaultdict(int)
         for obs in self.planner.nodes.keys():
-            visits[obs] += 1
+            self.planner.visits[obs] += 1
             updates[obs] += self.planner.nodes[obs].updates_count
-        return visits, updates
+        return self.planner.visits, updates
 
     def get_trajectories(self, full_trajectories=True, include_leaves=True):
         return []
@@ -93,6 +92,7 @@ class GraphBasedPlanner(AbstractPlanner):
     def __init__(self, env, config=None):
         self.env = env
         self.nodes = {}
+        self.visits = defaultdict(int)
         super().__init__(config)
 
     def reset(self):
@@ -109,6 +109,7 @@ class GraphBasedPlanner(AbstractPlanner):
                 optimistic_action = node.sampling_rule()
                 node = node.children[optimistic_action]
         else:
+            self.visits[str(node.observation)] += 1
             logger.info("The optimistic sampling strategy could not find a sink. We probably found an optimal loop.")
 
     def get_node(self, observation, state=None):
