@@ -18,7 +18,6 @@ class GraphNode(Node):
         self.value_upper = 1 / (1 - self.planner.config["gamma"])
         self.rewards = {}
         self.parents = set()
-        self.updates_count = 0
 
     def sampling_rule(self):
         """
@@ -41,11 +40,11 @@ class GraphNode(Node):
             actions = range(self.state.action_space.n)
         for action in actions:
             # Simulate transition
-            next_state = safe_deepcopy_env(self.state)
-            next_observation, reward, done, _ = next_state.step(action)
+            state = safe_deepcopy_env(self.state)
+            next_observation, reward, done, _ = self.planner.step(state, action)
             # Record the transition
             next_node = self.planner.get_node(next_observation)
-            next_node.state = next_state
+            next_node.state = state
             next_node.parents.add(self)
             self.rewards[action] = reward
             self.children[action] = next_node
@@ -58,20 +57,13 @@ class GraphNode(Node):
     def get_value(self):
         return self.value_lower
 
-    def get_obs_visits(self, state=None):
-        updates = defaultdict(int)
-        for obs in self.planner.nodes.keys():
-            self.planner.visits[obs] += 1
-            updates[obs] += self.planner.nodes[obs].updates_count
-        return self.planner.visits, updates
-
     def get_trajectories(self, full_trajectories=True, include_leaves=True):
         return []
 
     def partial_value_iteration(self, eps=1e-2):
         queue = [self]
         while queue:
-            self.updates_count += 1
+            self.planner.updates_count[str(self.observation)] += 1
             node = queue.pop(0)
             delta = 0
             for field in ["value_lower", "value_upper"]:
@@ -92,7 +84,7 @@ class GraphBasedPlanner(AbstractPlanner):
     def __init__(self, env, config=None):
         self.env = env
         self.nodes = {}
-        self.visits = defaultdict(int)
+        self.updates_count = defaultdict(int)
         super().__init__(config)
 
     def reset(self):
@@ -109,8 +101,8 @@ class GraphBasedPlanner(AbstractPlanner):
                 optimistic_action = node.sampling_rule()
                 node = node.children[optimistic_action]
         else:
-            self.visits[str(node.observation)] += 1
             logger.info("The optimistic sampling strategy could not find a sink. We probably found an optimal loop.")
+            self.observations.extend([node.observation] * node.state.action_space.n)
 
     def get_node(self, observation, state=None):
         # Get or create node
@@ -138,6 +130,9 @@ class GraphBasedPlanner(AbstractPlanner):
             actions.append(action)
             node = node.children[action]
         return actions
+
+    def get_updates(self):
+        return self.updates_count
 
 
 class GraphBasedPlannerAgent(AbstractTreeSearchAgent):

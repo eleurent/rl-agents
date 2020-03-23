@@ -79,7 +79,7 @@ class MDPGapE(OLOP):
 
             # Perform transition
             chance_node, action = decision_node.get_child(action, state)
-            observation, reward, done, _ = state.step(action)
+            observation, reward, done, _ = self.step(state, action)
             decision_node = chance_node.get_child(observation)
 
             # Update local statistics
@@ -109,7 +109,7 @@ class MDPGapE(OLOP):
         self.budget_used = episode * self.config["horizon"]
         return self.get_plan()
 
-    def step(self, actions):
+    def step_tree(self, actions):
         """
             Update the planner tree when the agent performs an action and observes the next state
         :param actions: a sequence of actions to follow from the root node
@@ -331,7 +331,7 @@ class MDPGapEAgent(OLOPAgent):
             self.planner.step_by_reset()
         else:
             self.remaining_horizon -= 1
-            self.planner.step(actions)
+            self.planner.step_tree(actions)
 
             # Check for remaining children here instead
             if self.planner.root.children:

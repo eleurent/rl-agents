@@ -3,6 +3,7 @@ import gym
 from pathlib import Path
 import itertools
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import seaborn as sns
@@ -128,16 +129,27 @@ def evaluate_agents(env, agents, budget, seed=None):
         agent = evaluate(env, agent_name, budget, seed=seed)
         yield agent, agent_name
 
+def score(observations):
+    start, goal = np.array([0, 0]), np.array([10, 10])
+    score = np.mean([np.linalg.norm(start - obs)
+                     - np.linalg.norm(goal - obs)
+                     + np.linalg.norm(goal - start)
+                     for obs in observations])
+    return score
 
-def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=False, show_states=False):
+
+def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=False, show_states=False,
+                   show_scores=True):
     trajectories = {}
     state_occupations = {}
     state_updates = {}
     state_limits = 20
+    data = {}
     for agent, agent_name in evaluate_agents(env, agents, budget, seed):
         trajectories[agent_name] = agent.planner.root.get_trajectories(env)
         # Aggregate visits
-        visits, updates = agent.planner.root.get_obs_visits(state=env)
+        visits = agent.planner.get_visits()
+        updates = agent.planner.get_updates()
 
         if isinstance(env, GridEnv):
             state_occupations[agent_name] = np.zeros((2 * state_limits + 1, 2 * state_limits + 1))
@@ -146,6 +158,13 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
                 for j, y in enumerate(np.arange(-state_limits, state_limits)):
                     state_occupations[agent_name][i, j] = visits[str(np.array([x, y]))]
                     state_updates[agent_name][i, j] = updates[str(np.array([x, y]))]
+            data[agent_name] = {
+                "agent": agent_name,
+                "kind": "deterministic" if agent_name[-1] == "D" else "stochastic",
+                "ours": agent_name[:4] == "GBOP",
+                "score": score(agent.planner.observations),
+                "observations": len(agent.planner.observations)
+            }
 
         if show_tree:
             TreePlot(agent.planner, max_depth=100).plot(out / "tree_{}.pdf".format(agent_name), title=agent_name)
@@ -168,6 +187,13 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
             axes = show_trajectories(agent_name, agent_trajectories, axes=axes, color=next(palette))
         plt.show()
         plt.savefig(out / "trajectories.png")
+
+    if show_scores:
+        data = pd.DataFrame(list(data.values()))
+        data = data.sort_values(["score"])
+        with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+            print(data)
+            data.plot.bar(x='agent', y='score', rot=0).get_figure().savefig(out / "score.pdf")
 
 
 def show_state_map(title, agent_name, values, state_limits, v_max=None):
@@ -207,4 +233,4 @@ if __name__ == "__main__":
     budget = 4 * (4 ** 6 - 1) / (4 - 1)
     # budget = 200
     compare_agents(selected_env, selected_agents, budget=budget,
-                   show_tree=True, show_states=True, show_trajs=False, seed=0)
+                   show_tree=False, show_states=True, show_trajs=False, seed=0)

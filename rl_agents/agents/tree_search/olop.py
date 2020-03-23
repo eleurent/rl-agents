@@ -83,7 +83,7 @@ class OLOP(AbstractPlanner):
                 action, _ = max([child for child in node.children.items()], key=lambda c: c[1].value_upper)
 
             # Perform transition
-            observation, reward, done, _ = state.step(action)
+            observation, reward, done, _ = self.step(state, action)
 
             if not node.children:
                 node.expand(state)

@@ -1,6 +1,7 @@
 import logging
 from collections import defaultdict
 
+import gym
 import numpy as np
 from gym.utils import seeding
 
@@ -78,7 +79,7 @@ class AbstractTreeSearchAgent(AbstractAgent):
         else:
             self.remaining_horizon -= 1
 
-        self.planner.step(actions)
+        self.planner.step_tree(actions)
         return replanning_required
 
     def reset(self):
@@ -111,6 +112,7 @@ class AbstractPlanner(Configurable):
         super(AbstractPlanner, self).__init__(config)
         self.np_random = None
         self.root = None
+        self.observations = []
         self.reset()
         self.seed()
 
@@ -154,7 +156,21 @@ class AbstractPlanner(Configurable):
             node = node.children[action]
         return actions
 
-    def step(self, actions):
+    def step(self, state, action):
+        observation, reward, done, info = state.step(action)
+        self.observations.append(observation)
+        return observation, reward, done, info
+
+    def get_visits(self):
+        visits = defaultdict(int)
+        for observation in self.observations:
+            visits[str(observation)] += 1
+        return visits
+
+    def get_updates(self):
+        return defaultdict(int)
+
+    def step_tree(self, actions):
         """
             Update the planner tree when the agent performs an action
 

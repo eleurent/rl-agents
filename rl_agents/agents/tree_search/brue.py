@@ -17,14 +17,6 @@ class BRUE(OLOP):
         super().__init__(env, config)
         self.available_budget = 0
 
-    @classmethod
-    def default_config(cls):
-        cfg = super().default_config()
-        cfg.update({
-            "horizon": 6
-        })
-        return cfg
-
     def reset(self):
         if "horizon" not in self.config:
             self.allocate_budget()
@@ -33,7 +25,7 @@ class BRUE(OLOP):
     def rollout(self, state, observation):
         for h in range(self.config["horizon"]):
             action = self.np_random.randint(state.action_space.n)
-            next_observation, reward, done, _ = state.step(action)
+            next_observation, reward, done, _ = self.step(state, action)
             yield observation, action, reward, next_observation, done
             observation = next_observation
             self.available_budget -= 1
@@ -63,7 +55,7 @@ class BRUE(OLOP):
             if not state_node.children:
                 break
             # Best estimated action
-            chance_node = max(state_node.children.values(), key=lambda child: child.value)
+            chance_node = max(state_node.children.values(), key=lambda child: child.value_upper)
             # Random estimated outcome
             next_states = list(chance_node.children.values())
             counts = np.array([state.count for state in next_states])
@@ -95,7 +87,7 @@ class DecisionNode(Node):
 
     def selection_rule(self):
         actions = list(self.children.keys())
-        index = self.random_argmax([self.children[a].value for a in actions])
+        index = self.random_argmax([self.children[a].value_upper for a in actions])
         return actions[index]
 
     def get_child(self, action):
@@ -112,7 +104,7 @@ class ChanceNode(Node):
 
     def update(self, return_):
         self.count += 1
-        self.value = (self.count - 1) / self.count * self.value + return_ / self.count
+        self.value_upper = (self.count - 1) / self.count * self.value_upper + return_ / self.count
 
     def selection_rule(self):
         raise AttributeError("Selection is done in DecisionNodes, not ChanceNodes")

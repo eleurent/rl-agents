@@ -119,10 +119,6 @@ class GraphDecisionNode(GraphNode):
         else:
             return getattr(self, field)
 
-    def get_obs_visits(self, state=None):
-        updates = defaultdict(int)
-        return self.planner.visits, updates
-
     def __str__(self):
         return "{} (L:{:.2f}, U:{:.2f})".format(str(self.observation), self.value_lower, self.value_upper)
 
@@ -219,7 +215,6 @@ class StochasticGraphBasedPlanner(GraphBasedPlanner):
 
     def __init__(self, env, config=None):
         super().__init__(env, config)
-        self.visits = defaultdict(int)
 
     def run(self, state, observation):
         """
@@ -238,7 +233,7 @@ class StochasticGraphBasedPlanner(GraphBasedPlanner):
             chance_node = decision_node.get_child(action)
 
             # Perform transition
-            observation, reward, done, _ = state.step(action)
+            observation, reward, done, _ = self.step(state, action)
             next_decision_node = chance_node.get_child(observation)
 
             # Update local statistics
@@ -249,9 +244,6 @@ class StochasticGraphBasedPlanner(GraphBasedPlanner):
             # Track updated nodes
             if decision_node not in update_queue:
                 update_queue.append(decision_node)
-
-            # For display
-            self.visits[str(observation)] += 1
 
         # Value iteration
         decision_node.partial_value_iteration(queue=list(reversed(update_queue)))
