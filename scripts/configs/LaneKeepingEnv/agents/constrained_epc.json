@@ -30,14 +30,17 @@
           [0],
           [0]],
     "omega": [[-0.0], [0.0]],
-    "simulation_frequency": 15,
+    "simulation_frequency": 10,
     "policy_frequency": 10,
     "parameter_bound": 15.0,
     "noise_bound": 0.1,
-    "perturbation_bound": 0.0,
+    "perturbation_bound": 0.5,
     "control_bound": 1.57,
     "pole_placement": true,
-    "ensure_stability": false,
+    "poles": [-1, -2, -3, -4],
+    "ensure_stability": true,
     "S": [[-9.10516244e-20, 1.39474764e-17, -2.14692169e-02, -8.70745066e-03,
-           -1.00818071e-17, 7.03269333e-18, -2.14692169e-02, -8.70745066e-03]]
+           -1.00818071e-17, 7.03269333e-18, -2.14692169e-02, -8.70745066e-03]],
+    "Xf": [2.27, 17.11, 2.63, 8.14, 2.27, 17.11, 2.63, 8.14],
+    "update_frequency": 10
 }

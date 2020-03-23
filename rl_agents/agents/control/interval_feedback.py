@@ -16,6 +16,7 @@ class IntervalFeedback(LinearFeedbackAgent):
         self.K2 = np.array(self.config["K2"])
         self.S = np.array(self.config["S"])
         self.D = np.array(self.config["D"])
+        self.X_f = np.array(self.config["Xf"])
         self.reset()
 
     @classmethod
@@ -35,10 +36,10 @@ class IntervalFeedback(LinearFeedbackAgent):
         return cfg
 
     def reset(self):
-        if self.config["K0"] is None:
-            self.synthesize_controller(self.config["pole_placement"], self.config["ensure_stability"])
         if self.config["S"] is None:
             self.synthesize_perturbation_rejection()
+        if self.config["K0"] is None:
+            self.synthesize_controller(self.config["pole_placement"], self.config["ensure_stability"])
         super().reset()
 
     def act(self, observation):
@@ -48,14 +49,19 @@ class IntervalFeedback(LinearFeedbackAgent):
         x_M = observation["interval_max"]
         x_ref = observation["reference_state"]
         xi = np.concatenate((x_m - x_ref, x_M - x_ref))
-        omega_m = observation["perturbation_min"]
-        omega_M = observation["perturbation_max"]
-        delta = np.concatenate((np.concatenate((pos(self.D), -neg(self.D)), axis=1),
-                                np.concatenate((-neg(self.D), pos(self.D)), axis=1)))
-        delta = delta @ np.concatenate((omega_m, omega_M))
-        control = self.K0 @ xi + self.K1 @ pos(xi) + self.K2 @ neg(xi) + self.S @ delta
+
+        control = self.K0 @ xi + self.K1 @ pos(xi) + self.K2 @ neg(xi) + self.S @ self.delta()
         control = np.clip(control, -self.config["control_bound"], self.config["control_bound"])
         return np.asarray(control).squeeze(-1)
+
+    def delta(self):
+        """ Extended perturbation interval. """
+        omega_m = [[self.config["perturbation_bound"]]]
+        omega_M = [[-self.config["perturbation_bound"]]]
+        cD = np.concatenate((np.concatenate((pos(self.D), -neg(self.D)), axis=1),
+                             np.concatenate((-neg(self.D), pos(self.D)), axis=1)))
+        delta = cD @ np.concatenate((omega_m, omega_M))
+        return delta
 
     def synthesize_controller(self, pole_placement=False, ensure_stability=True):
         """
@@ -91,7 +97,7 @@ class IntervalFeedback(LinearFeedbackAgent):
             import control
             logger.debug("The eigenvalues of the matrix A0 = {},  Uncontrollable states = {}".format(
                 np.linalg.eigvals(A0), p - np.rank(control.ctrb(A0, B))))
-            poles = self.config.get("poles", -np.arange(1, p+1))
+            poles = self.config.get("poles", np.minimum(np.linalg.eigvals(A0), -np.arange(1, p+1)))
             K = -control.place(A0, B, poles)
             logger.debug("The eigenvalues of the matrix A0+BK = {}".format(np.linalg.eigvals(A0+B*K)))
             logger.debug("The eigenvalues of the matrix A0+BK+DA = {}".format(np.linalg.eigvals(A0+B*K+DA)))
@@ -109,7 +115,7 @@ class IntervalFeedback(LinearFeedbackAgent):
             success = self.synthesize_controller(pole_placement=True, ensure_stability=ensure_stability)
         return success
 
-    def stability_lmi(self, cA0, cA1, cA2, cB, synthesize_control=True):
+    def stability_lmi(self, cA0, cA1, cA2, cB, synthesize_control=True, epsilon=1e-8):
         """
             Solve an LMI to check the stability of an interval controller
         :param cA0: extended nominal matrix
@@ -117,6 +123,7 @@ class IntervalFeedback(LinearFeedbackAgent):
         :param cA2: extended state matrix uncertainty
         :param cB: extended control matrix
         :param synthesize_control: if true, the controls will be synthesized via the LMI
+        :param epsilon: accuracy for checking that a matrix is positive definite.
         :return: whether the controlled system is stable
         """
         import cvxpy as cp
@@ -170,12 +177,12 @@ class IntervalFeedback(LinearFeedbackAgent):
             ])
             U0, U1, U2 = None, None, None
 
-        C = Q + cp.minimum(Qp, Qn) + 2*cp.minimum(Psi_p, Psi_n)
+        Omega = Q + cp.minimum(Qp, Qn) + 2*cp.minimum(Psi_p, Psi_n)
 
         constraints = [
-            P + cp.minimum(Zp, Zn) >= 0,
-            Gamma >= 0,
-            C >= 0,
+            P + cp.minimum(Zp, Zn) >= epsilon,
+            Gamma >= epsilon,
+            Omega >= epsilon,
             Pi << 0
         ]
 
@@ -186,28 +193,41 @@ class IntervalFeedback(LinearFeedbackAgent):
         success = prob.status == "optimal"
         if success:
             logger.debug("Matrices:")
-            logger.debug("- P:".format(P.value))
-            logger.debug("- Q:".format(Q.value))
-            logger.debug("- Qp:".format(Qp.value))
-            logger.debug("- Qn:".format(Qn.value))
-            logger.debug("- Zp:".format(Zp.value))
-            logger.debug("- Zn:".format(Zn.value))
-            logger.debug("- Psi:".format(Psi.value))
-            logger.debug("- Psi_p:".format(Psi_p.value))
-            logger.debug("- Psi_n:".format(Psi_n.value))
-            logger.debug("- Gamma:".format(Gamma.value))
-            logger.debug("- Pi:\n".format(Pi.value))
+            logger.debug("- P: {}".format(P.value))
+            logger.debug("- Q: {}".format(Q.value))
+            logger.debug("- Qp: {}".format(Qp.value))
+            logger.debug("- Qn: {}".format(Qn.value))
+            logger.debug("- Zp: {}".format(Zp.value))
+            logger.debug("- Zn: {}".format(Zn.value))
+            logger.debug("- Psi: {}".format(Psi.value))
+            logger.debug("- Psi_p: {}".format(Psi_p.value))
+            logger.debug("- Psi_n: {}".format(Psi_n.value))
+            logger.debug("- Gamma: {}".format(Gamma.value))
+            # logger.debug("- Pi:\n{}".format(Pi.value))
             logger.debug("Constraints:")
-            logger.debug("- Q + cp.minimum(Qp, Qn) + 2*cp.minimum(Psi_p, Psi_n):".format(C.value))
-            logger.debug("- lambda(Pi):".format(np.linalg.eigvals(Pi.value)))
+            logger.debug("- Omega: {}".format(Omega.value))
+            # logger.debug("- lambda(Pi): {}".format(np.linalg.eigvals(Pi.value)))
+
+            P = np.linalg.inv(P.value.todense())
+            Zp = np.linalg.inv(Zp.value.todense())
+            Zn = np.linalg.inv(Zn.value.todense())
             if synthesize_control:
                 logger.debug("- U0:".format(U0.value))
                 logger.debug("- U1:".format(U1.value))
                 logger.debug("- U2:".format(U2.value))
-                self.K0 = U0.value @ np.linalg.inv(P.value)
-                self.K1 = U1.value @ np.linalg.inv(Zp.value)
-                self.K2 = U2.value @ np.linalg.inv(Zn.value)
+                self.K0 = U0.value @ P
+                self.K1 = U1.value @ Zp
+                self.K2 = U2.value @ Zn
+
+            self.compute_attracting_region(cB, Gamma.value.todense(), Omega.value, P, Zp, Zn)
         return success
+
+    def compute_attracting_region(self, cB, Gamma, Omega, P, Zp, Zn):
+        Id = np.eye(Gamma.shape[0])
+        delta_tilde = (cB @ self.S + Id) @ self.delta()
+        alpha = np.amin(np.linalg.eigvals(Omega @ np.linalg.inv(P + pos(Zp) + pos(Zn))))
+        V_max = 1/alpha * np.abs(delta_tilde.T @ Gamma @ delta_tilde)
+        self.X_f = 1 / np.sqrt(np.diagonal(P / V_max))
 
     def synthesize_perturbation_rejection(self):
         """

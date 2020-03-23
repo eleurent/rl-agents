@@ -16,13 +16,15 @@ class ConstrainedEPCAgent(RobustEPCAgent):
     def __init__(self, env, config=None):
         super().__init__(env, config)
         self.feedback = None
+        self.iteration = 0
 
     @classmethod
     def default_config(cls):
         cfg = super().default_config()
         cfg.update({
             "noise_bound": 1,
-            "perturbation_bound": 1
+            "perturbation_bound": 1,
+            "update_frequency": 1
         })
         return cfg
 
@@ -82,15 +84,14 @@ class ConstrainedEPCAgent(RobustEPCAgent):
         })
         if not self.feedback:
             self.feedback = IntervalFeedback(self.env, config)
-        else:
+        elif self.iteration % self.config["update_frequency"] == self.config["update_frequency"] // 2:
             config.update({"K0": None})
             self.feedback.update_config(config)
             self.feedback.reset()
         observation["interval_min"] = observation["state"] - 0.1*np.abs(observation["state"])
         observation["interval_max"] = observation["state"] + 0.1*np.abs(observation["state"])
-        observation["perturbation_min"] = [[self.config["perturbation_bound"]]]
-        observation["perturbation_max"] = [[-self.config["perturbation_bound"]]]
         action = self.feedback.act(observation)
+        self.iteration += 1
         return [action]
 
     def get_plan(self):
