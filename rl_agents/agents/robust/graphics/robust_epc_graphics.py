@@ -9,7 +9,7 @@ from rl_agents.agents.robust.robust_epc import NominalEPCAgent
 matplotlib.rc('text', usetex=False)
 import seaborn as sns
 
-from rl_agents.agents.tree_search.graphics.robust import IntervalRobustPlannerGraphics
+from rl_agents.agents.robust.graphics.robust_graphics import IntervalRobustPlannerGraphics
 
 
 class RobustEPCGraphics(IntervalRobustPlannerGraphics):
@@ -20,7 +20,7 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
         import pygame
         robust_env = agent.robustify_env()
         show_traj = isinstance(agent, NominalEPCAgent)
-        # cls.display_uncertainty(robust_env=robust_env, plan=agent.get_plan(), surface=sim_surface, trajectory=show_traj)
+        cls.display_uncertainty(robust_env=robust_env, plan=agent.get_plan(), surface=sim_surface, trajectory=show_traj)
         if agent_surface and hasattr(agent, "sub_agent"):
             true_theta = agent.env.unwrapped.dynamics.theta
             surf_size = agent_surface.get_size()

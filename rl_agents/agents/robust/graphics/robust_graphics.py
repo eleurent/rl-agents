@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import cm as cm
 
 from rl_agents.agents.common.factory import preprocess_env
-from rl_agents.agents.tree_search.graphics.graphics import TreeGraphics
+from rl_agents.agents.tree_search.graphics import TreeGraphics
 
 
 class DiscreteRobustPlannerGraphics(TreeGraphics):

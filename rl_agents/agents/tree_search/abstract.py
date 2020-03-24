@@ -5,7 +5,7 @@ from gym.utils import seeding
 from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.common.factory import preprocess_env, safe_deepcopy_env
 from rl_agents.configuration import Configurable
-from rl_agents.agents.tree_search.graphics.graphics import TreePlot
+from rl_agents.agents.tree_search.graphics import TreePlot
 
 logger = logging.getLogger(__name__)
 

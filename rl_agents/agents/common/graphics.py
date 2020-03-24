@@ -7,9 +7,9 @@ from rl_agents.agents.deep_q_network.graphics import DQNGraphics
 from rl_agents.agents.dynamic_programming.graphics import ValueIterationGraphics
 from rl_agents.agents.dynamic_programming.value_iteration import ValueIterationAgent
 from rl_agents.agents.tree_search.abstract import AbstractTreeSearchAgent
-from rl_agents.agents.tree_search.graphics.graphics import TreeGraphics, MCTSGraphics
-from rl_agents.agents.tree_search.graphics.robust_epc import RobustEPCGraphics
-from rl_agents.agents.tree_search.graphics.robust import DiscreteRobustPlannerGraphics, IntervalRobustPlannerGraphics
+from rl_agents.agents.tree_search.graphics import TreeGraphics, MCTSGraphics
+from rl_agents.agents.robust.graphics.robust_epc_graphics import RobustEPCGraphics
+from rl_agents.agents.robust.graphics.robust_graphics import DiscreteRobustPlannerGraphics, IntervalRobustPlannerGraphics
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 from rl_agents.agents.robust.robust import DiscreteRobustPlannerAgent, IntervalRobustPlannerAgent
 from rl_agents.agents.robust.robust_epc import RobustEPCAgent
