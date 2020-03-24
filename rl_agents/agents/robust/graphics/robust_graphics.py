@@ -104,6 +104,8 @@ class IntervalRobustPlannerGraphics(object):
     @classmethod
     def display_traj_uncertainty(cls, min_traj, max_traj, surface, sim_surface, cmap, boxes=True):
         import pygame
+        min_traj = np.clip(min_traj, -1000, 1000)
+        max_traj = np.clip(max_traj, -1000, 1000)
         for i in reversed(range(len(min_traj))):
             for (A, B) in [(min_traj, max_traj), (min_traj, min_traj)]:
                 color = cmap(i / len(min_traj), bytes=True)

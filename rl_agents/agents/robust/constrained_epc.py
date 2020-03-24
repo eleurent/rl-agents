@@ -5,6 +5,7 @@ import numpy as np
 from gym import Wrapper
 from numpy.linalg import LinAlgError
 
+from rl_agents.agents.common.factory import safe_deepcopy_env
 from rl_agents.agents.control.interval_feedback import IntervalFeedback
 from rl_agents.agents.robust.robust_epc import RobustEPCAgent
 
@@ -15,7 +16,7 @@ class ConstrainedEPCAgent(RobustEPCAgent):
     """
     def __init__(self, env, config=None):
         super().__init__(env, config)
-        self.feedback = None
+        self.feedback = IntervalFeedback(self.env, config)
         self.iteration = 0
 
     @classmethod
@@ -38,9 +39,9 @@ class ConstrainedEPCAgent(RobustEPCAgent):
         """
         d = self.phi.shape[0]
         if not self.data:
-            theta_n = np.zeros(d)
+            theta_n = (np.array(self.config["parameter_box"][0]) + np.array(self.config["parameter_box"][1])) / 2
             g_n = np.eye(d)
-            beta_n = np.sqrt(d) * self.config["parameter_bound"]
+            beta_n = np.sqrt(d) * self.config["parameter_bound"] / 2
         else:
             phi = np.array([np.squeeze(self.phi @ state, axis=2).transpose() for state, _, _ in self.data])
             dx = np.array([derivative for _, _, derivative in self.data])
@@ -52,12 +53,12 @@ class ConstrainedEPCAgent(RobustEPCAgent):
                 g_n_inv = np.linalg.inv(g_n)
                 theta_n = (g_n_inv @ np.sum(
                     [np.transpose(phi[n]) @ y[n] for n in range(y.shape[0])], axis=0)).squeeze(axis=1)
-                theta_n = theta_n.clip(-self.config["parameter_bound"], self.config["parameter_bound"])
+                theta_n = theta_n.clip(self.config["parameter_box"][0], self.config["parameter_box"][1])
                 beta_n = np.linalg.norm(g_n_inv) * sum(np.linalg.norm(phi_n) for phi_n in phi) * self.config["noise_bound"]
             except LinAlgError:
-                theta_n = np.zeros(d)
+                theta_n = (np.array(self.config["parameter_box"][0]) + np.array(self.config["parameter_box"][1])) / 2
                 g_n = np.eye(d)
-                beta_n = self.config["parameter_bound"]
+                beta_n = np.sqrt(d) * self.config["parameter_bound"] / 2
 
         return theta_n, g_n, beta_n
 
@@ -70,27 +71,56 @@ class ConstrainedEPCAgent(RobustEPCAgent):
         d = theta_n.shape[0]
         h = np.array(list(itertools.product([-1, 1], repeat=d)))
         d_theta_k = np.clip([beta_n * h_k for h_k in h],
-                            -theta_n - self.config["parameter_bound"], -theta_n + self.config["parameter_bound"])
+                            -theta_n + self.config["parameter_box"][0], -theta_n + self.config["parameter_box"][1])
         a0 = self.A + np.tensordot(theta_n, self.phi, axes=[0, 0])
         da = [np.tensordot(d_theta, self.phi, axes=[0, 0]) for d_theta in d_theta_k]
         return a0, da
 
-    def plan(self, observation):
-        a0, da = self.polytope()
-        config = self.config.copy()
-        config.update({
-            "A0": a0,
-            "dA": np.array(da)/10,
-        })
-        if not self.feedback:
-            self.feedback = IntervalFeedback(self.env, config)
-        elif self.iteration % self.config["update_frequency"] == 3:
-            config.update({"K0": None})
-            self.feedback.update_config(config)
+    def robustify_env(self):
+        """
+            Important distinction with RobustEPC: the nominal lpv model is stabilized.
+
+            We start with a system:
+                dx = A(theta)x + Bu + omega,
+            that we first stabilize with u0 = Kx, without constraint satisfaction.
+            Then, we predict the interval of the stabilized system under additional controls:
+                dx = (A(theta) + BK)x + Bu' + omega
+            where A0 + BK is stable, which eases the similarity transformation to a Metlzer system.
+        """
+        from highway_env.interval import LPV
+        a0, da = self.config["A0"], self.config["dA"]
+        K = 2 * self.feedback.K0[:, :(self.feedback.K0.shape[1] // 2)]
+        da = da / 100
+        # da = [np.zeros(a0.shape)]
+        lpv = LPV(a0=a0, da=da, x0=self.env.unwrapped.state.squeeze(-1),
+                  b=self.B, d=self.config["D"], k=K, omega_i=self.config["omega"])
+        robust_env = safe_deepcopy_env(self.env)
+        robust_env.unwrapped.lpv = lpv
+        robust_env.unwrapped.automatic_record_callback = None
+        return robust_env
+
+    def update_model_and_controller(self):
+            a0, da = self.polytope()
+            self.config.update({
+                "A0": a0,
+                "dA": np.array(da),
+            })
+            self.config.update({"K0": None})
+            self.feedback.update_config(self.config)
             self.feedback.reset()
-        observation["interval_min"] = observation["state"] - 0.1*np.abs(observation["state"])
-        observation["interval_max"] = observation["state"] + 0.1*np.abs(observation["state"])
+
+    def act(self, observation):
+        observation["interval_min"] = observation["state"]
+        observation["interval_max"] = observation["state"]
+        self.observation = observation
+
+        if self.iteration < self.config["update_frequency"] or self.iteration % self.config["update_frequency"] == 0:
+            self.update_model_and_controller()
         action = self.feedback.act(observation)
+        return action
+
+    def plan(self, observation):
+        action = self.act(observation)
         self.iteration += 1
         return [action]
 

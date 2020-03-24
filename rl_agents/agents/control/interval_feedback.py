@@ -16,8 +16,8 @@ class IntervalFeedback(LinearFeedbackAgent):
         self.K2 = np.array(self.config["K2"])
         self.S = np.array(self.config["S"])
         self.D = np.array(self.config["D"])
-        self.X_f = np.array(self.config["Xf"])
-        self.reset()
+        self.Xf = np.array(self.config["Xf"])
+        # self.reset()
 
     @classmethod
     def default_config(cls):
@@ -96,7 +96,7 @@ class IntervalFeedback(LinearFeedbackAgent):
         if pole_placement:
             import control
             logger.debug("The eigenvalues of the matrix A0 = {},  Uncontrollable states = {}".format(
-                np.linalg.eigvals(A0), p - np.rank(control.ctrb(A0, B))))
+                np.linalg.eigvals(A0), p - np.linalg.matrix_rank(control.ctrb(A0, B))))
             poles = self.config.get("poles", np.minimum(np.linalg.eigvals(A0), -np.arange(1, p+1)))
             K = -control.place(A0, B, poles)
             logger.debug("The eigenvalues of the matrix A0+BK = {}".format(np.linalg.eigvals(A0+B*K)))
@@ -226,7 +226,7 @@ class IntervalFeedback(LinearFeedbackAgent):
         return success
 
     def compute_attraction_basin(self, cB, Gamma, Omega, P, Zp, Zn):
-        """
+        r"""
             Compute the attraction basin X_f that asymptotically contains \xi = [\underline{x}, \overline{x}]
         :param cB: Extended control matrix
         :param Gamma: LMI matrix
@@ -240,7 +240,7 @@ class IntervalFeedback(LinearFeedbackAgent):
         delta_tilde = (cB @ self.S + Id) @ self.delta()
         alpha = np.amin(np.linalg.eigvals(Omega @ np.linalg.inv(P + pos(Zp) + pos(Zn))))
         V_max = 1/alpha * np.abs(delta_tilde.T @ Gamma @ delta_tilde)
-        self.X_f = 1 / np.sqrt(np.diagonal(P / V_max))
+        self.Xf = 1 / np.sqrt(np.diagonal(P / V_max))
 
     def synthesize_perturbation_rejection(self):
         """

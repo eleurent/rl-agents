@@ -17,10 +17,14 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
 
     @classmethod
     def display(cls, agent, agent_surface, sim_surface):
-        import pygame
         robust_env = agent.robustify_env()
         show_traj = isinstance(agent, NominalEPCAgent)
         cls.display_uncertainty(robust_env=robust_env, plan=agent.get_plan(), surface=sim_surface, trajectory=show_traj)
+        cls.display_agent(agent, agent_surface)
+
+    @classmethod
+    def display_agent(cls, agent, agent_surface):
+        import pygame
         if agent_surface and hasattr(agent, "sub_agent"):
             true_theta = agent.env.unwrapped.dynamics.theta
             surf_size = agent_surface.get_size()
@@ -72,9 +76,9 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
                            edgecolor='red', label=r"$\mathcal{C}_{[N],\delta}$")
         plt.plot(true_theta[0], true_theta[1], '.', label=r"$\theta$")
         plt.legend(loc="upper right")
-        bound = config["parameter_bound"]
-        ax.set_xlim(-0.1*bound, 1.1*bound)
-        ax.set_ylim(-0.1*bound, 1.1*bound)
+        bound = config["parameter_box"]
+        ax.set_xlim(bound[0][0], bound[1][0])
+        ax.set_ylim(bound[0][1], bound[1][1])
         ax.set_xlabel(r"$\theta_1$")
         ax.set_ylabel(r"$\theta_2$")
         # plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)

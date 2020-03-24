@@ -141,8 +141,8 @@ class RobustEPCAgent(AbstractAgent):
         :return: the robust version of the environment.
         """
         a0, da = self.polytope()
-        lpv = LPV(a0=a0, da=da, x0=self.env.unwrapped.state.squeeze(-1),
-                  b=self.config["D"], d_i=self.config["omega"])
+        lpv = LPV(a0=a0, da=da, x0=self.env.unwrapped.state.squeeze(-1), b=self.B,
+                  d=self.config["D"], omega_i=self.config["omega"])
         robust_env = safe_deepcopy_env(self.env)
         robust_env.unwrapped.lpv = lpv
         robust_env.unwrapped.automatic_record_callback = None

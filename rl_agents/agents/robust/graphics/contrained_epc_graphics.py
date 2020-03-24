@@ -9,26 +9,57 @@ matplotlib.rc('text', usetex=False)
 import seaborn as sns
 
 
-
 class ConstrainedEPCGraphics(RobustEPCGraphics):
-    SAVE_IMAGES = None
+    display_prediction = True
 
     @classmethod
     def display(cls, agent, agent_surface, sim_surface):
         import pygame
         robust_env = agent.robustify_env()
-        show_traj = isinstance(agent, NominalEPCAgent)
-        cls.display_uncertainty(robust_env=robust_env, plan=agent.get_plan(), surface=sim_surface, trajectory=show_traj)
-        if agent_surface and hasattr(agent, "sub_agent"):
-            true_theta = agent.env.unwrapped.dynamics.theta
-            surf_size = agent_surface.get_size()
-            figsize = (surf_size[0]/100, surf_size[1]/100)
-            save_to = None
-            if cls.SAVE_IMAGES:
-                save_to = agent.evaluation.run_directory / "ellipsoid.{}.{}.pdf".format(agent.evaluation.episode, len(agent.ellipsoids))
-            image_str, size = cls.plot_ellipsoid(agent.ellipsoids, true_theta, config=agent.config, figsize=figsize, save_to=save_to)
-            surf = pygame.image.fromstring(image_str, size, "RGB")
-            agent_surface.blit(surf, (0, 0))
+        robust_env.unwrapped.config["state_noise"] = 0
+        robust_env.unwrapped.config["derivative_noise"] = 0
+        cls.display_attraction_basin(robust_env, agent, sim_surface)
 
-    def display_attraction_basin(self):
-        pass
+        observation = agent.observation
+        x_t = robust_env.unwrapped.lpv.change_coordinates(robust_env.unwrapped.lpv.x_t, back=True)
+        cls.display_prediction = cls.display_prediction and not \
+            np.all(np.abs(x_t) <= agent.feedback.Xf[agent.feedback.Xf.size // 2:])
+        if cls.display_prediction:
+            for time in range(30):
+                control = agent.act(observation)
+                observation, _, _, _ = robust_env.step(control)
+            cls.display_uncertainty(robust_env=robust_env, plan=[], surface=sim_surface, trajectory=False)
+        cls.display_agent(agent, agent_surface)
+
+    @classmethod
+    def display_attraction_basin(cls, env, agent, surface, alpha=50):
+        if "highway_env" not in env.unwrapped.__module__:
+            return
+        try:
+            dy = agent.feedback.Xf[0]
+        except AttributeError:
+            return
+
+        import pygame
+        from highway_env.road.graphics import LaneGraphics
+        basin_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA, 32)
+        LaneGraphics.draw_ground(env.unwrapped.lane, surface, color=(*surface.GREEN, alpha),
+                                 width=dy, draw_surface=basin_surface)
+        surface.blit(basin_surface, (0, 0))
+
+    @classmethod
+    def display_uncertainty(cls, robust_env, plan, surface, trajectory=True):
+        import pygame
+        horizon = 30
+        robust_env.unwrapped.trajectory = []
+
+        min_traj = [o[0] for o in robust_env.unwrapped.interval_trajectory]
+        max_traj = [o[1] for o in robust_env.unwrapped.interval_trajectory]
+        min_traj = np.clip(min_traj, -1000, 1000)
+        max_traj = np.clip(max_traj, -1000, 1000)
+        uncertainty_surface = pygame.Surface(surface.get_size(), pygame.SRCALPHA, 32)
+        if trajectory:
+            cls.display_trajectory(robust_env.unwrapped.trajectory, uncertainty_surface, surface, cls.MODEL_TRAJ_COLOR)
+        else:
+            cls.display_traj_uncertainty(min_traj, max_traj, uncertainty_surface, surface, cls.UNCERTAINTY_TIME_COLORMAP)
+        surface.blit(uncertainty_surface, (0, 0))
