@@ -14,5 +14,6 @@
         "tau": 6000,
         "temperature": 1.0,
         "final_temperature": 0.05
-    }
+    },
+    "loss_function": "l2"
 }

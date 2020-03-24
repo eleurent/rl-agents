@@ -22,5 +22,5 @@
     "gamma": 0.9,
     "value_iteration_epochs": 15,
     "regression_epochs": 5000,
-    "loss_function": "smooth_l1"
+    "loss_function": "l2"
 }
