@@ -115,7 +115,7 @@ class IntervalFeedback(LinearFeedbackAgent):
             success = self.synthesize_controller(pole_placement=True, ensure_stability=ensure_stability)
         return success
 
-    def stability_lmi(self, cA0, cA1, cA2, cB, synthesize_control=True, epsilon=1e-8):
+    def stability_lmi(self, cA0, cA1, cA2, cB, synthesize_control=True, epsilon=1e-9):
         """
             Solve an LMI to check the stability of an interval controller
         :param cA0: extended nominal matrix
@@ -132,19 +132,24 @@ class IntervalFeedback(LinearFeedbackAgent):
         q = cB.shape[1]
 
         # Optimisation variables
-        P = cp.Variable((2*p, 2*p), diag=True)  # In fact P^{-1}
+        P = cp.Variable((2*p, 2*p), diag=True)
         Q = cp.Variable((2*p, 2*p), diag=True)
         Qp = cp.Variable((2*p, 2*p), diag=True)
         Qn = cp.Variable((2*p, 2*p), diag=True)
-        Zp = cp.Variable((2*p, 2*p), diag=True)  # In fact Zp^{-1}
-        Zn = cp.Variable((2*p, 2*p), diag=True)  # In fact Zn^{-1}
+        Zp = cp.Variable((2*p, 2*p), diag=True)
+        Zn = cp.Variable((2*p, 2*p), diag=True)
         Psi = cp.Variable((2*p, 2*p), diag=True)
         Psi_p = cp.Variable((2*p, 2*p), diag=True)
         Psi_n = cp.Variable((2*p, 2*p), diag=True)
         Gamma = cp.Variable((2*p, 2*p), diag=True)
 
+        Omega = Q + cp.minimum(Qp, Qn) + 2*cp.minimum(Psi_p, Psi_n)
+
         # Constraints
         if synthesize_control:
+            # In fact P is P^{-1}
+            # In fact Zp is Zp^{-1}
+            # In fact Zn is Zn^{-1}
             U0 = cp.Variable((q, 2*p))
             U1 = cp.Variable((q, 2*p))
             U2 = cp.Variable((q, 2*p))
@@ -162,29 +167,35 @@ class IntervalFeedback(LinearFeedbackAgent):
                 [Pi_13.T, Pi_23.T,  Pi_33, -Id],
                 [Id,      Id,      -Id,    -Gamma]
             ])
+            constraints = [
+                P >= epsilon,
+                Zp >= epsilon,
+                Zn >= epsilon,
+                Gamma >= epsilon,
+                Omega >= epsilon,
+                Pi << 0
+            ]
         else:
-            Pi_11 = cA0.T*P + P*cA0 + Q
-            Pi_12 = cA0.T*Zp + P*cA1 + Psi_p
-            Pi_13 = P*cA2 - cA0.T*Zn - Psi_n
-            Pi_22 = Zp*cA1 + cA1.T*Zp + Qp
-            Pi_23 = Zp*cA2 - cA1.T*Zn + Psi
-            Pi_33 = Qn - Zn * cA2 - cA2.T*Zn
-            Pi = cp.bmat([  # Block matrix
-                [Pi_11,   Pi_12,    Pi_13,  P],
-                [Pi_12.T, Pi_22,    Pi_23,  Zp],
-                [Pi_13.T, Pi_23.T,  Pi_33, -Zn],
+            Ups_11 = cA0.T*P + P*cA0 + Q
+            Ups_12 = cA0.T*Zp + P*cA1 + Psi_p
+            Ups_13 = P*cA2 - cA0.T*Zn - Psi_n
+            Ups_22 = Zp*cA1 + cA1.T*Zp + Qp
+            Ups_23 = Zp*cA2 - cA1.T*Zn + Psi
+            Ups_33 = Qn - Zn * cA2 - cA2.T*Zn
+            Ups = cp.bmat([  # Block matrix
+                [Ups_11,   Ups_12,    Ups_13,  P],
+                [Ups_12.T, Ups_22,    Ups_23,  Zp],
+                [Ups_13.T, Ups_23.T,  Ups_33, -Zn],
                 [P,       Zp,      -Zn,    -Gamma]
             ])
             U0, U1, U2 = None, None, None
-
-        Omega = Q + cp.minimum(Qp, Qn) + 2*cp.minimum(Psi_p, Psi_n)
-
-        constraints = [
-            P + cp.minimum(Zp, Zn) >= epsilon,
-            Gamma >= epsilon,
-            Omega >= epsilon,
-            Pi << 0
-        ]
+            constraints = [
+                P >= epsilon,
+                P + cp.minimum(Zp, Zn) >= epsilon,
+                Ups << 0,
+                Gamma >= epsilon,
+                Omega >= epsilon,
+            ]
 
         prob = cp.Problem(cp.Minimize(0), constraints=constraints)
         prob.solve(solver=cp.SCS, verbose=True)
@@ -192,26 +203,18 @@ class IntervalFeedback(LinearFeedbackAgent):
         logger.debug("Status: {}".format(prob.status))
         success = prob.status == "optimal"
         if success:
-            logger.debug("Matrices:")
-            logger.debug("- P: {}".format(P.value))
-            logger.debug("- Q: {}".format(Q.value))
-            logger.debug("- Qp: {}".format(Qp.value))
-            logger.debug("- Qn: {}".format(Qn.value))
-            logger.debug("- Zp: {}".format(Zp.value))
-            logger.debug("- Zn: {}".format(Zn.value))
-            logger.debug("- Psi: {}".format(Psi.value))
-            logger.debug("- Psi_p: {}".format(Psi_p.value))
-            logger.debug("- Psi_n: {}".format(Psi_n.value))
+            logger.debug("- P + min(Zp, Zn): {}".format(np.diagonal(P.value.todense() +
+                                                        np.minimum(Zp.value.todense(), Zn.value.todense()))))
             logger.debug("- Gamma: {}".format(Gamma.value))
-            # logger.debug("- Pi:\n{}".format(Pi.value))
-            logger.debug("Constraints:")
             logger.debug("- Omega: {}".format(Omega.value))
-            # logger.debug("- lambda(Pi): {}".format(np.linalg.eigvals(Pi.value)))
+            P = P.value.todense()
+            Zp = Zp.value.todense()
+            Zn = Zn.value.todense()
 
-            P = np.linalg.inv(P.value.todense())
-            Zp = np.linalg.inv(Zp.value.todense())
-            Zn = np.linalg.inv(Zn.value.todense())
             if synthesize_control:
+                P = np.linalg.inv(P)
+                Zp = np.linalg.inv(Zp)
+                Zn = np.linalg.inv(Zn)
                 logger.debug("- U0:".format(U0.value))
                 logger.debug("- U1:".format(U1.value))
                 logger.debug("- U2:".format(U2.value))
@@ -219,10 +222,20 @@ class IntervalFeedback(LinearFeedbackAgent):
                 self.K1 = U1.value @ Zp
                 self.K2 = U2.value @ Zn
 
-            self.compute_attracting_region(cB, Gamma.value.todense(), Omega.value, P, Zp, Zn)
+            self.compute_attraction_basin(cB, Gamma.value.todense(), Omega.value, P, Zp, Zn)
         return success
 
-    def compute_attracting_region(self, cB, Gamma, Omega, P, Zp, Zn):
+    def compute_attraction_basin(self, cB, Gamma, Omega, P, Zp, Zn):
+        """
+            Compute the attraction basin X_f that asymptotically contains \xi = [\underline{x}, \overline{x}]
+        :param cB: Extended control matrix
+        :param Gamma: LMI matrix
+        :param Omega: LMI matrix
+        :param P: LMI matrix
+        :param Zp: LMI matrix
+        :param Zn: LMI matrix
+        :return: An interval asymptotically containing \xi, under the closed-loop dynamics tested in the stability_lmi.
+        """
         Id = np.eye(Gamma.shape[0])
         delta_tilde = (cB @ self.S + Id) @ self.delta()
         alpha = np.amin(np.linalg.eigvals(Omega @ np.linalg.inv(P + pos(Zp) + pos(Zn))))

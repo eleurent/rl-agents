@@ -84,7 +84,7 @@ class ConstrainedEPCAgent(RobustEPCAgent):
         })
         if not self.feedback:
             self.feedback = IntervalFeedback(self.env, config)
-        elif self.iteration % self.config["update_frequency"] == self.config["update_frequency"] // 2:
+        elif self.iteration % self.config["update_frequency"] == 3:
             config.update({"K0": None})
             self.feedback.update_config(config)
             self.feedback.reset()
