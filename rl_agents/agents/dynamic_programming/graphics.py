@@ -46,7 +46,7 @@ class ValueIterationGraphics(object):
             grid_shape = cls.highway_module.finite_mdp.compute_ttc_grid(agent.env, time_quantization=1., horizon=10.).shape
         cell_size = (surface.get_width() // grid_shape[2], surface.get_height() // (grid_shape[0] * grid_shape[1]))
         velocity_size = surface.get_height() // grid_shape[0]
-        value = agent.state_value().reshape(grid_shape)
+        value = agent.get_state_value().reshape(grid_shape)
         for h in range(grid_shape[0]):
             for i in range(grid_shape[1]):
                 for j in range(grid_shape[2]):
