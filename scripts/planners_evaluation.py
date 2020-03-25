@@ -37,7 +37,7 @@ from rl_agents.trainer.evaluation import Evaluation
 
 logger = logging.getLogger(__name__)
 
-gamma = 0.7
+gamma = 0.9
 SEED_MAX = 1e9
 
 
@@ -45,7 +45,8 @@ def env_configs():
     # return ['configs/CartPoleEnv/env.json']
     # return ['configs/HighwayEnv/env_medium.json']
     # return ['configs/GridWorld/collect.json']
-    return ['configs/FiniteMDPEnv/env_garnet.json']
+    # return ['configs/FiniteMDPEnv/env_garnet.json']
+    return ['configs/SailingEnv/env.json']
     # return [Path("configs") / "DummyEnv" / "line_env.json"]
 
 
@@ -54,26 +55,6 @@ def agent_configs():
         "random": {
             "__class__": "<class 'rl_agents.agents.simple.random.RandomUniformAgent'>"
         },
-        # "olop": {
-        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-        #     "gamma": gamma,
-        #     "upper_bound": {
-        #         "type": "hoeffding",
-        #         "c": 4
-        #     },
-        #     "lazy_tree_construction": True,
-        #     "continuation_type": "uniform",
-        # },
-        # "kl-olop": {
-        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-        #     "gamma": gamma,
-        #     "upper_bound": {
-        #         "type": "kullback-leibler",
-        #         "threshold": "2*np.log(time) + 2*np.log(np.log(time))"
-        #     },
-        #     "lazy_tree_construction": True,
-        #     "continuation_type": "uniform",
-        # },
         "kl-olop": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
             "gamma": gamma,
@@ -83,38 +64,26 @@ def agent_configs():
             },
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
-            # "env_preprocessors": [{"method": "simplify"}],
         },
-        # "laplace": {
-        #     "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
-        #     "gamma": gamma,
-        #     "upper_bound": {
-        #         "type": "laplace",
-        #         "c": 2
-        #     },
-        #     "lazy_tree_construction": True,
-        #     "continuation_type": "uniform",
-        # },
-        # "opd": {
-        #     "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
-        #     "gamma": gamma,
-        # },
+        "opd": {
+            "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
+            "gamma": gamma,
+        },
         "mdp-gape": {
             "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
             "gamma": gamma,
-            "accuracy": 0.1,
+            "accuracy": 0,
             "confidence": 1,
             "upper_bound":
             {
                 "type": "kullback-leibler",
                 "time": "global",
-                "threshold": "1*np.log(time)",
+                "threshold": "0*np.log(time)",
                 "transition_threshold": "0.1*np.log(time)"
             },
-            "max_next_states_count": 2,
+            "max_next_states_count": 3,
             "continuation_type": "uniform",
             "step_strategy": "reset",
-            # "env_preprocessors": [{"method": "simplify"}]
         },
         # "mdp-gape-conf": {
         #     "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
@@ -138,6 +107,22 @@ def agent_configs():
             "__class__": "<class 'rl_agents.agents.tree_search.brue.BRUEAgent'>",
             "gamma": gamma,
             "step_strategy": "reset",
+        },
+        "GBOP": {
+            "__class__": "<class 'rl_agents.agents.tree_search.graph_based_stochastic.StochasticGraphBasedPlannerAgent'>",
+            "gamma": gamma,
+            "upper_bound":
+            {
+                "type": "kullback-leibler",
+                "threshold": "0*np.log(time)",
+                "transition_threshold": "0.1*np.log(time)"
+            },
+            "max_next_states_count": 3,
+
+        },
+        "GBOP-D": {
+            "__class__": "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>",
+            "gamma": gamma,
         },
         "value_iteration": {
             "__class__": "<class 'rl_agents.agents.dynamic_programming.value_iteration.ValueIterationAgent'>",
@@ -169,12 +154,14 @@ def evaluate(experiment):
     compute_regret = True
     compute_return = False
     if compute_regret:
-        value_iteration_agent = agent_factory(env, agent_configs()["value_iteration"])
-        best_action = value_iteration_agent.act(env.mdp.state)
-        action = agent.act(env.mdp.state)
-        q = value_iteration_agent.state_action_value()
-        simple_regret = q[env.mdp.state, best_action] - q[env.mdp.state, action]
-        gap = q[env.mdp.state, best_action] - np.sort(q[env.mdp.state, :])[-2]
+        env.seed(seed)
+        observation = env.reset()
+        vi = agent_factory(env, agent_configs()["value_iteration"])
+        best_action = vi.act(observation)
+        action = agent.act(observation)
+        q = vi.state_action_value
+        simple_regret = q[vi.mdp.state, best_action] - q[vi.mdp.state, action]
+        gap = q[vi.mdp.state, best_action] - np.sort(q[vi.mdp.state, :])[-2]
 
         # if hasattr(agent.planner, "budget_used"):
         #     budget = agent.planner.budget_used
@@ -268,6 +255,10 @@ def plot_all(data_file, directory, data_range):
     df = pd.read_csv(str(directory / data_file))
     df = df[~df.agent.isin(['agent'])].apply(pd.to_numeric, errors='ignore')
     df = df.sort_values(by="agent")
+
+    m = df.loc[df['simple_regret'] != np.inf, 'simple_regret'].max()
+    df['simple_regret'].replace(np.inf, m, inplace=True)
+
     df = rename_df(df)
     if data_range:
         start, end = data_range.split(':')
@@ -275,7 +266,8 @@ def plot_all(data_file, directory, data_range):
     print("Number of seeds found: {}".format(df.seed.nunique()))
 
     try:
-        for field in ["total_reward", "return", "length", "mean_return", "simple_regret"]:
+        for field in [#"total_reward", "return", "length", "mean_return",
+                      "simple_regret"]:
             fig, ax = plt.subplots()
             ax.set(xscale="log")
             if field in ["simple_regret"]:
