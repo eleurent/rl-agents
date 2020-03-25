@@ -77,16 +77,14 @@ class OLOP(AbstractPlanner):
         for h in range(self.config["horizon"]):
             # Select action
             if not node.children:  # Break ties at leaves
-                action = self.np_random.randint(state.action_space.n) \
+                node.expand(state)
+                action = self.np_random.choice(list(node.children.keys())) \
                     if self.config["continuation_type"] == "uniform" else 0
             else:  # Run UCB elsewhere
                 action, _ = max([child for child in node.children.items()], key=lambda c: c[1].value_upper)
 
             # Perform transition
             observation, reward, done, _ = self.step(state, action)
-
-            if not node.children:
-                node.expand(state)
             node = node.children[action]
             node.update(reward, done)
 
