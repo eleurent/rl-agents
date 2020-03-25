@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 
-from rl_agents.agents.robust.graphics.robust_epc_graphics import RobustEPCGraphics
+from rl_agents.agents.robust.graphics.robust_epc_graphics import RobustEPCGraphics, confidence_ellipse
 from rl_agents.agents.robust.robust_epc import NominalEPCAgent
 
 matplotlib.rc('text', usetex=False)
@@ -63,3 +63,38 @@ class ConstrainedEPCGraphics(RobustEPCGraphics):
         else:
             cls.display_traj_uncertainty(min_traj, max_traj, uncertainty_surface, surface, cls.UNCERTAINTY_TIME_COLORMAP)
         surface.blit(uncertainty_surface, (0, 0))
+
+    @classmethod
+    def plot_ellipsoid(cls, ellipsoids, true_theta, config, title="", figsize=(8, 6), save_to=None):
+        """
+            Plot the hull of all ellipsoids.
+
+            If a threshold beta and corresponding mixture is provided, plot them.
+        """
+        # Figure creation
+        sns.set(font_scale=1)
+        # sns.set_style("white")
+        fig = plt.figure(figsize=figsize, tight_layout=True)
+        ax = fig.add_subplot(1, 1, 1)
+        plt.title(title)
+        for ellipsoid in ellipsoids[:20:5] + ellipsoids[20:-1:20]:
+            confidence_ellipse(ellipsoid, ax, facecolor=(1, 0.3, 0.3, 0.1),
+                               edgecolor="black", linewidth=0.5, label=None)
+        confidence_ellipse(ellipsoids[-1], ax, facecolor=(1, 0.3, 0.3, 0.1),
+                           edgecolor='red', label=r"$\hat{\Theta}$")
+        plt.plot(true_theta[0], true_theta[1], '.', label=r"$\theta$")
+        plt.legend(loc="upper right")
+        bound = config["parameter_box"]
+        ax.set_xlim(bound[0][0], bound[1][0])
+        ax.set_ylim(bound[0][1], bound[1][1])
+        ax.set_xlabel(r"$\theta_1$")
+        ax.set_ylabel(r"$\theta_2$")
+
+        # Figure export
+        if save_to is not None and len(ellipsoids) % 10 == 0:
+            plt.savefig(save_to)
+            plt.savefig(save_to.with_suffix(".png"))
+        fig.canvas.draw()
+        data_str = fig.canvas.tostring_rgb()
+        plt.close()
+        return data_str, fig.canvas.get_width_height()

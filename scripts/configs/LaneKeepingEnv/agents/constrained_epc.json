@@ -33,9 +33,9 @@
     "simulation_frequency": 10,
     "policy_frequency": 10,
     "parameter_bound": 10.0,
-    "parameter_box": [[5, 5], [15, 15]],
+    "parameter_box": [[1, 1], [15, 15]],
     "noise_bound": 0.05,
-    "perturbation_bound": 0.5,
+    "perturbation_bound": 1,
     "control_bound": 1.57,
     "pole_placement": true,
     "poles": [-1, -2, -3, -4],
@@ -45,6 +45,6 @@
     "K2": [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]],
     "S": [[-9.10516244e-20, 1.39474764e-17, -2.14692169e-02, -8.70745066e-03,
            -1.00818071e-17, 7.03269333e-18, -2.14692169e-02, -8.70745066e-03]],
-    "Xf": [2.07, 1.69, 3.24, 3.16, 2.07, 1.69, 3.24, 3.16],
+    "Xf": [3.07, 3.69, 6.24, 6.16, 3.07, 3.69, 6.24, 6.16],
     "update_frequency": 10
 }
