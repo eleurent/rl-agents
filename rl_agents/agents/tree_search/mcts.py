@@ -4,6 +4,7 @@ from functools import partial
 
 from rl_agents.agents.common.factory import safe_deepcopy_env
 from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
+from rl_agents.agents.tree_search.olop import OLOP
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,8 @@ class MCTSAgent(AbstractTreeSearchAgent):
     def default_config(cls):
         config = super().default_config()
         config.update({
-            "max_depth": 6,
+            "budget": 100,
+            "horizon": None,
             "prior_policy": {"type": "random_available"},
             "rollout_policy": {"type": "random_available"},
             "env_preprocessors": []
@@ -108,14 +110,18 @@ class MCTS(AbstractPlanner):
         :param rollout_policy: the rollout policy used to estimate the value of a leaf node
         """
         super(MCTS, self).__init__(config)
-        self.config["iterations"] = self.config["budget"] // self.config["max_depth"]
         self.prior_policy = prior_policy
         self.rollout_policy = rollout_policy
+        if not self.config["horizon"]:
+            self.config["episodes"], self.config["horizon"] = \
+                OLOP.allocation(self.config["budget"], self.config["gamma"])
 
     @classmethod
     def default_config(cls):
         d = super(MCTS, cls).default_config()
-        d.update(dict(temperature=40))
+        d.update({
+            "temperature": 1
+        })
         return d
 
     def reset(self):
@@ -130,47 +136,47 @@ class MCTS(AbstractPlanner):
         """
         node = self.root
         total_reward = 0
-        depth = self.config['max_depth']
+        depth = 0
         terminal = False
-        while depth > 0 and node.children and not np.all(terminal):
+        while depth < self.config['horizon'] and node.children and not np.all(terminal):
             action = node.sampling_rule(temperature=self.config['temperature'])
             observation, reward, terminal, _ = state.step(action)
-            total_reward += reward
+            total_reward += self.config["gamma"] ** depth * reward
             node = node.children[action]
-            depth = depth - 1
+            depth += 1
 
         if not node.children \
-                and depth > 0 \
+                and depth < self.config['horizon'] \
                 and (not np.all(terminal) or node == self.root):
             node.expand(self.prior_policy(state, observation))
 
         if not np.all(terminal):
-            total_reward = self.evaluate(state, observation, total_reward, limit=depth)
+            total_reward = self.evaluate(state, observation, total_reward, depth=depth)
         node.update_branch(total_reward)
 
-    def evaluate(self, state, observation, total_reward=0, limit=10):
+    def evaluate(self, state, observation, total_reward=0, depth=0):
         """
             Run the rollout policy to yield a sample of the value of being in a given state.
 
         :param state: the leaf state.
         :param observation: the corresponding observation.
         :param total_reward: the initial total reward accumulated until now
-        :param limit: the maximum number of simulation steps
+        :param depth: the initial simulation depth
         :return: the total reward of the rollout trajectory
         """
-        for _ in range(limit):
+        for h in range(depth, self.config["horizon"]):
             actions, probabilities = self.rollout_policy(state, observation)
             action = self.np_random.choice(actions, 1, p=np.array(probabilities))[0]
             observation, reward, terminal, _ = state.step(action)
-            total_reward += reward
+            total_reward += self.config["gamma"] ** h * reward
             if np.all(terminal):
                 break
         return total_reward
 
     def plan(self, state, observation):
-        for i in range(self.config['iterations']):
+        for i in range(self.config['episodes']):
             if (i+1) % 10 == 0:
-                logger.debug('{} / {}'.format(i+1, self.config['iterations']))
+                logger.debug('{} / {}'.format(i+1, self.config['episodes']))
             self.run(safe_deepcopy_env(state), observation)
         return self.get_plan()
 
