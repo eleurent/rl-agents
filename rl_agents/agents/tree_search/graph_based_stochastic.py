@@ -82,7 +82,7 @@ class GraphDecisionNode(GraphNode):
     def backup(self, field):
         return {action: chance_node.backup(field) for action, chance_node in self.children.items()}
 
-    def partial_value_iteration(self, queue=None, eps=1e-2):
+    def partial_value_iteration(self, queue=None):
         if queue is None:
             queue = [self]
         while queue:
@@ -93,7 +93,7 @@ class GraphDecisionNode(GraphNode):
                 state_value_bound = np.amax(list(action_value.values()))
                 delta = max(delta, abs(getattr(node, field) - state_value_bound))
                 setattr(node, field, state_value_bound)
-            if delta > eps:
+            if delta > self.planner.config["value_iteration_accuracy"]:
                 queue.extend(list(node.parents))
 
     def expand(self):

@@ -60,7 +60,7 @@ class GraphNode(Node):
     def get_trajectories(self, full_trajectories=True, include_leaves=True):
         return []
 
-    def partial_value_iteration(self, eps=1e-2):
+    def partial_value_iteration(self):
         queue = [self]
         while queue:
             self.planner.updates_count[str(self.observation)] += 1
@@ -71,7 +71,7 @@ class GraphNode(Node):
                 state_value_bound = np.amax(list(action_value_bound.values()))
                 delta = max(delta, abs(getattr(node, field) - state_value_bound))
                 setattr(node, field, state_value_bound)
-            if delta > eps:
+            if delta > self.planner.config["value_iteration_accuracy"]:
                 queue.extend(list(node.parents))
 
     def __str__(self):
@@ -142,6 +142,7 @@ class GraphBasedPlannerAgent(AbstractTreeSearchAgent):
     def default_config(cls):
         cfg = super().default_config()
         cfg.update({
-            "sampling_timeout": 100
+            "sampling_timeout": 100,
+            "value_iteration_accuracy": 1e-2
         })
         return cfg
