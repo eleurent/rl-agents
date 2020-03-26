@@ -30,14 +30,18 @@ import pandas as pd
 import seaborn as sns
 import logging
 
+from matplotlib.ticker import LogLocator, LogFormatterSciNotation, SymmetricalLogLocator
+from sklearn.linear_model import LinearRegression
+
 sns.set(font_scale=1.5, rc={'text.usetex': True})
+sns.set(rc={"xtick.bottom": True, "ytick.left": True})
 
 from rl_agents.agents.common.factory import load_environment, agent_factory
 from rl_agents.trainer.evaluation import Evaluation
 
 logger = logging.getLogger(__name__)
 
-gamma = 0.9
+gamma = 0.95
 SEED_MAX = 1e9
 
 
@@ -85,26 +89,13 @@ def agent_configs():
             "continuation_type": "uniform",
             "step_strategy": "reset",
         },
-        # "mdp-gape-conf": {
-        #     "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
-        #     "gamma": gamma,
-        #     "accuracy": 0.2,
-        #     "confidence": 0.9,
-        #     "upper_bound":
-        #     {
-        #         "type": "kullback-leibler",
-        #         "time": "global",
-        #         "threshold": "np.log(1/(1 - confidence)) + np.log(count)",
-        #         "transition_threshold": "np.log(1/(1 - confidence)) + np.log(1 + np.log(count))"
-        #     },
-        #     "max_next_states_count": 2,
-        #     "continuation_type": "uniform",
-        #     "step_strategy": "reset",
-        #     "horizon_from_accuracy": True,
-        #     # "env_preprocessors": [{"method": "simplify"}]
-        # },
         "brue": {
             "__class__": "<class 'rl_agents.agents.tree_search.brue.BRUEAgent'>",
+            "gamma": gamma,
+            "step_strategy": "reset",
+        },
+        "UCT": {
+            "__class__": "<class 'rl_agents.agents.tree_search.mcts.MCTSAgent'>",
             "gamma": gamma,
             "step_strategy": "reset",
         },
@@ -118,6 +109,7 @@ def agent_configs():
                 "transition_threshold": "0.1*np.log(time)"
             },
             "max_next_states_count": 3,
+            "value_iteration_accuracy": 1e-1
 
         },
         "GBOP-D": {
@@ -212,9 +204,8 @@ def evaluate(experiment):
 
 def prepare_experiments(budgets, seeds, path):
     budgets = np.unique(np.logspace(*literal_eval(budgets)).astype(int))
-    agents = agent_configs()
-    for excluded_agent in ["value_iteration", "olop", "laplace"]:
-        agents.pop(excluded_agent, None)
+    selected_agents = ["kl-olop", "mdp-gape", "brue", "GBOP"]
+    agents = {agent: config for agent, config in agent_configs().items() if agent in selected_agents}
 
     seeds = seeds.split(",")
     first_seed = int(seeds[0]) if len(seeds) == 2 else np.random.randint(0, SEED_MAX, dtype=int)
@@ -235,6 +226,7 @@ latex_names = {
     "mdp-gape": r"\texttt{MDP-GapE}",
     "kl-olop": r"\texttt{KL-OLOP}",
     "brue": r"\texttt{BRUE}",
+    "GBOP": r"\texttt{GBOP}",
     "budget": r"budget $n$",
 }
 
@@ -272,7 +264,12 @@ def plot_all(data_file, directory, data_range):
             ax.set(xscale="log")
             if field in ["simple_regret"]:
                 ax.set_yscale("symlog", linthreshy=1e-4)
+
             sns.lineplot(x=rename("budget"), y=rename(field), ax=ax, hue="agent", data=df)
+            ax.yaxis.set_minor_locator(LogLocator(base=10, subs="all"))
+            ax.yaxis.grid(True, which='minor', linestyle='--')
+            plt.legend(loc="upper right")
+
             field_path = directory / "{}.pdf".format(field)
             fig.savefig(field_path, bbox_inches='tight')
             field_path = directory / "{}.png".format(field)
@@ -285,32 +282,17 @@ def plot_all(data_file, directory, data_range):
 
 
 def custom_processing(df, directory):
-    return
-    df = df[df["agent"] == "bai_mcts_conf"]
-    print("Median values")
-    print(df.median(axis=0))
-    print("Maximum values")
-    print(df.max(axis=0))
-    for field in ["budget", "simple_regret"]:
-        # histogram on linear scale
-        _, bins, _ = plt.hist(df[field], bins=8)
-        fig, ax = plt.subplots()
-        if bins[0] > 0:
-            logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
-            ax.set(xscale="log")
-        elif bins[1] > 0:
-            logbins = np.logspace(np.floor(np.log10(bins[1])), np.ceil(np.log10(bins[-1])), len(bins))
-            ax.set_xscale("symlog", linthreshx=bins[1])
-            logbins = np.insert(logbins, 0, 0)
-        else:
-            logbins = bins
-        sns.distplot(df[field], bins=logbins, ax=ax, kde=False, rug=True)
-        field_path = directory / "{}_hist.pdf".format(field)
-        fig.savefig(field_path, bbox_inches='tight')
-        field_path = directory / "{}_hist.png".format(field)
-        fig.savefig(field_path, bbox_inches='tight')
-        print("Saving {} plot to {}".format(field, field_path))
-
+    for agent in agent_configs().keys():
+        a_df = df[df["agent"] == rename(agent)]
+        if a_df.empty:
+            continue
+        a_df = a_df.groupby(rename("budget"), as_index=False).mean()
+        x = np.log10(a_df[rename("budget")].values.reshape(-1, 1))
+        y = np.log10(a_df[rename("simple_regret")].values.reshape(-1, 1))
+        linear_regressor = LinearRegression()
+        linear_regressor.fit(x, y)
+        print(rename(agent), "a:", linear_regressor.coef_, "b:", linear_regressor.intercept_)
+        print("kappa: ", np.exp(-np.log(1 / gamma) / linear_regressor.coef_[0]))
 
 def main(args):
     if args["--generate"] == "True":
