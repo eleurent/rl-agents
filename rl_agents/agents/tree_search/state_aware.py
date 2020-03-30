@@ -59,7 +59,7 @@ class StateAwareNode(DeterministicNode):
             for neighbour in self.planner.state_nodes[str(node.observation)]:
                 if neighbour.parent and \
                         (neighbour is node or self.planner.config["backup_aggregated_nodes"]) and \
-                        delta > self.planner.config["stopping_accuracy"] * (1 - gamma) * gamma ** (neighbour.depth - 1):
+                        delta > self.planner.config["accuracy"] * (1 - gamma) * gamma ** (neighbour.depth - 1):
                     queue.append(neighbour.parent)
         return updates_count
 
@@ -87,7 +87,7 @@ class StateAwarePlanner(OptimisticDeterministicPlanner):
         cfg.update({
             "backup_aggregated_nodes": True,
             "prune_suboptimal_leaves": True,
-            "stopping_accuracy": 0,
+            "accuracy": 0,
         })
         return cfg
 

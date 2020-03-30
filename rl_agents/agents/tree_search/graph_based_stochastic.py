@@ -93,7 +93,7 @@ class GraphDecisionNode(GraphNode):
                 state_value_bound = np.amax(list(action_value.values()))
                 delta = max(delta, abs(getattr(node, field) - state_value_bound))
                 setattr(node, field, state_value_bound)
-            if delta > self.planner.config["value_iteration_accuracy"]:
+            if delta > self.planner.config["accuracy"]:
                 queue.extend(list(node.parents))
 
     def expand(self):

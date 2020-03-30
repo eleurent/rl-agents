@@ -72,7 +72,7 @@ agents = {
         "gamma": gamma,
         "backup_aggregated_nodes": True,
         "prune_suboptimal_leaves": True,
-        "stopping_accuracy": 1e-2
+        "accuracy": 1e-3
     },
     "GBOP-D": {
         "__class__": "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>",
@@ -88,6 +88,7 @@ agents = {
             "transition_threshold": "0*np.log(time)"
         },
         "max_next_states_count": 1,
+        "accuracy": 1e-2
     },
     "MDP-GapE": {
         "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
@@ -250,6 +251,5 @@ if __name__ == "__main__":
     ]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
     budget = 4 * (4 ** 6 - 1) / (4 - 1)
-    # budget = 200
     compare_agents(selected_env, selected_agents, budget=budget,
-                   show_tree=False, show_states=True, show_trajs=False, seed=0)
+                   show_tree=True, show_states=True, show_trajs=False, seed=0)
