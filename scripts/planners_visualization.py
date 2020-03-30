@@ -15,6 +15,8 @@ from rl_agents.trainer.logger import configure
 from utils.envs import GridEnv
 
 sns.set()
+sns.set(font_scale=1.5, rc={'text.usetex': True})
+
 logger = logging.getLogger(__name__)
 
 out = Path("out/planners")
@@ -65,12 +67,12 @@ agents = {
         "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
         "gamma": gamma,
     },
-    "state_aware": {
+    "GBOP-T": {
         "__class__": "<class 'rl_agents.agents.tree_search.state_aware.StateAwarePlannerAgent'>",
         "gamma": gamma,
         "backup_aggregated_nodes": True,
         "prune_suboptimal_leaves": True,
-        "stopping_accuracy": 1e-1
+        "stopping_accuracy": 1e-2
     },
     "GBOP-D": {
         "__class__": "<class 'rl_agents.agents.tree_search.graph_based.GraphBasedPlannerAgent'>",
@@ -204,7 +206,7 @@ def show_state_map(title, agent_name, values, state_limits, v_max=None):
                     cmap=plt.cm.coolwarm)
     fig.colorbar(img, ax=ax)
     plt.grid(False)
-    plt.title(agent_name)
+    plt.title(rename(agent_name))
     plt.savefig(out / "{}_{}.pdf".format(title, agent_name))
     plt.show()
 
@@ -214,8 +216,24 @@ def show_trajectories(agent_name, trajectories, axes=None, color=None):
         fig, axes = plt.subplots()
         for trajectory in trajectories:
             x, y = zip(*trajectory.observation)
-            plt.plot(x, y, linestyle='dotted', linewidth=0.5, label=agent_name, color=color)
+            plt.plot(x, y, linestyle='dotted', linewidth=0.5, label=rename(agent_name), color=color)
     return axes
+
+
+def rename(value, latex=True):
+    latex_names = {
+        "simple_regret": "simple regret $r_n$",
+        "total_reward": "total reward $R$",
+        "mean_return": "mean return $E[R]$",
+        "1/epsilon": r"${1}/{\epsilon}$",
+        "mdp-gape-conf": r"\texttt{MDP-GapE}",
+        "MDP-GapE": r"\texttt{MDP-GapE}",
+        "KL-OLOP": r"\texttt{KL-OLOP}",
+        "BRUE": r"\texttt{BRUE}",
+        "GBOP": r"\texttt{GBOP}",
+        "budget": r"budget $n$",
+    }
+    return latex_names.get(value, value) if latex else value
 
 
 if __name__ == "__main__":
@@ -224,6 +242,7 @@ if __name__ == "__main__":
     selected_agents = [
          "OPD",
          "GBOP-D",
+         "GBOP-T",
          "KL-OLOP",
          "MDP-GapE",
          "GBOP",

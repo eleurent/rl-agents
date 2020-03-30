@@ -6,51 +6,9 @@ from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent,
 logger = logging.getLogger(__name__)
 
 
-class OptimisticDeterministicPlanner(AbstractPlanner):
-    """
-       An implementation of Open Loop Optimistic Planning.
-    """
-    def __init__(self, env, config=None):
-        super(OptimisticDeterministicPlanner, self).__init__(config)
-        self.env = env
-        self.leaves = None
-
-    def reset(self):
-        self.root = DeterministicNode(None, planner=self)
-        self.leaves = [self.root]
-
-    def run(self):
-        """
-            Run an OptimisticDeterministicPlanner episode
-        """
-        leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
-        if leaf_to_expand.done:
-            logger.warning("Expanding a terminal state")
-        leaf_to_expand.expand()
-        leaf_to_expand.backup_to_root()
-
-    def plan(self, state, observation):
-        self.root.state = state
-        for epoch in np.arange(self.config["budget"] // state.action_space.n):
-            logger.debug("Expansion {}/{}".format(epoch + 1, self.config["budget"] // state.action_space.n))
-            self.run()
-
-        return self.get_plan()
-
-    def step_by_subtree(self, action):
-        super(OptimisticDeterministicPlanner, self).step_by_subtree(action)
-        if not self.root.children:
-            self.leaves = [self.root]
-        #  v0 = r0 + g r1 + g^2 r2 +... and v1 = r1 + g r2 + ... = (v0-r0)/g
-        for leaf in self.leaves:
-            leaf.value_lower = (leaf.value_lower - self.root.reward) / self.config["gamma"]
-            leaf.value_upper_bound = (leaf.value_upper_bound - self.root.reward) / self.config["gamma"]
-        self.root.backup_values()
-
-
 class DeterministicNode(Node):
     def __init__(self, parent, planner, state=None, depth=0):
-        super(DeterministicNode, self).__init__(parent, planner)
+        super().__init__(parent, planner)
         self.state = state
         self.observation = None
         self.depth = depth
@@ -116,6 +74,50 @@ class DeterministicNode(Node):
 
     def get_value_upper_bound(self):
         return self.value_upper
+
+
+class OptimisticDeterministicPlanner(AbstractPlanner):
+    NODE_TYPE = DeterministicNode
+
+    """
+       An implementation of Open Loop Optimistic Planning.
+    """
+    def __init__(self, env, config=None):
+        super(OptimisticDeterministicPlanner, self).__init__(config)
+        self.env = env
+        self.leaves = None
+
+    def reset(self):
+        self.root = self.NODE_TYPE(None, planner=self)
+        self.leaves = [self.root]
+
+    def run(self):
+        """
+            Run an OptimisticDeterministicPlanner episode
+        """
+        leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
+        if leaf_to_expand.done:
+            logger.warning("Expanding a terminal state")
+        leaf_to_expand.expand()
+        leaf_to_expand.backup_to_root()
+
+    def plan(self, state, observation):
+        self.root.state = state
+        for epoch in np.arange(self.config["budget"] // state.action_space.n):
+            logger.debug("Expansion {}/{}".format(epoch + 1, self.config["budget"] // state.action_space.n))
+            self.run()
+
+        return self.get_plan()
+
+    def step_by_subtree(self, action):
+        super(OptimisticDeterministicPlanner, self).step_by_subtree(action)
+        if not self.root.children:
+            self.leaves = [self.root]
+        #  v0 = r0 + g r1 + g^2 r2 +... and v1 = r1 + g r2 + ... = (v0-r0)/g
+        for leaf in self.leaves:
+            leaf.value_lower = (leaf.value_lower - self.root.reward) / self.config["gamma"]
+            leaf.value_upper_bound = (leaf.value_upper_bound - self.root.reward) / self.config["gamma"]
+        self.root.backup_values()
 
 
 class DeterministicPlannerAgent(AbstractTreeSearchAgent):

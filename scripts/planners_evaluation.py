@@ -59,7 +59,7 @@ def agent_configs():
         "random": {
             "__class__": "<class 'rl_agents.agents.simple.random.RandomUniformAgent'>"
         },
-        "kl-olop": {
+        "KL-OLOP": {
             "__class__": "<class 'rl_agents.agents.tree_search.olop.OLOPAgent'>",
             "gamma": gamma,
             "upper_bound": {
@@ -73,7 +73,7 @@ def agent_configs():
             "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
             "gamma": gamma,
         },
-        "mdp-gape": {
+        "MDP-GapE": {
             "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
             "gamma": gamma,
             "accuracy": 0,
@@ -89,7 +89,7 @@ def agent_configs():
             "continuation_type": "uniform",
             "step_strategy": "reset",
         },
-        "brue": {
+        "BRUE": {
             "__class__": "<class 'rl_agents.agents.tree_search.brue.BRUEAgent'>",
             "gamma": gamma,
             "step_strategy": "reset",
@@ -204,7 +204,7 @@ def evaluate(experiment):
 
 def prepare_experiments(budgets, seeds, path):
     budgets = np.unique(np.logspace(*literal_eval(budgets)).astype(int))
-    selected_agents = ["kl-olop", "mdp-gape", "brue", "GBOP"]
+    selected_agents = ["KL-OLOP", "MDP-GapE", "BRUE", "GBOP"]
     agents = {agent: config for agent, config in agent_configs().items() if agent in selected_agents}
 
     seeds = seeds.split(",")
@@ -223,9 +223,9 @@ latex_names = {
     "mean_return": "mean return $E[R]$",
     "1/epsilon": r"${1}/{\epsilon}$",
     "mdp-gape-conf": r"\texttt{MDP-GapE}",
-    "mdp-gape": r"\texttt{MDP-GapE}",
-    "kl-olop": r"\texttt{KL-OLOP}",
-    "brue": r"\texttt{BRUE}",
+    "MDP-GapE": r"\texttt{MDP-GapE}",
+    "KL-OLOP": r"\texttt{KL-OLOP}",
+    "BRUE": r"\texttt{BRUE}",
     "GBOP": r"\texttt{GBOP}",
     "budget": r"budget $n$",
 }
@@ -293,6 +293,7 @@ def custom_processing(df, directory):
         linear_regressor.fit(x, y)
         print(rename(agent), "a:", linear_regressor.coef_, "b:", linear_regressor.intercept_)
         print("kappa: ", np.exp(-np.log(1 / gamma) / linear_regressor.coef_[0]))
+
 
 def main(args):
     if args["--generate"] == "True":
