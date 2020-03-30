@@ -2,7 +2,7 @@
     "__class__": "<class 'rl_agents.agents.fitted_q.pytorch.FTQAgent'>",
     "model":
     {
-        "type": "FCNetwork",
+        "type": "MultiLayerPerceptron",
         "layers": [256, 256]
     },
     "optimizer":
