@@ -97,7 +97,7 @@ def agent_configs():
         "UCT": {
             "__class__": "<class 'rl_agents.agents.tree_search.mcts.MCTSAgent'>",
             "gamma": gamma,
-            "step_strategy": "reset",
+            "closed_loop": True
         },
         "GBOP": {
             "__class__": "<class 'rl_agents.agents.tree_search.graph_based_stochastic.StochasticGraphBasedPlannerAgent'>",

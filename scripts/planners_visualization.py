@@ -111,6 +111,11 @@ agents = {
         "gamma": gamma,
         "step_strategy": "reset",
     },
+    "UCT": {
+        "__class__": "<class 'rl_agents.agents.tree_search.mcts.MCTSAgent'>",
+        "gamma": gamma,
+        "closed_loop": True
+    },
 }
 
 
@@ -230,8 +235,12 @@ def rename(value, latex=True):
         "mdp-gape-conf": r"\texttt{MDP-GapE}",
         "MDP-GapE": r"\texttt{MDP-GapE}",
         "KL-OLOP": r"\texttt{KL-OLOP}",
+        "OPD": r"\texttt{OPD}",
         "BRUE": r"\texttt{BRUE}",
         "GBOP": r"\texttt{GBOP}",
+        "GBOP-D": r"\texttt{GBOP-D}",
+        "GBOP-T": r"\texttt{GBOP-T}",
+        "UCT": r"\texttt{UCT}",
         "budget": r"budget $n$",
     }
     return latex_names.get(value, value) if latex else value
@@ -243,11 +252,12 @@ if __name__ == "__main__":
     selected_agents = [
          "OPD",
          "GBOP-D",
-         "GBOP-T",
+         # "GBOP-T",
          "KL-OLOP",
          "MDP-GapE",
          "GBOP",
          "BRUE",
+         "UCT",
     ]
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
     budget = 4 * (4 ** 6 - 1) / (4 - 1)

@@ -312,7 +312,7 @@ class Node(object):
         return self.planner.np_random.choice(indices)
 
     def __str__(self):
-        return "{} (n:{}, v:{:.2f})".format(list(self.path()), self.count, self.value_upper)
+        return "{} (n:{}, v:{:.2f})".format(list(self.path()), self.count, self.get_value())
 
     def __repr__(self):
         return '<node {}>'.format(id(self))
