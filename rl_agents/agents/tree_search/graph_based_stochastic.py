@@ -175,12 +175,20 @@ class GraphChanceNode(GraphNode):
         threshold = self.transition_threshold() / self.count
 
         if field == "value_upper":
-            u_next = np.array([c.mu_ucb + gamma * c.get_field(field) for c in self.children.values()])
+            u_next = np.zeros((len(self.children),))
+            for i, c in enumerate(self.children.values()):
+                v_n = self.planner.nodes[str(c.observation)].value_upper \
+                    if str(c.observation) != "placeholder" else 1 / (1-gamma)
+                u_next[i] = c.mu_ucb + gamma * v_n
             self.p_plus = max_expectation_under_constraint(u_next, self.p_hat, threshold)
             self.value_upper = self.p_plus @ u_next
             return self.value_upper
         elif field == "value_lower":
-            l_next = np.array([c.mu_lcb + gamma * c.get_field(field) for c in self.children.values()])
+            l_next = np.zeros((len(self.children),))
+            for i, c in enumerate(self.children.values()):
+                v_n = self.planner.nodes[str(c.observation)].value_lower \
+                    if str(c.observation) != "placeholder" else 0
+                l_next[i] = c.mu_ucb + gamma * v_n
             self.p_minus = max_expectation_under_constraint(-l_next, self.p_hat, threshold)
             self.value_lower = self.p_minus @ l_next
             return self.value_lower
