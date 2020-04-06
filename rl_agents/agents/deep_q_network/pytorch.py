@@ -60,7 +60,7 @@ class DQNAgent(AbstractDQNAgent):
                 _, best_actions = self.value_net(batch.next_state).max(1)
                 # Double Q-learning: estimate action values from target network
                 best_values = self.target_net(batch.next_state).gather(1, best_actions.unsqueeze(1)).squeeze(1)
-                next_state_values[1 - batch.terminal] = best_values[1 - batch.terminal]
+                next_state_values[~batch.terminal] = best_values[~batch.terminal]
                 # Compute the expected Q values
                 target_state_action_value = batch.reward + self.config["gamma"] * next_state_values
 

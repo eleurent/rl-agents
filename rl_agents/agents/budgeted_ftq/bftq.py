@@ -166,8 +166,8 @@ class BudgetedFittedQ(object):
 
         # Greedy policy computation pi(a'|s')
         # 1. Select non-final next states
-        next_states_nf = next_states[1 - terminals]
-        betas_nf = betas[1 - terminals]
+        next_states_nf = next_states[~terminals]
+        betas_nf = betas[~terminals]
         # 2. Forward pass of the model Qr, Qc
         q_values = self.compute_next_values(next_states_nf)
         # 3. Compute Pareto-optimal frontiers F of {(Qc, Qr)}_AB at all states
@@ -181,8 +181,8 @@ class BudgetedFittedQ(object):
         for i, mix in enumerate(mixtures):
             next_rewards_nf[i] = (1 - mix.probability_sup) * mix.inf.qr + mix.probability_sup * mix.sup.qr
             next_costs_nf[i] = (1 - mix.probability_sup) * mix.inf.qc + mix.probability_sup * mix.sup.qc
-        next_rewards[1 - terminals] = next_rewards_nf
-        next_costs[1 - terminals] = next_costs_nf
+        next_rewards[~terminals] = next_rewards_nf
+        next_costs[~terminals] = next_costs_nf
 
         torch.cuda.empty_cache()
         return next_rewards, next_costs
