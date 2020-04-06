@@ -4,6 +4,8 @@ import json
 import logging
 import gym
 
+from rl_agents.configuration import Configurable
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,6 +41,13 @@ def load_agent(agent_path, env):
             agent_config = json.loads(f.read())
     else:
         agent_config = agent_path
+
+    # Handle config inheritance
+    if "base_config" in agent_config:
+        with open(agent_config["base_config"]) as f:
+            base_config = json.loads(f.read())
+        del agent_config["base_config"]
+        agent_config = Configurable.rec_update(base_config, agent_config)
 
     return agent_factory(env, agent_config)
 

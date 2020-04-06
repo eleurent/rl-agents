@@ -1,7 +1,4 @@
 {
-    "__class__": "<class 'rl_agents.agents.tree_search.mcts.MCTSAgent'>",
-    "budget": 1500,
-    "max_step": 15,
-    "step_strategy": "subtree",
-    "env_preprocessors": [{"method":"simplify"}]
+    "base_config": "configs/HighwayEnv/agents/MCTSAgent/baseline.json",
+    "step_strategy": "subtree"
 }

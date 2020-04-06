@@ -1,5 +1,5 @@
 {
-    "__class__": "<class 'rl_agents.agents.deep_q_network.pytorch.DQNAgent'>",
+    "base_config": "configs/IntersectionEnv/agents/DQNAgent/baseline.json",
     "model": {
         "type": "EgoAttentionNetwork",
         "embedding_layer": {
@@ -25,17 +25,5 @@
             "layers": [64, 64],
             "reshape": false
         }
-    },
-    "gamma": 0.95,
-    "n_steps": 1,
-    "batch_size": 64,
-    "memory_capacity": 15000,
-    "target_update": 512,
-    "exploration": {
-        "method": "EpsilonGreedy",
-        "tau": 15000,
-
-        "temperature": 1.0,
-        "final_temperature": 0.05
     }
 }
