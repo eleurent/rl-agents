@@ -109,7 +109,7 @@ def agent_configs():
                 "transition_threshold": "0.1*np.log(time)"
             },
             "max_next_states_count": 3,
-            "value_iteration_accuracy": 1e-1
+            "accuracy": 5e-2
 
         },
         "GBOP-D": {
@@ -204,7 +204,10 @@ def evaluate(experiment):
 
 def prepare_experiments(budgets, seeds, path):
     budgets = np.unique(np.logspace(*literal_eval(budgets)).astype(int))
-    selected_agents = ["KL-OLOP", "MDP-GapE", "BRUE", "GBOP"]
+    selected_agents = ["KL-OLOP", "MDP-GapE", "BRUE",
+                       "GBOP",
+                       "UCT"
+                       ]
     agents = {agent: config for agent, config in agent_configs().items() if agent in selected_agents}
 
     seeds = seeds.split(",")
@@ -227,6 +230,10 @@ latex_names = {
     "KL-OLOP": r"\texttt{KL-OLOP}",
     "BRUE": r"\texttt{BRUE}",
     "GBOP": r"\texttt{GBOP}",
+    "UCT": r"\texttt{UCT}",
+    "mdp-gape": r"\texttt{MDP-GapE}",
+    "kl-olop": r"\texttt{KL-OLOP}",
+    "brue": r"\texttt{BRUE}",
     "budget": r"budget $n$",
 }
 
@@ -263,12 +270,12 @@ def plot_all(data_file, directory, data_range):
             fig, ax = plt.subplots()
             ax.set(xscale="log")
             if field in ["simple_regret"]:
-                ax.set_yscale("symlog", linthreshy=1e-4)
+                ax.set_yscale("symlog", linthreshy=1e-2)
 
             sns.lineplot(x=rename("budget"), y=rename(field), ax=ax, hue="agent", data=df)
             ax.yaxis.set_minor_locator(LogLocator(base=10, subs="all"))
             ax.yaxis.grid(True, which='minor', linestyle='--')
-            plt.legend(loc="upper right")
+            plt.legend(loc="lower left")
 
             field_path = directory / "{}.pdf".format(field)
             fig.savefig(field_path, bbox_inches='tight')

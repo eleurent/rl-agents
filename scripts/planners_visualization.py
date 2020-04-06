@@ -167,7 +167,7 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
                     state_occupations[agent_name][i, j] = visits[str(np.array([x, y]))]
                     state_updates[agent_name][i, j] = updates[str(np.array([x, y]))]
             data[agent_name] = {
-                "agent": agent_name,
+                "agent": rename(agent_name),
                 "kind": "deterministic" if agent_name[-1] == "D" else "stochastic",
                 "ours": agent_name[:4] == "GBOP",
                 "score": score(agent.planner.observations),
@@ -175,7 +175,8 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
             }
 
         if show_tree:
-            TreePlot(agent.planner, max_depth=100).plot(out / "tree_{}.pdf".format(agent_name), title=agent_name)
+            TreePlot(agent.planner, max_depth=12).plot(out / "tree_{}.pdf".format(agent_name),
+                                                        title=rename(agent_name))
             plt.show()
 
     if show_states:
@@ -199,9 +200,9 @@ def compare_agents(env, agents, budget, seed=None, show_tree=False, show_trajs=F
     if show_scores:
         data = pd.DataFrame(list(data.values()))
         data = data.sort_values(["score"])
-        with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-            print(data)
-            data.plot.bar(x='agent', y='score', rot=0).get_figure().savefig(out / "score.pdf")
+        ax = data.plot.bar(x='agent', y='score', rot=0, figsize=[8, 4.8], legend=False)
+        ax.xaxis.set_label_text("")
+        ax.get_figure().savefig(out / "score.pdf")
 
 
 def show_state_map(title, agent_name, values, state_limits, v_max=None):
@@ -239,7 +240,7 @@ def rename(value, latex=True):
         "BRUE": r"\texttt{BRUE}",
         "GBOP": r"\texttt{GBOP}",
         "GBOP-D": r"\texttt{GBOP-D}",
-        "GBOP-T": r"\texttt{GBOP-T}",
+        "GBOP-T": r"\texttt{GBOP-D}",
         "UCT": r"\texttt{UCT}",
         "budget": r"budget $n$",
     }
@@ -262,4 +263,4 @@ if __name__ == "__main__":
     selected_agents = {k: v for k, v in agents.items() if k in selected_agents}
     budget = 4 * (4 ** 6 - 1) / (4 - 1)
     compare_agents(selected_env, selected_agents, budget=budget,
-                   show_tree=True, show_states=True, show_trajs=False, seed=0)
+                   show_tree=False, show_states=True, show_trajs=False, seed=2)
