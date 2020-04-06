@@ -85,7 +85,7 @@ def choose_device(preferred_device, default_device="cpu"):
         torch.zeros((1,), device=preferred_device)  # Test availability
         return preferred_device
     except (RuntimeError, AssertionError):
-        logger.error("Preferred device {} unavailable, switching to default {}"
+        logger.warning("Preferred device {} unavailable, switching to default {}"
                      .format(preferred_device, default_device))
         return default_device
 
