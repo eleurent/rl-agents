@@ -44,7 +44,7 @@ class DQNAgent(AbstractDQNAgent):
             action = torch.tensor(batch.action, dtype=torch.long).to(self.device)
             reward = torch.tensor(batch.reward, dtype=torch.float).to(self.device)
             next_state = torch.cat(tuple(torch.tensor([batch.next_state], dtype=torch.float))).to(self.device)
-            terminal = torch.tensor(batch.terminal, dtype=torch.uint8).to(self.device)
+            terminal = torch.tensor(batch.terminal, dtype=torch.bool).to(self.device)
             batch = Transition(state, action, reward, next_state, terminal, batch.info)
 
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the

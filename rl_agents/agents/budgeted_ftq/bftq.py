@@ -56,7 +56,7 @@ class BudgetedFittedQ(object):
         """
         action = torch.tensor([[action]], dtype=torch.long)
         reward = torch.tensor([reward], dtype=torch.float)
-        terminal = torch.tensor([terminal], dtype=torch.uint8)
+        terminal = torch.tensor([terminal], dtype=torch.bool)
         cost = torch.tensor([cost], dtype=torch.float)
         state = torch.tensor([[state]], dtype=torch.float)
         next_state = torch.tensor([[next_state]], dtype=torch.float)
