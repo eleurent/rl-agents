@@ -4,6 +4,7 @@ from collections import OrderedDict, defaultdict
 import numpy as np
 import logging
 from rl_agents.agents.common.factory import safe_deepcopy_env
+from rl_agents.agents.dynamic_programming.value_iteration import ValueIterationAgent
 from rl_agents.agents.tree_search.graph_based import GraphBasedPlannerAgent, GraphNode, GraphBasedPlanner
 from rl_agents.agents.tree_search.olop import OLOP
 from rl_agents.utils import kl_upper_bound, max_expectation_under_constraint
@@ -168,10 +169,13 @@ class GraphChanceNode(GraphNode):
             Bellman Q(s,a) = r(s,a) + gamma E_s' V(s')
         """
         if self.count == 0:
+            self.next_states = list(self.children.keys())
+            self.p_plus = self.p_minus = np.ones((len(self.children),))/len(self.children)
             return self.value_upper if field == "value_upper" else self.value_lower
 
         gamma = self.planner.config["gamma"]
         self.p_hat = np.array([child.count for child in self.children.values()]) / self.count
+        self.next_states = list(self.children.keys())
         threshold = self.transition_threshold() / self.count
 
         if field == "value_upper":
@@ -252,12 +256,78 @@ class StochasticGraphBasedPlanner(GraphBasedPlanner):
             chance_node.update()
             next_decision_node.update(reward)
 
+            # matrix version only
+            # chance_node.backup("value_upper")
+            # chance_node.backup("value_lower")
+
             # Track updated nodes
             if decision_node not in update_queue:
                 update_queue.append(decision_node)
 
         # Value iteration
         decision_node.partial_value_iteration(queue=list(reversed(update_queue)))
+        # self.matrix_value_iteration()
+
+
+    def matrix_value_iteration(self):
+        action_size = self.env.action_space.n
+        state_size = len(self.nodes) + action_size
+
+        # Reward, transition, terminal
+        self.transition_upper = np.zeros((state_size, action_size, state_size))
+        self.transition_lower = np.zeros((state_size, action_size, state_size))
+        self.reward_upper = np.zeros((state_size, action_size, state_size))
+        self.reward_lower = np.zeros((state_size, action_size, state_size))
+
+        value_upper = np.ones(state_size) / (1 - self.config["gamma"])
+        value_lower = np.zeros(state_size)
+        if hasattr(self, "value_upper"):
+            value_upper[:self.value_upper.size] = self.value_upper
+            value_lower[:self.value_lower.size] = self.value_lower
+        indexes = {o: i + action_size for i, o in enumerate(self.nodes.keys())}
+        for i in range(action_size):
+            indexes["placeholder_{}".format(i)] = i
+            self.transition_upper[i, 0, i] = 1
+            self.transition_lower[i, 0, i] = 1
+            self.reward_upper[i, 0, i] = 1
+            self.reward_lower[i, 0, i] = 0
+        for obs, node in self.nodes.items():
+            for action, chance_node in node.children.items():
+                # chance_node.backup("value_upper")
+                # chance_node.backup("value_lower")
+                for next_obs, next_state_node in chance_node.children.items():
+                    i_o = indexes[obs]
+                    i_n_o = indexes[next_obs]
+                    id_chance_node = chance_node.next_states.index(next_obs)
+                    self.transition_upper[i_o, action, i_n_o] = chance_node.p_plus[id_chance_node]
+                    self.transition_lower[i_o, action, i_n_o] = chance_node.p_minus[id_chance_node]
+                    self.reward_upper[i_o, action, i_n_o] = next_state_node.mu_ucb
+                    self.reward_lower[i_o, action, i_n_o] = next_state_node.mu_lcb
+        self.value_lower = self.fixed_point_iteration(self.bellman_operator_lower, value_lower)
+        self.value_upper = self.fixed_point_iteration(self.bellman_operator_upper, value_upper)
+        for obs, index in indexes.items():
+            if obs in self.nodes:
+                self.nodes[obs].value_lower = self.value_lower[index]
+                self.nodes[obs].value_upper = self.value_upper[index]
+
+    def bellman_operator_upper(self, value):
+        q = (self.transition_upper * (self.reward_upper + self.config["gamma"] * value.reshape((1, 1, value.size)))).sum(axis=-1)
+        v = q.max(axis=-1)
+        return v
+
+    def bellman_operator_lower(self, value):
+        q = (self.transition_lower * (self.reward_lower + self.config["gamma"] * value.reshape((1, 1, value.size)))).sum(axis=-1)
+        v = q.max(axis=-1)
+        return v
+
+    def fixed_point_iteration(self, operator, initial):
+        value = initial
+        for iteration in range(1000):
+            next_value = operator(value)
+            if np.allclose(value, next_value, atol=self.config["accuracy"]):
+                break
+            value = next_value
+        return next_value
 
     def plan(self, state, observation):
         self.root = self.get_node(observation, state=state)
