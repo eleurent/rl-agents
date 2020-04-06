@@ -72,10 +72,13 @@ class GraphDecisionNode(GraphNode):
             count = self.count
             time = self.planner.config["episodes"]
             threshold = eval(self.planner.config["upper_bound"]["threshold"])
-            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, 0,
-                                         threshold=str(threshold))
-            self.mu_lcb = kl_upper_bound(self.cumulative_reward, self.count, 0,
-                                         threshold=str(threshold), lower=True)
+            if threshold == 0:
+                self.mu_ucb = self.mu_lcb = self.cumulative_reward / self.count
+            else:
+                self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, 0,
+                                             threshold=str(threshold))
+                self.mu_lcb = kl_upper_bound(self.cumulative_reward, self.count, 0,
+                                             threshold=str(threshold), lower=True)
         else:
             logger.error("Unknown upper-bound type")
 
