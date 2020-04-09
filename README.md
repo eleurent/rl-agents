@@ -63,7 +63,7 @@ The `evaluate` command allows to evaluate a given agent on a given environment. 
 
 ```bash
 # Train a DQN agent on the CartPole-v0 environment
-$ python3 experiments.py evaluate envs/cartpole.json agents/dqn.json --train --episodes=200
+$ python3 experiments.py evaluate configs/CartPoleEnv/env.json configs/CartPoleEnv/DQNAgent.json --train --episodes=200
 ```
 
 Every agent interacts with the environment following a standard interface:
