@@ -1,4 +1,0 @@
-{
-    "base_config": "configs/HighwayEnv/agents/DQNAgent/baseline.json",
-    "batch_size": 512
-}

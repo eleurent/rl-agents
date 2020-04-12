@@ -1,5 +1,5 @@
 {
-    "base_config": "configs/HighwayEnv/agents/DQNAgent/baseline.json",
+    "base_config": "configs/HighwayEnv/agents/DQNAgent/ddqn.json",
     "model": {
         "type": "EgoAttentionNetwork",
         "embedding_layer": {

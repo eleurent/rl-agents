@@ -1,7 +1,0 @@
-{
-    "base_config": "configs/HighwayEnv/agents/DQNAgent/baseline.json",
-    "model": {
-        "type": "MultiLayerPerceptron",
-        "layers": [128, 128]
-    }
-}

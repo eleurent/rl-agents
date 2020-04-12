@@ -31,7 +31,8 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
                     gamma=0.99,
                     device="cuda:best",
                     exploration=dict(method="EpsilonGreedy"),
-                    target_update=1)
+                    target_update=1,
+                    double=True)
 
     def record(self, state, action, reward, next_state, done, info):
         """

@@ -1,4 +1,0 @@
-{
-    "base_config": "configs/HighwayEnv/agents/DQNAgent/baseline.json",
-    "n_steps": 2
-}

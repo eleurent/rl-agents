@@ -1,0 +1,7 @@
+{
+    "base_config": "configs/HighwayEnv/agents/DQNAgent/ddqn.json",
+    "model": {
+        "type": "DuelingNetwork",
+        "layers": [256, 256]
+    }
+}

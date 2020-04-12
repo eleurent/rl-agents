@@ -56,10 +56,13 @@ class DQNAgent(AbstractDQNAgent):
             with torch.no_grad():
                 # Compute V(s_{t+1}) for all next states.
                 next_state_values = torch.zeros(batch.reward.shape).to(self.device)
-                # Double Q-learning: pick best actions from policy network
-                _, best_actions = self.value_net(batch.next_state).max(1)
-                # Double Q-learning: estimate action values from target network
-                best_values = self.target_net(batch.next_state).gather(1, best_actions.unsqueeze(1)).squeeze(1)
+                if self.config["double"]:
+                    # Double Q-learning: pick best actions from policy network
+                    _, best_actions = self.value_net(batch.next_state).max(1)
+                    # Double Q-learning: estimate action values from target network
+                    best_values = self.target_net(batch.next_state).gather(1, best_actions.unsqueeze(1)).squeeze(1)
+                else:
+                    best_values, _ = self.target_net(batch.next_state).max(1)
                 next_state_values[~batch.terminal] = best_values[~batch.terminal]
                 # Compute the expected Q values
                 target_state_action_value = batch.reward + self.config["gamma"] * next_state_values
