@@ -27,29 +27,33 @@ def agent_factory(environment, config):
         raise ValueError("The configuration should specify the agent __class__")
 
 
-def load_agent(agent_path, env):
+def load_agent(agent_config, env):
     """
         Load an agent from a configuration file.
 
-    :param agent_path: the path to the agent configuration file
+    :param agent_config: dict or the path to the agent configuration file
     :param env: the environment with which the agent interacts
     :return: the agent
     """
-    # Load agent from file
-    if not isinstance(agent_path, dict):
-        with open(agent_path) as f:
-            agent_config = json.loads(f.read())
-    else:
-        agent_config = agent_path
+    # Load config from file
+    if not isinstance(agent_config, dict):
+        agent_config = load_agent_config(agent_config)
+    return agent_factory(env, agent_config)
 
-    # Handle config inheritance
+
+def load_agent_config(config_path):
+    """
+        Load an agent configuration from file, with inheritance.
+    :param config_path: path to a json config file
+    :return: the configuration dict
+    """
+    with open(config_path) as f:
+        agent_config = json.loads(f.read())
     if "base_config" in agent_config:
-        with open(agent_config["base_config"]) as f:
-            base_config = json.loads(f.read())
+        base_config = load_agent_config(agent_config["base_config"])
         del agent_config["base_config"]
         agent_config = Configurable.rec_update(base_config, agent_config)
-
-    return agent_factory(env, agent_config)
+    return agent_config
 
 
 def load_environment(env_config):
