@@ -9,13 +9,13 @@
         [
             {
                 "method": "set_preferred_lane",
-                "args": null
+                "args": 0
             }
         ],
         [
             {
                 "method": "set_preferred_lane",
-                "args": "RIGHT"
+                "args": 1
             }
         ]
     ]
