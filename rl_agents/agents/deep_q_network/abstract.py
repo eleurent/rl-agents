@@ -19,8 +19,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
 
     @classmethod
     def default_config(cls):
-        return dict(model=dict(type="DuelingNetwork",
-                               layers=[100, 100]),
+        return dict(model=dict(type="DuelingNetwork"),
                     optimizer=dict(type="ADAM",
                                    lr=5e-4,
                                    weight_decay=0,

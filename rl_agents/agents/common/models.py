@@ -80,20 +80,26 @@ class DuelingNetwork(BaseModule, Configurable):
         super().__init__()
         Configurable.__init__(self, config)
         self.config["base_module"]["in"] = self.config["in"]
+        self.config["value"]["in"] = self.config["base_module"]["layers"][-1]
+        self.config["value"]["out"] = 1
+        self.config["advantage"]["in"] = self.config["base_module"]["layers"][-1]
+        self.config["advantage"]["out"] = self.config["out"]
         self.base_module = model_factory(self.config["base_module"])
-        self.advantage = nn.Linear(self.config["base_module"]["layers"][-1], self.config["out"])
-        self.value = nn.Linear(self.config["base_module"]["layers"][-1], 1)
+        self.advantage = model_factory(self.config["advantage"])
+        self.value = model_factory(self.config["value"])
 
     @classmethod
     def default_config(cls):
         return {"in": None,
                 "base_module": {"type": "MultiLayerPerceptron", "out": None},
+                "value": {"type": "MultiLayerPerceptron", "layers": [], "out": None},
+                "advantage": {"type": "MultiLayerPerceptron", "layers": [], "out": None},
                 "out": None}
 
     def forward(self, x):
         x = self.base_module(x)
-        advantage = self.advantage(x)
         value = self.value(x).expand(-1,  self.config["out"])
+        advantage = self.advantage(x)
         return value + advantage - advantage.mean(1).unsqueeze(1).expand(-1,  self.config["out"])
 
 

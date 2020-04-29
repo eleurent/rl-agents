@@ -87,7 +87,7 @@ And the agents by their class, and configuration dictionary.
 {
     "__class__": "<class 'rl_agents.agents.deep_q_network.pytorch.DQNAgent'>",
     "model": {
-        "type": "DuelingNetwork",
+        "type": "MultiLayerPerceptron",
         "layers": [512, 512]
     },
     "gamma": 0.99,
