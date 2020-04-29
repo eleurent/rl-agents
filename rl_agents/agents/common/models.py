@@ -80,13 +80,13 @@ class DuelingNetwork(BaseModule, Configurable):
         super().__init__()
         Configurable.__init__(self, config)
         self.config["base_module"]["in"] = self.config["in"]
-        self.config["value"]["in"] = self.config["base_module"]["layers"][-1]
-        self.config["value"]["out"] = 1
-        self.config["advantage"]["in"] = self.config["base_module"]["layers"][-1]
-        self.config["advantage"]["out"] = self.config["out"]
         self.base_module = model_factory(self.config["base_module"])
-        self.advantage = model_factory(self.config["advantage"])
+        self.config["value"]["in"] = self.base_module.config["layers"][-1]
+        self.config["value"]["out"] = 1
         self.value = model_factory(self.config["value"])
+        self.config["advantage"]["in"] = self.base_module.config["layers"][-1]
+        self.config["advantage"]["out"] = self.config["out"]
+        self.advantage = model_factory(self.config["advantage"])
 
     @classmethod
     def default_config(cls):
