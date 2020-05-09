@@ -96,7 +96,6 @@ class DQNAgent(AbstractDQNAgent):
 
     def set_writer(self, writer):
         super().set_writer(writer)
-        self.writer.add_graph(self.value_net,
-                              input_to_model=torch.zeros((1, *self.env.observation_space.shape),
-                                                         dtype=torch.float, device=self.device))
+        model_input = torch.zeros((1, *self.env.observation_space.shape), dtype=torch.float, device=self.device)
+        self.writer.add_graph(self.value_net, input_to_model=(model_input,)),
         self.writer.add_scalar("agent/trainable_parameters", trainable_parameters(self.value_net), 0)
