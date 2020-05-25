@@ -74,8 +74,8 @@ class RunAnalyzer(object):
             dt = 1.0
             data.update({
                 "crashed": [np.any(episode) for episode in run_data["episode_crashed"]],
-                "velocity": [np.mean(episode) for episode in run_data["episode_velocity"]],
-                "distance": [np.sum(episode)*dt for episode in run_data["episode_velocity"]],
+                "speed": [np.mean(episode) for episode in run_data["episode_speed"]],
+                "distance": [np.sum(episode)*dt for episode in run_data["episode_distance"]],
             })
         except KeyError as e:
             print(e)
@@ -86,8 +86,11 @@ class RunAnalyzer(object):
         df["agent"] = agent_name
 
         # Filtering
-        for field in ["total reward", "discounted rewards", "length", "crashed", "velocity", "distance"]:
-            df[field] = df[field].rolling(subsample).mean()
+        for field in ["total reward", "discounted rewards", "length", "crashed", "speed", "distance"]:
+            try:
+                df[field] = df[field].rolling(subsample).mean()
+            except KeyError:
+                continue
 
         # Subsample
         df = df.iloc[self.episodes_range[0]:self.episodes_range[1]:subsample]
@@ -95,7 +98,7 @@ class RunAnalyzer(object):
 
     def analyze(self):
         self.find_best_run()
-        for field in ["total reward", "length", "crashed", "velocity", "distance"]:
+        for field in ["total reward", "length", "crashed", "speed", "distance"]:
             logging.info("Analyzing {}".format(field))
             fig, ax = plt.subplots()
             sns.lineplot(x="episode", y=field, hue="agent", data=self.data, ax=ax, ci=95)

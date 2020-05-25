@@ -45,18 +45,18 @@ class ValueIterationGraphics(object):
         except AttributeError:
             grid_shape = cls.highway_module.finite_mdp.compute_ttc_grid(agent.env, time_quantization=1., horizon=10.).shape
         cell_size = (surface.get_width() // grid_shape[2], surface.get_height() // (grid_shape[0] * grid_shape[1]))
-        velocity_size = surface.get_height() // grid_shape[0]
+        speed_size = surface.get_height() // grid_shape[0]
         value = agent.state_value().reshape(grid_shape)
         for h in range(grid_shape[0]):
             for i in range(grid_shape[1]):
                 for j in range(grid_shape[2]):
                     color = cmap(norm(value[h, i, j]), bytes=True)
                     pygame.draw.rect(surface, color, (
-                        j * cell_size[0], i * cell_size[1] + h * velocity_size, cell_size[0], cell_size[1]), 0)
+                        j * cell_size[0], i * cell_size[1] + h * speed_size, cell_size[0], cell_size[1]), 0)
             pygame.draw.line(surface, cls.BLACK,
-                             (0, h * velocity_size), (grid_shape[2] * cell_size[0], h * velocity_size), 1)
+                             (0, h * speed_size), (grid_shape[2] * cell_size[0], h * speed_size), 1)
         states, actions = agent.plan_trajectory(agent.mdp.state)
         for state in states:
             (h, i, j) = np.unravel_index(state, grid_shape)
             pygame.draw.rect(surface, cls.RED,
-                             (j * cell_size[0], i * cell_size[1] + h * velocity_size, cell_size[0], cell_size[1]), 1)
+                             (j * cell_size[0], i * cell_size[1] + h * speed_size, cell_size[0], cell_size[1]), 1)

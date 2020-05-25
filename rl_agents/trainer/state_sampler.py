@@ -53,7 +53,7 @@ class MountainCarStateSampler(AbstractStateSampler):
     def states_list(self):
         return np.array([[-0.5, 0],  # Initial
                          [-1.2, 0],  # Left side
-                         [-0.5, 0.06],  # Bottom with forward velocity
+                         [-0.5, 0.06],  # Bottom with forward speed
                          [0.5, 0.04]])  # Goal
 
 
