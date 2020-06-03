@@ -38,7 +38,8 @@ class RobustEPCAgent(AbstractAgent):
             "phi": [[[1]]],
             "simulation_frequency": 10,
             "policy_frequency": 2,
-            "parameter_bound": 1
+            "parameter_bound": 1,
+            "parameter_box": [[0], [1]],
         }
 
     def record(self, observation, action, reward, next_observation, done, info):
