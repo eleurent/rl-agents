@@ -1,0 +1,10 @@
+{
+    "id": "highway-v0",
+    "import_module": "highway_env",
+    "show_trajectories": false,
+    "action": {
+        "type": "ContinuousAction",
+        "steering_range": [-0.1, 0.1]
+    },
+    "vehicles_count": 5
+}
