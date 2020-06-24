@@ -1,85 +1,10 @@
 from collections import defaultdict
 
-import numpy as np
 import logging
 from rl_agents.agents.tree_search.deterministic import DeterministicPlannerAgent, OptimisticDeterministicPlanner, \
     DeterministicNode
 
 logger = logging.getLogger(__name__)
-
-
-class StateAwarePlannerAgent(DeterministicPlannerAgent):
-    """
-        An agent that performs state-aware optimistic planning in deterministic MDPs.
-    """
-    def make_planner(self):
-        return StateAwarePlanner(self.env, self.config)
-
-
-class StateAwarePlanner(OptimisticDeterministicPlanner):
-    """
-       An implementation of State Aware Planning.
-    """
-    def __init__(self, env, config=None):
-        super().__init__(env, config)
-
-        # Mapping of states to tree nodes that lead to this state
-        self.state_nodes = {}
-        # Mapping of states to an upper confidence bound of the state-value
-        self.state_values = defaultdict(lambda: 1 / (1 - self.config["gamma"]))
-
-    @classmethod
-    def default_config(cls):
-        cfg = super().default_config()
-        cfg.update({
-            "backup_aggregated_nodes": True,
-            "prune_suboptimal_leaves": True,
-            "stopping_accuracy": 0,
-        })
-        return cfg
-
-    def make_root(self):
-        root = StateAwareNode(None, planner=self)
-        self.leaves = [root]
-        return root
-
-    def run(self):
-        leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
-        if leaf_to_expand.done:
-            logger.warning("Expanding a terminal state")
-        leaf_to_expand.expand()
-        leaf_to_expand.updated_nodes = leaf_to_expand.backup_to_root()
-        logger.debug("{} updated nodes for state {} from path {}".format(
-            leaf_to_expand.updated_nodes,
-            leaf_to_expand.observation,
-            list(leaf_to_expand.path())))
-        for leaf in reversed(self.leaves.copy()):
-            leaf.prune()
-
-    def update_value(self, observation, value):
-        """
-            Update the upper-confidence-bound for the value of a state with a possibly tighter candidate
-
-        :param observation: an observed state
-        :param value: a candidate upper-confidence bound
-        :return: the value difference
-        """
-        delta = self.state_values[str(observation)] - value
-        if delta > 0:
-            self.state_values[str(observation)] = value
-        return delta
-
-    def plan(self, state, observation):
-        # Initialize root
-        self.root.observation = observation
-        self.state_nodes[str(observation)] = [self.root]
-        self.state_values[str(observation)] = 1 / (1 - self.config["gamma"])
-        super().plan(state, observation)
-
-        logger.debug("{} expansions".format(self.config["budget"] // state.action_space.n))
-        logger.debug("{} states explored".format(len(self.state_nodes)))
-
-        return self.get_plan()
 
 
 class StateAwareNode(DeterministicNode):
@@ -117,7 +42,7 @@ class StateAwareNode(DeterministicNode):
 
     def backup_to_root(self):
         gamma = self.planner.config["gamma"]
-        updated_nodes = 0
+        updates_count = 0
         queue = [self]
         while queue:
             node = queue.pop(0)
@@ -128,16 +53,85 @@ class StateAwareNode(DeterministicNode):
                 backup = best_child.reward + gamma * self.planner.state_values[str(best_child.observation)]
                 # Update state ucb with this new bound
                 delta = self.planner.update_value(node.observation, backup)
-                updated_nodes += 1
+                updates_count += 1
 
             # Should we propagate the update by backing-up the parents?
             for neighbour in self.planner.state_nodes[str(node.observation)]:
                 if neighbour.parent and \
                         (neighbour is node or self.planner.config["backup_aggregated_nodes"]) and \
-                        delta > self.planner.config["stopping_accuracy"] * (1 - gamma) * gamma ** (neighbour.depth - 1):
+                        delta > self.planner.config["accuracy"] * (1 - gamma) * gamma ** (neighbour.depth - 1):
                     queue.append(neighbour.parent)
-        return updated_nodes
+        return updates_count
 
     def get_value_upper_bound(self):
-        return self.value + \
+        return self.value_lower + \
                (self.planner.config["gamma"] ** self.depth) * self.planner.state_values[str(self.observation)]
+
+
+class StateAwarePlanner(OptimisticDeterministicPlanner):
+    NODE_TYPE = StateAwareNode
+    """
+       An implementation of State Aware Planning.
+    """
+    def __init__(self, env, config=None):
+        super().__init__(env, config)
+
+        # Mapping of states to tree nodes that lead to this state
+        self.state_nodes = {}
+        # Mapping of states to an upper confidence bound of the state-value
+        self.state_values = defaultdict(lambda: 1 / (1 - self.config["gamma"]))
+
+    @classmethod
+    def default_config(cls):
+        cfg = super().default_config()
+        cfg.update({
+            "backup_aggregated_nodes": True,
+            "prune_suboptimal_leaves": True,
+            "accuracy": 0,
+        })
+        return cfg
+
+    def run(self):
+        leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
+        if leaf_to_expand.done:
+            logger.warning("Expanding a terminal state")
+        leaf_to_expand.expand()
+        leaf_to_expand.updates_count = leaf_to_expand.backup_to_root()
+        logger.debug("{} updated nodes for state {} from path {}".format(
+            leaf_to_expand.updates_count,
+            leaf_to_expand.observation,
+            list(leaf_to_expand.path())))
+        for leaf in reversed(self.leaves.copy()):
+            leaf.prune()
+
+    def update_value(self, observation, value):
+        """
+            Update the upper-confidence-bound for the value of a state with a possibly tighter candidate
+
+        :param observation: an observed state
+        :param value: a candidate upper-confidence bound
+        :return: the value difference
+        """
+        delta = self.state_values[str(observation)] - value
+        if delta > 0:
+            self.state_values[str(observation)] = value
+        return delta
+
+    def plan(self, state, observation):
+        # Initialize root
+        self.root.observation = observation
+        self.state_nodes[str(observation)] = [self.root]
+        self.state_values[str(observation)] = 1 / (1 - self.config["gamma"])
+        super().plan(state, observation)
+
+        logger.debug("{} expansions".format(self.config["budget"] // state.action_space.n))
+        logger.debug("{} states explored".format(len(self.state_nodes)))
+
+        return self.get_plan()
+
+
+class StateAwarePlannerAgent(DeterministicPlannerAgent):
+    """
+        An agent that performs state-aware optimistic planning in deterministic MDPs.
+    """
+    PLANNER_TYPE = StateAwarePlanner

@@ -1,0 +1,17 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.ugape_mcts.UgapEMCTSAgent'>",
+    "env_preprocessors": [{"method":"simplify"}],
+    "gamma": 0.7,
+    "budget": 10000,
+    "max_depth": 4,
+    "accuracy": 1.3,
+    "confidence": 0.9,
+    "upper_bound":
+    {
+        "type": "kullback-leibler",
+        "time": "global",
+        "threshold": "1*np.log(1 + np.log(count)) + 0*horizon*np.log(actions) + np.log(1/(1-confidence))"
+    },
+    "continuation_type": "uniform",
+    "step_strategy": "reset"
+}

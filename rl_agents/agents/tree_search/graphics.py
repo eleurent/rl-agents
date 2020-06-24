@@ -17,7 +17,7 @@ class TreeGraphics(object):
     BLACK = (0, 0, 0)
 
     @classmethod
-    def display(cls, agent, surface):
+    def display(cls, agent, surface, max_depth=4):
         """
             Display the whole tree.
 
@@ -27,7 +27,7 @@ class TreeGraphics(object):
         if not surface:
             return
         import pygame
-        cell_size = (surface.get_width() // (agent.planner.config['max_depth'] + 1), surface.get_height())
+        cell_size = (surface.get_width() // (max_depth + 1), surface.get_height())
         pygame.draw.rect(surface, cls.BLACK, (0, 0, surface.get_width(), surface.get_height()), 0)
         cls.display_node(agent.planner.root, agent.env.action_space, surface, (0, 0), cell_size,
                          config=agent.planner.config, depth=0, selected=True)
@@ -66,17 +66,21 @@ class TreeGraphics(object):
             cls.display_text(node, surface, origin, config)
 
         # Recursively display children nodes
-        if depth >= config["max_depth"]:
+        if depth >= 4:
             return
         try:
             best_action = node.selection_rule()
         except ValueError:
             best_action = None
-        for a in node.children:
-            action_selected = (selected and (a == best_action))
-            cls.display_node(node.children[a], action_space, surface,
-                             (origin[0]+size[0], origin[1]+a*size[1]/action_space.n),
-                             (size[0], size[1]/action_space.n),
+        num_cells = len(node.children)
+        for i, action in enumerate(node.children):
+            if isinstance(action, int):
+                i = action
+                num_cells = action_space.n
+            action_selected = (selected and (i == best_action))
+            cls.display_node(node.children[action], action_space, surface,
+                             (origin[0]+size[0], origin[1]+i*size[1]/num_cells),
+                             (size[0], size[1]/num_cells),
                              depth=depth+1, config=config, selected=action_selected)
 
     @classmethod
@@ -102,7 +106,7 @@ class MCTSGraphics(TreeGraphics):
     def display_text(cls, node, surface, origin, config):
         import pygame
         font = pygame.font.Font(None, 13)
-        text = "{:.2f} / {:.2f} / {}".format(node.value, node.selection_strategy(config['temperature']), node.count)
+        text = "{:.2f} / {:.2f} / {}".format(node.get_value(), node.selection_strategy(config['temperature']), node.count)
         text += " / {:.2f}".format(node.prior)
         text = font.render(text,
                            1, (10, 10, 10), (255, 255, 255))

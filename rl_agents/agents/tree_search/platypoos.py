@@ -8,14 +8,6 @@ from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent,
 logger = logging.getLogger(__name__)
 
 
-class PlaTyPOOSAgent(AbstractTreeSearchAgent):
-    """
-        An agent that uses PlaTyPOOS to plan a sequence of actions in an MDP.
-    """
-    def make_planner(self):
-        return PlaTyPOOS(self.env, self.config)
-
-
 class PlaTyPOOS(AbstractPlanner):
     """
        An implementation of "Planning with y Plus an Online Optimization Strategy".
@@ -32,8 +24,8 @@ class PlaTyPOOS(AbstractPlanner):
             self.config["horizon"] = int(np.floor(expansion_budget /
                                                   (2 * (np.log2(expansion_budget) + 1)**2)))
 
-    def make_root(self):
-        return PlaTyPOOSNode(parent=None, planner=self, state=None)
+    def reset(self):
+        self.root = PlaTyPOOSNode(parent=None, planner=self, state=None)
 
     def explore(self, depth, current_layer):
         """
@@ -162,6 +154,7 @@ class PlaTyPOOSNode(Node):
         for _ in range(count):
             for action in actions:
                 state = safe_deepcopy_env(self.state)
+                state.seed(self.planner.np_random.randint(2**30))
                 _, reward, done, _ = state.step(action)
 
                 if action not in self.children:
@@ -190,3 +183,10 @@ class PlaTyPOOSNode(Node):
         if not candidate.parent:
             raise ValueError("Best candidate is not a descendant of this node")
         return [a for a, node in candidate.parent.children.items() if node == candidate][0]
+
+
+class PlaTyPOOSAgent(AbstractTreeSearchAgent):
+    """
+        An agent that uses PlaTyPOOS to plan a sequence of actions in an MDP.
+    """
+    PLANNER_TYPE = PlaTyPOOS

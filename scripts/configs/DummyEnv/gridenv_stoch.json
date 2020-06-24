@@ -1,0 +1,5 @@
+{
+    "id": "gridenv-v0",
+    "import_module": "utils.envs.gridenv",
+    "stochasticity": 0.1
+}

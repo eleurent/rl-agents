@@ -27,16 +27,16 @@ class RobustValueIterationAgent(ValueIterationAgent):
         self.rewards = np.array([mdp["reward"] for mdp in self.config["models"]])
 
     def act(self, state):
-        return np.argmax(self.state_action_value()[state, :])
+        return np.argmax(self.get_state_action_value()[state, :])
 
-    def state_value(self):
+    def get_state_value(self):
         return self.fixed_point_iteration(
             lambda v: RobustValueIterationAgent.best_action_value(
                 RobustValueIterationAgent.worst_case(
                     self.bellman_expectation(v))),
             np.zeros((self.transitions.shape[1],)))
 
-    def state_action_value(self):
+    def get_state_action_value(self):
         return self.fixed_point_iteration(
             lambda q: RobustValueIterationAgent.worst_case(
                 self.bellman_expectation(

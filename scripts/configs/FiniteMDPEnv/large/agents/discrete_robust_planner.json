@@ -3,7 +3,6 @@
     "iterations": 10000,
     "temperature": 1000,
     "step_strategy": "subtree",
-    "max_depth": 2,
     "envs_preprocessors":
     [
         [

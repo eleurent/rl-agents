@@ -1,0 +1,6 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.mcts.MCTSAgent'>",
+    "budget": 1000,
+    "gamma": 0.99,
+    "temperature": 10
+}

@@ -2,6 +2,7 @@
     "base_config": "configs/HighwayEnv/agents/OLOPAgent/baseline.json",
     "upper_bound": {
         "type": "laplace",
-        "c": 2
-    }
+        "threshold": "2*np.log(time)"
+    },
+    "continuation_type": "uniform"
 }

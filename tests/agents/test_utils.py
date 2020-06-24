@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from rl_agents.utils import bernoulli_kullback_leibler, d_bernoulli_kullback_leibler_dq, kl_upper_bound
+from rl_agents.utils import bernoulli_kullback_leibler, d_bernoulli_kullback_leibler_dq, kl_upper_bound, \
+    max_expectation_under_constraint, kullback_leibler
 
 
 def test_bernoulli_kullback_leibler():
@@ -25,14 +26,49 @@ def test_d_bernoulli_kullback_leibler_dq():
 
 
 def test_kl_upper_bound():
-    assert kl_upper_bound(0.5 * 1, 1, 10, c=1, eps=1e-3) == pytest.approx(0.997, abs=1e-3)
-    assert kl_upper_bound(0.5 * 10, 10, 20, c=1, eps=1e-3) == pytest.approx(0.835, abs=1e-3)
-    assert kl_upper_bound(0.5 * 20, 20, 40, c=1, eps=1e-3) == pytest.approx(0.777, abs=1e-3)
+    assert kl_upper_bound(0.5 * 1, 1, 10, threshold="np.log(time)", eps=1e-3) == pytest.approx(0.997, abs=1e-3)
+    assert kl_upper_bound(0.5 * 10, 10, 20, threshold="np.log(time)", eps=1e-3) == pytest.approx(0.835, abs=1e-3)
+    assert kl_upper_bound(0.5 * 20, 20, 40, threshold="np.log(time)", eps=1e-3) == pytest.approx(0.777, abs=1e-3)
 
     rands = np.random.randint(1, 500, 2)
     rands.sort()
     mu, count, time = np.random.random(), rands[0], rands[1]
-    ucb = kl_upper_bound(mu*count, count, time, c=1, eps=1e-3)
+    ucb = kl_upper_bound(mu*count, count, time, threshold="np.log(time)", eps=1e-3)
     assert not np.isnan(ucb)
     d_max = 1 * np.log(time) / count
     assert bernoulli_kullback_leibler(mu, ucb) == pytest.approx(d_max, abs=1e-2)
+
+
+def test_max_expectation_contrainted():
+    # Edge case 1
+    q = np.array([0, 0, 1, 1], dtype='float')
+    q /= q.sum()
+    f = np.array([1, 1, 0, 0])
+    c = 0.3
+    p = max_expectation_under_constraint(f, q, c, eps=1e-3)
+    kl = kullback_leibler(q, p)
+    print(q @ f, p @ f, kl, c)
+    assert q @ f <= p @ f
+    assert c - 1e-2 <= kl <= c + 1e-2
+
+    # Edge case 2
+    q = np.array([0, 1,  1], dtype='float')
+    q /= q.sum()
+    f = np.array([0, 1, 1])
+    c = 0.1
+    p = max_expectation_under_constraint(f, q, c, eps=1e-3)
+    kl = kullback_leibler(q, p)
+    print(q @ f, p @ f, kl, c)
+    assert q @ f <= p @ f
+    assert kl <= c + 1e-2
+
+    # Random distribution
+    for _ in range(100):
+        q = np.random.random(10)
+        q /= q.sum()
+        f = np.random.random(10)
+        c = np.random.random()
+        p = max_expectation_under_constraint(f, q, c, eps=1e-4)
+        kl = q @ np.log(q/p)
+        assert q @ f <= p @ f
+        assert c - 1e-2 <= kl <= c + 1e-2

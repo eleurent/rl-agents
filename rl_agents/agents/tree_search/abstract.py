@@ -1,4 +1,7 @@
 import logging
+from collections import defaultdict
+
+import gym
 import numpy as np
 from gym.utils import seeding
 
@@ -11,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractTreeSearchAgent(AbstractAgent):
+    PLANNER_TYPE = None
+    NODE_TYPE = None
+
     def __init__(self,
                  env,
                  config=None):
@@ -30,11 +36,16 @@ class AbstractTreeSearchAgent(AbstractAgent):
     def default_config(cls):
         return {
             "env_preprocessors": [],
-            "display_tree": False
+            "display_tree": False,
+            "receding_horizon": 1,
+            "terminal_reward": 0
         }
 
     def make_planner(self):
-        raise NotImplementedError()
+        if self.PLANNER_TYPE:
+            return self.PLANNER_TYPE(self.env, self.config)
+        else:
+            raise NotImplementedError()
 
     def plan(self, observation):
         """
@@ -68,11 +79,12 @@ class AbstractTreeSearchAgent(AbstractAgent):
         else:
             self.remaining_horizon -= 1
 
-        self.planner.step(actions)
+        self.planner.step_tree(actions)
         return replanning_required
 
     def reset(self):
         self.planner.step_by_reset()
+        self.remaining_horizon = 0
         self.steps = 0
 
     def seed(self, seed=None):
@@ -92,26 +104,23 @@ class AbstractTreeSearchAgent(AbstractAgent):
 
     def write_tree(self):
         if self.config["display_tree"] and self.writer:
-            TreePlot(self.planner, max_depth=self.config["max_depth"]).plot_to_writer(self.writer, epoch=self.steps, show=True)
+            TreePlot(self.planner, max_depth=6).plot_to_writer(self.writer, epoch=self.steps, show=True)
 
 
 class AbstractPlanner(Configurable):
     def __init__(self, config=None):
         super(AbstractPlanner, self).__init__(config)
         self.np_random = None
-        self.root = self.make_root()
+        self.root = None
+        self.observations = []
+        self.reset()
         self.seed()
 
     @classmethod
     def default_config(cls):
         return dict(budget=500,
                     gamma=0.8,
-                    max_depth=6,
-                    step_strategy="reset",
-                    receding_horizon=1)
-
-    def make_root(self):
-        raise NotImplementedError()
+                    step_strategy="reset")
 
     def seed(self, seed=None):
         """
@@ -147,7 +156,21 @@ class AbstractPlanner(Configurable):
             node = node.children[action]
         return actions
 
-    def step(self, actions):
+    def step(self, state, action):
+        observation, reward, done, info = state.step(action)
+        self.observations.append(observation)
+        return observation, reward, done, info
+
+    def get_visits(self):
+        visits = defaultdict(int)
+        for observation in self.observations:
+            visits[str(observation)] += 1
+        return visits
+
+    def get_updates(self):
+        return defaultdict(int)
+
+    def step_tree(self, actions):
         """
             Update the planner tree when the agent performs an action
 
@@ -168,7 +191,7 @@ class AbstractPlanner(Configurable):
         """
             Reset the planner tree to a root node for the new state.
         """
-        self.root = self.make_root()
+        self.reset()
 
     def step_by_subtree(self, action):
         """
@@ -182,6 +205,9 @@ class AbstractPlanner(Configurable):
         else:
             # The selected action was never explored, start a new tree.
             self.step_by_reset()
+
+    def reset(self):
+        raise NotImplementedError
 
 
 class Node(object):
@@ -205,11 +231,11 @@ class Node(object):
         self.count = 0
         """ Number of times the node was visited."""
 
-        self.value = 0
+        self.value_upper = 0
         """ Estimated value of the node's action sequence"""
 
     def get_value(self):
-        return self.value
+        return self.value_upper
 
     def expand(self, branching_factor):
         for a in range(branching_factor):
@@ -286,40 +312,48 @@ class Node(object):
         return self.planner.np_random.choice(indices)
 
     def __str__(self):
-        return "{} ({})".format(list(self.path()), self.value)
+        return "{} (n:{}, v:{:.2f})".format(list(self.path()), self.count, self.get_value())
 
     def __repr__(self):
         return '<node {}>'.format(id(self))
 
-    def get_trajectories(self, initial_state, initial_observation=None,
-                         as_observations=True, full_trajectories=True, include_leaves=True):
+    def get_trajectories(self, full_trajectories=True, include_leaves=True):
         """
-            Get a list of visited nodes/states/trajectories corresponding to the node subtree
+            Get a list of visited nodes corresponding to the node subtree
 
-        :param initial_state: the state at the root
-        :param initial_observation: the observation for the root state
-        :param as_observations: return nodes instead of observations
         :param full_trajectories: return a list of observation sequences, else a list of observations
         :param include_leaves: include leaves or only expanded nodes
         :return: the list of trajectories
         """
         trajectories = []
-        if initial_observation is None:
-            initial_observation = initial_state.reset()
-        if not as_observations:
-            initial_observation = self  # Return this node instead of this observation
         if self.children:
             for action, child in self.children.items():
-                next_state = safe_deepcopy_env(initial_state)
-                next_observation, _, _, _ = next_state.step(action)
-                child_trajectories = child.get_trajectories(next_state, next_observation,
-                                                            as_observations, full_trajectories, include_leaves)
+                child_trajectories = child.get_trajectories(full_trajectories, include_leaves)
                 if full_trajectories:
-                    trajectories.extend([[initial_observation] + trajectory for trajectory in child_trajectories])
+                    trajectories.extend([[self] + trajectory for trajectory in child_trajectories])
                 else:
                     trajectories.extend(child_trajectories)
             if not full_trajectories:
-                trajectories.append(initial_observation)
+                trajectories.append(self)
         elif include_leaves:
-            trajectories = [[initial_observation]] if full_trajectories else [initial_observation]
+            trajectories = [[self]] if full_trajectories else [self]
         return trajectories
+
+    def get_obs_visits(self, state=None):
+        visits = defaultdict(int)
+        updates = defaultdict(int)
+        if hasattr(self, "observation"):
+            for node in self.get_trajectories(full_trajectories=False,
+                                              include_leaves=False):
+                if hasattr(node, "observation"):
+                    visits[str(node.observation)] += 1
+                    if hasattr(node, "updates_count"):
+                        updates[str(node.observation)] += node.updates_count
+        else:  # Replay required
+            for node in self.get_trajectories(full_trajectories=False,
+                                              include_leaves=False):
+                replay_state = safe_deepcopy_env(state)
+                for action in node.path():
+                    observation, _, _, _ = replay_state.step(action)
+                visits[str(observation)] += 1
+        return visits, updates

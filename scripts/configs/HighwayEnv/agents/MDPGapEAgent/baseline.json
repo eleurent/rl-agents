@@ -1,0 +1,17 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
+    "env_preprocessors": [{"method":"simplify"}],
+    "gamma": 0.8,
+    "budget": 100,
+    "accuracy": 0.1,
+    "confidence": 1,
+    "max_next_states_count": 1,
+    "upper_bound":
+    {
+        "type": "kullback-leibler",
+        "time": "global",
+        "threshold": "1*np.log(time)"
+    },
+    "continuation_type": "uniform",
+    "step_strategy": "reset"
+}
