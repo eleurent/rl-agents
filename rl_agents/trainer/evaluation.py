@@ -91,6 +91,7 @@ class Evaluation(object):
                 self.env.render()
                 self.env.unwrapped.viewer.set_agent_display(
                     lambda agent_surface, sim_surface: AgentGraphics.display(self.agent, agent_surface, sim_surface))
+                self.env.unwrapped.viewer.directory = self.run_directory
             except AttributeError:
                 logger.info("The environment viewer doesn't support agent rendering.")
         self.reward_viewer = None
