@@ -94,11 +94,11 @@ class DQNGraphics(object):
                 continue
             v_position = {}
             for feature in ["x", "y"]:
-                v_feature = state[v_index, agent.env.observation.features.index(feature)]
-                v_feature = remap(v_feature, [-1, 1], agent.env.observation.features_range[feature])
+                v_feature = state[v_index, agent.env.observation_type.features.index(feature)]
+                v_feature = remap(v_feature, [-1, 1], agent.env.observation_type.features_range[feature])
                 v_position[feature] = v_feature
             v_position = np.array([v_position["x"], v_position["y"]])
-            if not agent.env.observation.absolute and v_index > 0:
+            if not agent.env.observation_type.absolute and v_index > 0:
                 v_position += agent.env.unwrapped.vehicle.position
             vehicle = min(agent.env.road.vehicles, key=lambda v: np.linalg.norm(v.position - v_position))
             v_attention[vehicle] = attention[:, v_index]
