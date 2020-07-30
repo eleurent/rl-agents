@@ -66,7 +66,7 @@ class DQNGraphics(object):
                     width = attention[head] * 5
                     desat = remap(attention[head], (0, 0.5), (0.7, 1), clip=True)
                     colors = sns.color_palette("dark", desat=desat)
-                    color = np.array(colors[2-2*head]) * 255
+                    color = np.array(colors[(2*head) % (len(colors) - 1)]) * 255
                     color = (*color, remap(attention[head], (0, 0.5), (100, 200), clip=True))
                     if vehicle is agent.env.vehicle:
                         pygame.draw.circle(attention_surface, color,
