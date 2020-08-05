@@ -102,14 +102,6 @@ class DecisionNode(MCTSNode):
         self.k_action = self.planner.config["k_action"]
         self.alpha_action = self.planner.config["alpha_action"]
 
-    def selection_rule(self):
-        if not self.children:
-            return None
-        # Tie best counts by best value
-        actions = list(self.children.keys())
-        counts = MCTSNode.all_argmax([self.children[a].count for a in actions])
-        return actions[max(counts, key=(lambda i: self.children[actions[i]].get_value()))]
-
     def unexplored_actions(self, state):
         if state is None:
             raise Exception("The state should be set before expanding a node")
