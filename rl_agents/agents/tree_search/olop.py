@@ -124,10 +124,10 @@ class OLOPNode(Node):
         """ Is this node a terminal node, for all random realizations (!)"""
 
     def selection_rule(self):
-        # Tie best counts by best value
+        # Tie best counts by best value upper bound
         actions = list(self.children.keys())
         counts = Node.all_argmax([self.children[a].count for a in actions])
-        return actions[max(counts, key=(lambda i: self.children[actions[i]].get_value()))]
+        return actions[max(counts, key=(lambda i: self.children[actions[i]].value_upper))]
 
     def update(self, reward, done):
         if not 0 <= reward <= 1:

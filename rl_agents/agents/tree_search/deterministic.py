@@ -22,7 +22,7 @@ class DeterministicNode(Node):
         if not self.children:
             return None
         actions = list(self.children.keys())
-        index = self.random_argmax([self.children[a].get_value() for a in actions])
+        index = self.random_argmax([self.children[a].get_value_lower_bound() for a in actions])
         return actions[index]
 
     def expand(self):
@@ -63,7 +63,7 @@ class DeterministicNode(Node):
             backup_children = [child.backup_values() for child in self.children.values()]
             self.value_lower = np.amax([b[0] for b in backup_children])
             self.value_upper = np.amax([b[1] for b in backup_children])
-        return self.get_value(), self.get_value_upper_bound()
+        return self.get_value_lower_bound(), self.get_value_upper_bound()
 
     def backup_to_root(self):
         if self.children:
@@ -71,6 +71,9 @@ class DeterministicNode(Node):
             self.value_upper = np.amax([child.value_upper for child in self.children.values()])
             if self.parent:
                 self.parent.backup_to_root()
+
+    def get_value_lower_bound(self):
+        return self.value_lower
 
     def get_value_upper_bound(self):
         return self.value_upper

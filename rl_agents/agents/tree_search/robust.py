@@ -32,8 +32,8 @@ class DiscreteRobustPlanner(OptimisticDeterministicPlanner):
 
 
 class RobustNode(DeterministicNode):
-    def get_value(self):
-        return np.min(self.value)
+    def get_value_lower_bound(self):
+        return np.min(self.value_lower)
 
     def get_value_upper_bound(self):
         return np.min(self.value_upper)

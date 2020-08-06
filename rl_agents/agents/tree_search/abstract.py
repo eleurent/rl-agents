@@ -231,11 +231,11 @@ class Node(object):
         self.count = 0
         """ Number of times the node was visited."""
 
-        self.value_upper = 0
-        """ Estimated value of the node's action sequence"""
-
-    def get_value(self):
-        return self.value_upper
+    def get_value(self) -> float:
+        """
+        Return an estimate of the node value.
+        """
+        raise NotImplementedError()
 
     def expand(self, branching_factor):
         for a in range(branching_factor):

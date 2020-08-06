@@ -4,7 +4,6 @@ import numpy as np
 from rl_agents.agents.common.factory import safe_deepcopy_env
 from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
 from rl_agents.agents.tree_search.olop import OLOP
-from rl_agents.utils import hoeffding_upper_bound, kl_upper_bound, laplace_upper_bound
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +55,7 @@ class BRUE(OLOP):
             if not state_node.children:
                 break
             # Best estimated action
-            chance_node = max(state_node.children.values(), key=lambda child: child.value_upper)
+            chance_node = max(state_node.children.values(), key=lambda child: child.value)
             # Random estimated outcome
             next_states = list(chance_node.children.values())
             counts = np.array([state.count for state in next_states])
@@ -88,7 +87,7 @@ class DecisionNode(Node):
 
     def selection_rule(self):
         actions = list(self.children.keys())
-        index = self.random_argmax([self.children[a].value_upper for a in actions])
+        index = self.random_argmax([self.children[a].value for a in actions])
         return actions[index]
 
     def get_child(self, action):
@@ -102,10 +101,11 @@ class ChanceNode(Node):
         assert parent is not None
         super().__init__(parent, planner)
         self.depth = self.parent.depth
+        self.value = 0
 
     def update(self, return_):
         self.count += 1
-        self.value_upper = (self.count - 1) / self.count * self.value_upper + return_ / self.count
+        self.value = (self.count - 1) / self.count * self.value + return_ / self.count
 
     def selection_rule(self):
         raise AttributeError("Selection is done in DecisionNodes, not ChanceNodes")
