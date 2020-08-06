@@ -36,7 +36,7 @@ def test_kl_upper_bound():
     ucb = kl_upper_bound(mu*count, count, time, threshold="np.log(time)", eps=1e-3)
     assert not np.isnan(ucb)
     d_max = 1 * np.log(time) / count
-    assert bernoulli_kullback_leibler(mu, ucb) == pytest.approx(d_max, abs=1e-2)
+    assert bernoulli_kullback_leibler(mu, ucb) == pytest.approx(d_max, abs=1e-1)
 
 
 def test_max_expectation_contrainted():
