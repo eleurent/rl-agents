@@ -110,7 +110,7 @@ def preprocess_env(env, preprocessor_configs):
                 else:
                     env = preprocessor()
             except AttributeError:
-                logger.warn("The environment does not have a {} method".format(preprocessor_config["method"]))
+                logger.warning("The environment does not have a {} method".format(preprocessor_config["method"]))
         else:
             logger.error("The method is not specified in ", preprocessor)
     return env
