@@ -55,6 +55,7 @@ class MCTSDPW(MCTS):
 
     def reset(self):
         self.root = DecisionNode(parent=None, planner=self)
+        
 
     def run(self, state, observation):
         """
@@ -146,7 +147,7 @@ class DecisionNode(MCTSNode):
         actions = list(self.children.keys())
         indexes = []
         for a in actions:
-            ucb_val = self.children[a].get_value() +  temperature * np.sqrt(np.log(self.count / (self.children[a].count)))
+            ucb_val = self.children[a].value +  temperature * np.sqrt(np.log(self.count / (self.children[a].count)))
             indexes.append(ucb_val)
 
         action = actions[self.random_argmax(indexes)]
