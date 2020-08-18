@@ -55,7 +55,6 @@ class MCTSDPW(MCTS):
 
     def reset(self):
         self.root = DecisionNode(parent=None, planner=self)
-        
 
     def run(self, state, observation):
         """
@@ -68,7 +67,8 @@ class MCTSDPW(MCTS):
         depth = 0
         terminal = False
         state.seed(self.np_random.randint(2**30))
-        while depth < self.config['horizon'] and not terminal and decision_node.count != 0:
+        while depth < self.config['horizon'] and not terminal and \
+                        (decision_node.count != 0 or decision_node == self.root):
 
 
             # perform an action followed by a transition
@@ -147,7 +147,7 @@ class DecisionNode(MCTSNode):
         actions = list(self.children.keys())
         indexes = []
         for a in actions:
-            ucb_val = self.children[a].value +  temperature * np.sqrt(np.log(self.count / (self.children[a].count)))
+            ucb_val = self.children[a].value + temperature * np.sqrt(np.log(self.count / (self.children[a].count)))
             indexes.append(ucb_val)
 
         action = actions[self.random_argmax(indexes)]
