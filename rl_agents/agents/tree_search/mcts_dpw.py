@@ -55,7 +55,7 @@ class MCTSDPW(MCTS):
 
     def reset(self):
         self.root = DecisionNode(parent=None, planner=self)
-        
+        self.root.count = 1
 
     def run(self, state, observation):
         """
