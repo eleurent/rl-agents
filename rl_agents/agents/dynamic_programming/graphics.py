@@ -23,10 +23,10 @@ class ValueIterationGraphics(object):
         """
         if not cls.highway_module:
             try:
-                cls.highway_module = importlib.import_module("highway_env.envs")
+                cls.highway_module = importlib.import_module("highway_env")
             except ModuleNotFoundError:
                 pass
-        if cls.highway_module and isinstance(agent.env, cls.highway_module.abstract.AbstractEnv):
+        if cls.highway_module and isinstance(agent.env, cls.highway_module.envs.common.abstract.AbstractEnv):
             cls.display_highway(agent, surface)
 
     @classmethod

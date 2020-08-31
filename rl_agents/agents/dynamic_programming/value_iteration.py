@@ -31,6 +31,7 @@ class ValueIterationAgent(AbstractAgent):
         if not self.finite_mdp:
             self.mdp = self.env.unwrapped.to_finite_mdp()
             state = self.mdp.state
+            self.state_action_value = self.get_state_action_value()
         return np.argmax(self.state_action_value[state, :])
 
     def get_state_value(self):
