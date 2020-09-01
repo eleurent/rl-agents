@@ -24,7 +24,10 @@ class GraphNode(Node):
             Optimistic action sampling
         """
         q_values_upper = self.backup("value_upper")
-        return max(q_values_upper.items(), key=operator.itemgetter(1))[0]
+        # action, values
+        actions = list(q_values_upper.keys())
+        index = self.random_argmax([q_values_upper[a] for a in actions])
+        return actions[index]
 
     def selection_rule(self):
         """
