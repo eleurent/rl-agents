@@ -78,6 +78,9 @@ class DeterministicNode(Node):
     def get_value_upper_bound(self):
         return self.value_upper
 
+    def get_value(self) -> float:
+        return self.value_upper
+
 
 class OptimisticDeterministicPlanner(AbstractPlanner):
     NODE_TYPE = DeterministicNode

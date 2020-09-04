@@ -157,7 +157,11 @@ class StatsRecorderV2(StatsRecorder):
             for field, value in info.items():
                 if field not in self.infos:
                     self.infos[field] = []
-                self.infos[field].append(info[field])
+                try:  # Convert numpy types to serializable native python types
+                    value = value.item()
+                except AttributeError:
+                    pass
+                self.infos[field].append(value)
 
         super(StatsRecorderV2, self).after_step(observation, reward, done, info)
 
