@@ -1,0 +1,17 @@
+{
+    "id": "highway-v0",
+    "import_module": "highway_env",
+    "controlled_vehicles": 3,
+    "action": {
+        "type": "MultiAgentAction",
+        "action_config": {
+            "type": "DiscreteMetaAction"
+        }
+    },
+    "observation": {
+        "type": "MultiAgentObservation",
+        "observation_config": {
+            "type": "Kinematics"
+        }
+    }
+}

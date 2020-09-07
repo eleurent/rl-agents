@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from gym import spaces
 from torch.nn import functional as F
 
 from rl_agents.configuration import Configurable
@@ -409,13 +410,22 @@ def size_model_config(env, model_config):
     :param env: an environment
     :param model_config: a model configuration
     """
+
+    if isinstance(env.observation_space, spaces.Box):
+        obs_shape = env.observation_space.shape
+    elif isinstance(env.observation_space, spaces.Tuple):
+        obs_shape = env.observation_space.spaces[0].shape
     if model_config["type"] == "ConvolutionalNetwork":  # Assume CHW observation space
-        model_config["in_channels"] = int(env.observation_space.shape[0])
-        model_config["in_height"] = int(env.observation_space.shape[1])
-        model_config["in_width"] = int(env.observation_space.shape[2])
+        model_config["in_channels"] = int(obs_shape[0])
+        model_config["in_height"] = int(obs_shape[1])
+        model_config["in_width"] = int(obs_shape[2])
     else:
-        model_config["in"] = int(np.prod(env.observation_space.shape))
-    model_config["out"] = env.action_space.n
+        model_config["in"] = int(np.prod(obs_shape))
+
+    if isinstance(env.action_space, spaces.Discrete):
+        model_config["out"] = env.action_space.n
+    elif isinstance(env.action_space, spaces.Tuple):
+        model_config["out"] = env.action_space.spaces[0].n
 
 
 def model_factory(config: dict) -> nn.Module:

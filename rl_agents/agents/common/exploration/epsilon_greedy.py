@@ -12,6 +12,8 @@ class EpsilonGreedy(DiscreteDistribution):
     def __init__(self, action_space, config=None):
         super(EpsilonGreedy, self).__init__(config)
         self.action_space = action_space
+        if isinstance(self.action_space, spaces.Tuple):
+            self.action_space = self.action_space.spaces[0]
         if not isinstance(self.action_space, spaces.Discrete):
             raise TypeError("The action space should be discrete")
         self.config['final_temperature'] = min(self.config['temperature'], self.config['final_temperature'])

@@ -11,7 +11,8 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
     def __init__(self, env, config=None):
         super(AbstractDQNAgent, self).__init__(config)
         self.env = env
-        assert isinstance(env.action_space, spaces.Discrete), "Only compatible with Discrete action spaces."
+        assert isinstance(env.action_space, spaces.Discrete) or isinstance(env.action_space, spaces.Tuple), \
+            "Only compatible with Discrete action spaces."
         self.memory = ReplayMemory(self.config)
         self.exploration_policy = exploration_factory(self.config["exploration"], self.env.action_space)
         self.training = True
@@ -50,7 +51,11 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         """
         if not self.training:
             return
-        self.memory.push(state, action, reward, next_state, done, info)
+        if isinstance(state, tuple) and isinstance(action, tuple):  # Multi-agent setting
+            [self.memory.push(agent_state, agent_action, reward, agent_next_state, done, info)
+             for agent_state, agent_action, agent_next_state in zip(state, action, next_state)]
+        else:  # Single-agent setting
+            self.memory.push(state, action, reward, next_state, done, info)
         batch = self.sample_minibatch()
         if batch:
             loss, _, _ = self.compute_bellman_residual(batch)
@@ -64,6 +69,14 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
         :return: an action
         """
         self.previous_state = state
+        # Handle multi-agent observations
+        # TODO: it would be more efficient to forward a batch of states
+        if isinstance(state, tuple):
+            actions = tuple(self.act(agent_state) for agent_state in state)
+            self.exploration_policy.time -= len(state) - 1  # Only step time once
+            return actions
+
+        # Single-agent setting
         values = self.get_state_action_values(state)
         self.exploration_policy.update(values, step_time=True)
         return self.exploration_policy.sample()

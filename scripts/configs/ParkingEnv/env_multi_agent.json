@@ -1,0 +1,21 @@
+{
+    "id": "parking-ActionRepeat-v0",
+    "import_module": "highway_env",
+    "show_trajectories": true,
+    "controlled_vehicles": 2,
+    "action": {
+        "type": "MultiAgentAction",
+        "action_config": {
+            "type": "ContinuousAction"
+        }
+    },
+    "observation": {
+        "type": "MultiAgentObservation",
+        "observation_config": {
+            "type": "KinematicsGoal",
+            "features": ["x", "y", "vx", "vy", "cos_h", "sin_h"],
+            "scales": [100, 100, 5, 5, 1, 1],
+            "normalize": false
+        }
+    }
+}

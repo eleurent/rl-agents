@@ -89,16 +89,19 @@ class DQNGraphics(object):
         ego, others, mask = agent.value_net.split_input(state_t)
         mask = mask.squeeze()
         v_attention = {}
+        obs_type = agent.env.observation_type
+        if hasattr(obs_type, "agents_observation_types"):  # Handle multi-agent observation
+            obs_type = obs_type.agents_observation_types[0]
         for v_index in range(state.shape[0]):
             if mask[v_index]:
                 continue
             v_position = {}
             for feature in ["x", "y"]:
-                v_feature = state[v_index, agent.env.observation_type.features.index(feature)]
-                v_feature = remap(v_feature, [-1, 1], agent.env.observation_type.features_range[feature])
+                v_feature = state[v_index, obs_type.features.index(feature)]
+                v_feature = remap(v_feature, [-1, 1], obs_type.features_range[feature])
                 v_position[feature] = v_feature
             v_position = np.array([v_position["x"], v_position["y"]])
-            if not agent.env.observation_type.absolute and v_index > 0:
+            if not obs_type.absolute and v_index > 0:
                 v_position += agent.env.unwrapped.vehicle.position
             vehicle = min(agent.env.road.vehicles, key=lambda v: np.linalg.norm(v.position - v_position))
             v_attention[vehicle] = attention[:, v_index]
