@@ -62,23 +62,24 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
             self.step_optimizer(loss)
             self.update_target_network()
 
-    def act(self, state):
+    def act(self, state, step_exploration_time=True):
         """
             Act according to the state-action value model and an exploration policy
         :param state: current state
+        :param step_exploration_time: step the exploration schedule
         :return: an action
         """
         self.previous_state = state
+        if step_exploration_time:
+            self.exploration_policy.step_time()
         # Handle multi-agent observations
         # TODO: it would be more efficient to forward a batch of states
         if isinstance(state, tuple):
-            actions = tuple(self.act(agent_state) for agent_state in state)
-            self.exploration_policy.time -= len(state) - 1  # Only step time once
-            return actions
+            return tuple(self.act(agent_state, step_exploration_time=False) for agent_state in state)
 
         # Single-agent setting
         values = self.get_state_action_values(state)
-        self.exploration_policy.update(values, step_time=True)
+        self.exploration_policy.update(values)
         return self.exploration_policy.sample()
 
     def sample_minibatch(self):
@@ -157,7 +158,7 @@ class AbstractDQNAgent(AbstractStochasticAgent, ABC):
     def action_distribution(self, state):
         self.previous_state = state
         values = self.get_state_action_values(state)
-        self.exploration_policy.update(values, step_time=False)
+        self.exploration_policy.update(values)
         return self.exploration_policy.get_distribution()
 
     def set_time(self, time):

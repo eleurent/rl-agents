@@ -37,6 +37,10 @@ class DiscreteDistribution(Configurable, ABC):
         """ Set the local time, allowing to schedule the distribution temperature. """
         pass
 
+    def step_time(self):
+        """ Step the local time, allowing to schedule the distribution temperature. """
+        pass
+
 
 def exploration_factory(exploration_config, action_space):
     """

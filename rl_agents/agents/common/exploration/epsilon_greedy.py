@@ -34,7 +34,7 @@ class EpsilonGreedy(DiscreteDistribution):
         distribution[self.optimal_action] += 1 - self.epsilon
         return distribution
 
-    def update(self, values, step_time=True):
+    def update(self, values):
         """
             Update the action distribution parameters
         :param values: the state-action values
@@ -44,10 +44,11 @@ class EpsilonGreedy(DiscreteDistribution):
         self.epsilon = self.config['final_temperature'] + \
             (self.config['temperature'] - self.config['final_temperature']) * \
             np.exp(- self.time / self.config['tau'])
-        if step_time:
-            self.time += 1
         if self.writer:
             self.writer.add_scalar('exploration/epsilon', self.epsilon, self.time)
+
+    def step_time(self):
+        self.time += 1
 
     def set_time(self, time):
         self.time = time
