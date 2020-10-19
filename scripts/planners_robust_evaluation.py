@@ -13,6 +13,7 @@ Options:
   --chunksize <c>             Size of data chunks each processor receives
   --range <start:end>         Range of budgets to be plotted.
 """
+import itertools
 from ast import literal_eval
 from pathlib import Path
 
@@ -33,6 +34,11 @@ import os
 os.environ['SDL_VIDEODRIVER'] = 'x11'
 
 SEED_MAX = 1e9
+
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Helvetica"]})
 
 
 def env_configs():
@@ -163,37 +169,44 @@ def plot_all(directory, filename, data_range):
         custom_processing_return(df)
     except Exception:
         pass
-    # try:
-    #     df["regret"] = (df["value"] - df["return"]).clip(lower=0)
-    #     df[r"samples $N$"] = 5*df["time"]
-    #     custom_processing_regret(df)
-    # except Exception:
-    #     pass
-    # df = df.replace({
-    #     "robust-epc": r"\texttt{Robust EPC}",
-    #     "nominal-epc": r"\texttt{Nominal EPC}",
-    # })
-    #
-    # fig, ax = plt.subplots()
-    # ax.set_yscale("symlog", linthreshy=1e-4)
-    # sns.lineplot(x=r"samples $N$", y='regret', hue='agent', ax=ax, data=df)
-    # field = "regret"
-    # field_path = directory / "{}.pdf".format(field)
-    # fig.savefig(field_path, bbox_inches='tight')
-    # field_path = directory / "{}.png".format(field)
-    # fig.savefig(field_path, bbox_inches='tight')
-    # print("Saving {} plot to {}".format(field, field_path))
-    #
-    # fig, ax = plt.subplots()
-    # ax.set_yscale("symlog", linthreshy=1e-4)
-    # df = df.groupby(["agent", "time"], as_index=False).max()
-    # sns.lineplot(x="time", y='regret', hue='agent', ax=ax, data=df)
-    # field = "max_regret"
-    # field_path = directory / "{}.pdf".format(field)
-    # fig.savefig(field_path, bbox_inches='tight')
-    # field_path = directory / "{}.png".format(field)
-    # fig.savefig(field_path, bbox_inches='tight')
-    # print("Saving {} plot to {}".format(field, field_path))
+    try:
+        df["regret"] = (df["value"] - df["return"]).clip(lower=0)
+        df[r"samples $N$"] = 5*df["time"]
+        custom_processing_regret(df)
+    except Exception:
+        pass
+    df = df.replace({
+        "robust-epc": r"\texttt{Robust}",
+        "nominal-epc": r"\texttt{Nominal}",
+    })
+    df = df.sort_values(by='agent')
+
+    fig, ax = plt.subplots()
+    ax.set_yscale("symlog", linthreshy=1e-4)
+    sns.lineplot(x=r"samples $N$", y='regret', hue='agent', ax=ax, data=df)
+    ax.set_ylabel("suboptimality")
+    field = "regret"
+    field_path = directory / "{}.pdf".format(field)
+    fig.savefig(field_path, bbox_inches='tight')
+    field_path = directory / "{}.png".format(field)
+    fig.savefig(field_path, bbox_inches='tight')
+    print("Saving {} plot to {}".format(field, field_path))
+
+    df = df.groupby(["agent", "time"], as_index=False).max()
+    df = df.rename(columns={"regret": "max regret"})
+
+    palette = itertools.cycle(sns.color_palette())
+    for agent in df["agent"].unique():
+        color = next(palette)
+        agent_df = df[df["agent"] == agent]
+        ax.plot(agent_df["samples $N$"], agent_df["max regret"], color=color, linestyle="--")
+
+    field = "max_regret"
+    field_path = directory / "{}.pdf".format(field)
+    fig.savefig(field_path, bbox_inches='tight')
+    field_path = directory / "{}.png".format(field)
+    fig.savefig(field_path, bbox_inches='tight')
+    print("Saving {} plot to {}".format(field, field_path))
 
 
 def custom_processing_regret(df):
