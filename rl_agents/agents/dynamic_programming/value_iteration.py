@@ -53,6 +53,10 @@ class ValueIterationAgent(AbstractAgent):
             next_v = value[self.mdp.transition]
         elif self.mdp.mode == "stochastic":
             next_v = (self.mdp.transition * value.reshape((1, 1, value.size))).sum(axis=-1)
+        elif self.mdp.mode == "sparse":
+            # P(s,a,B) * v[B]
+            next_values = np.take(value, self.mdp.next)
+            next_v = (self.mdp.transition * next_values).sum(axis=-1)
         else:
             raise ValueError("Unknown mode")
         next_v[self.mdp.terminal] = 0
