@@ -3,7 +3,7 @@ import numpy as np
 
 from rl_agents.agents.common.factory import safe_deepcopy_env
 from rl_agents.agents.tree_search.abstract import Node, AbstractTreeSearchAgent, AbstractPlanner
-from rl_agents.utils import hoeffding_upper_bound, kl_upper_bound, laplace_upper_bound
+from rl_agents.utils import kl_upper_bound
 
 logger = logging.getLogger(__name__)
 
@@ -150,15 +150,15 @@ class OLOPNode(Node):
             time = np.nan
             logger.error("Unknown upper-bound time reference")
 
-        if self.planner.config["upper_bound"]["type"] == "hoeffding":
-            self.mu_ucb = hoeffding_upper_bound(self.cumulative_reward, self.count, time,
-                                                c=self.planner.config["upper_bound"]["c"])
-        elif self.planner.config["upper_bound"]["type"] == "laplace":
-            self.mu_ucb = laplace_upper_bound(self.cumulative_reward, self.count, time,
-                                              c=self.planner.config["upper_bound"]["c"])
-        elif self.planner.config["upper_bound"]["type"] == "kullback-leibler":
-            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, time,
-                                         threshold=self.planner.config["upper_bound"]["threshold"])
+        # if self.planner.config["upper_bound"]["type"] == "hoeffding":
+        #     self.mu_ucb = hoeffding_upper_bound(self.cumulative_reward, self.count, time,
+        #                                         c=self.planner.config["upper_bound"]["c"])
+        # elif self.planner.config["upper_bound"]["type"] == "laplace":
+        #     self.mu_ucb = laplace_upper_bound(self.cumulative_reward, self.count, time,
+        #                                       c=self.planner.config["upper_bound"]["c"])
+        if self.planner.config["upper_bound"]["type"] == "kullback-leibler":
+            threshold = eval(self.planner.config["upper_bound"]["threshold"])
+            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, threshold)
         else:
             logger.error("Unknown upper-bound type")
 

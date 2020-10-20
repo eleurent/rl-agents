@@ -206,10 +206,8 @@ class DecisionNode(OLOPNode):
             count = self.count
             time = self.planner.config["episodes"]
             threshold = eval(self.planner.config["upper_bound"]["threshold"])
-            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, 0,
-                                         threshold=str(threshold))
-            self.mu_lcb = kl_upper_bound(self.cumulative_reward, self.count, 0,
-                                         threshold=str(threshold), lower=True)
+            self.mu_ucb = kl_upper_bound(self.cumulative_reward, self.count, threshold)
+            self.mu_lcb = kl_upper_bound(self.cumulative_reward, self.count, threshold, lower=True)
         else:
             logger.error("Unknown upper-bound type")
 
