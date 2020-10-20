@@ -22,6 +22,7 @@ class BRUE(OLOP):
         self.root = DecisionNode(parent=None, planner=self)
 
     def rollout(self, state, observation):
+        state.seed(self.np_random.randint(2**30))
         for h in range(self.config["horizon"]):
             action = self.np_random.randint(state.action_space.n)
             next_observation, reward, done, _ = self.step(state, action)
@@ -33,7 +34,6 @@ class BRUE(OLOP):
 
     def update(self, rollout):
         state_node = self.root
-        state_node.seed(self.np_random.randint(2**30))
         to_update = []
 
         # Get or create the sequence of visited nodes
