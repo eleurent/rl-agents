@@ -31,17 +31,18 @@ import seaborn as sns
 import logging
 
 from matplotlib.ticker import LogLocator, LogFormatterSciNotation, SymmetricalLogLocator
-from sklearn.linear_model import LinearRegression
+# from sklearn.linear_model import LinearRegression
 
+sns.set_style("white")
 sns.set(font_scale=1.5, rc={'text.usetex': True})
-sns.set(rc={"xtick.bottom": True, "ytick.left": True})
+# sns.set(rc={"xtick.bottom": True, "ytick.left": True})
 
 from rl_agents.agents.common.factory import load_environment, agent_factory
 from rl_agents.trainer.evaluation import Evaluation
 
 logger = logging.getLogger(__name__)
 
-gamma = 0.95
+gamma = 0.7
 SEED_MAX = 1e9
 
 
@@ -49,8 +50,8 @@ def env_configs():
     # return ['configs/CartPoleEnv/env.json']
     # return ['configs/HighwayEnv/env_medium.json']
     # return ['configs/GridWorld/collect.json']
-    # return ['configs/FiniteMDPEnv/env_garnet.json']
-    return ['configs/SailingEnv/env.json']
+    return ['configs/FiniteMDPEnv/env_garnet.json']
+    # return ['configs/SailingEnv/env.json']
     # return [Path("configs") / "DummyEnv" / "line_env.json"]
 
 
@@ -82,10 +83,10 @@ def agent_configs():
             {
                 "type": "kullback-leibler",
                 "time": "global",
-                "threshold": "0*np.log(time)",
+                "threshold": "1*np.log(time)",
                 "transition_threshold": "0.1*np.log(time)"
             },
-            "max_next_states_count": 3,
+            "max_next_states_count": 2,
             "continuation_type": "uniform",
             "step_strategy": "reset",
         },
@@ -204,10 +205,13 @@ def evaluate(experiment):
 
 def prepare_experiments(budgets, seeds, path):
     budgets = np.unique(np.logspace(*literal_eval(budgets)).astype(int))
-    selected_agents = ["KL-OLOP", "MDP-GapE", "BRUE",
-                       "GBOP",
-                       "UCT"
-                       ]
+    selected_agents = [
+        "KL-OLOP",
+        "MDP-GapE",
+        "BRUE",
+        # "GBOP",
+        "UCT"
+    ]
     agents = {agent: config for agent, config in agent_configs().items() if agent in selected_agents}
 
     seeds = seeds.split(",")
@@ -267,21 +271,22 @@ def plot_all(data_file, directory, data_range):
     try:
         for field in [#"total_reward", "return", "length", "mean_return",
                       "simple_regret"]:
-            fig, ax = plt.subplots()
-            ax.set(xscale="log")
-            if field in ["simple_regret"]:
-                ax.set_yscale("symlog", linthreshy=1e-2)
+            with sns.axes_style("ticks"):
+                fig, ax = plt.subplots()
+                ax.set(xscale="log")
+                if field in ["simple_regret"]:
+                    ax.set_yscale("symlog", linthreshy=1e-2)
 
-            sns.lineplot(x=rename("budget"), y=rename(field), ax=ax, hue="agent", data=df)
-            ax.yaxis.set_minor_locator(LogLocator(base=10, subs="all"))
-            ax.yaxis.grid(True, which='minor', linestyle='--')
-            plt.legend(loc="lower left")
+                sns.lineplot(x=rename("budget"), y=rename(field), ax=ax, hue="agent", style="agent", data=df)
+                ax.yaxis.set_minor_locator(LogLocator(base=10, subs=(1.0,)))
+                ax.yaxis.grid(True, which='minor', linestyle='-')
+                plt.legend(loc="lower left")
 
-            field_path = directory / "{}.pdf".format(field)
-            fig.savefig(field_path, bbox_inches='tight')
-            field_path = directory / "{}.png".format(field)
-            fig.savefig(field_path, bbox_inches='tight')
-            print("Saving {} plot to {}".format(field, field_path))
+                field_path = directory / "{}.pdf".format(field)
+                fig.savefig(field_path, bbox_inches='tight')
+                field_path = directory / "{}.png".format(field)
+                fig.savefig(field_path, bbox_inches='tight')
+                print("Saving {} plot to {}".format(field, field_path))
     except ValueError as e:
         print(e)
 
@@ -289,17 +294,18 @@ def plot_all(data_file, directory, data_range):
 
 
 def custom_processing(df, directory):
-    for agent in agent_configs().keys():
-        a_df = df[df["agent"] == rename(agent)]
-        if a_df.empty:
-            continue
-        a_df = a_df.groupby(rename("budget"), as_index=False).mean()
-        x = np.log10(a_df[rename("budget")].values.reshape(-1, 1))
-        y = np.log10(a_df[rename("simple_regret")].values.reshape(-1, 1))
-        linear_regressor = LinearRegression()
-        linear_regressor.fit(x, y)
-        print(rename(agent), "a:", linear_regressor.coef_, "b:", linear_regressor.intercept_)
-        print("kappa: ", np.exp(-np.log(1 / gamma) / linear_regressor.coef_[0]))
+    # for agent in agent_configs().keys():
+    #     a_df = df[df["agent"] == rename(agent)]
+    #     if a_df.empty:
+    #         continue
+    #     a_df = a_df.groupby(rename("budget"), as_index=False).mean()
+    #     x = np.log10(a_df[rename("budget")].values.reshape(-1, 1))
+    #     y = np.log10(a_df[rename("simple_regret")].values.reshape(-1, 1))
+    #     linear_regressor = LinearRegression()
+    #     linear_regressor.fit(x, y)
+    #     print(rename(agent), "a:", linear_regressor.coef_, "b:", linear_regressor.intercept_)
+    #     print("kappa: ", np.exp(-np.log(1 / gamma) / linear_regressor.coef_[0]))
+    pass
 
 
 def main(args):
