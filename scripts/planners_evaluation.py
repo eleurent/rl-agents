@@ -33,10 +33,8 @@ import logging
 from matplotlib import ticker
 from matplotlib.ticker import LogLocator, LogFormatterSciNotation, SymmetricalLogLocator, LogFormatterExponent
 
-# from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression
 
-sns.set_style("white")
-sns.color_palette("colorblind")
 sns.set(font_scale=1.5, rc={'text.usetex': True})
 # sns.set(rc={"xtick.bottom": True, "ytick.left": True})
 
@@ -47,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 gamma = 0.7
 SEED_MAX = 1e9
-EVALUATE_ACCURACY = True
+EVALUATE_ACCURACY = False
 
 
 def env_configs():
@@ -244,11 +242,11 @@ def prepare_experiments(budgets, seeds, path):
         budgets = np.unique(np.logspace(*literal_eval(budgets)).astype(int))
 
     selected_agents = [
-        # "KL-OLOP",
+        "KL-OLOP",
         # "MDP-GapE",
         # "BRUE",
         # "UCT"
-        "MDP-GapE-conf",
+        # "MDP-GapE-conf",
     ]
     agents = {agent: config for agent, config in agent_configs().items() if agent in selected_agents}
 
@@ -309,6 +307,7 @@ def plot_all(data_file, directory, data_range):
     print("Number of seeds found: {}".format(df.seed.nunique()))
 
     with sns.axes_style("ticks"):
+        sns.set_palette("colorblind")
         if EVALUATE_ACCURACY:
             fig, ax = plt.subplots()
             field = "budget"
@@ -338,6 +337,8 @@ def plot_all(data_file, directory, data_range):
 
 
 def custom_processing(df, directory):
+    if not EVALUATE_ACCURACY:
+        return
     df = df[df["agent"] == rename("MDP-GapE-conf")]
     data = [{
                 "epsilon": name,
@@ -357,12 +358,12 @@ def custom_processing(df, directory):
     #     a_df = df[df["agent"] == rename(agent)]
     #     if a_df.empty:
     #         continue
-    #     a_df = a_df.groupby(rename("budget"), as_index=False).mean()
-    #     x = np.log10(a_df[rename("budget")].values.reshape(-1, 1))
-    #     y = np.log10(a_df[rename("simple_regret")].values.reshape(-1, 1))
-    #     linear_regressor = LinearRegression()
-    #     linear_regressor.fit(x, y)
-    #     print(rename(agent), "a:", linear_regressor.coef_, "b:", linear_regressor.intercept_)
+    a_df = df.groupby(rename("accuracy"), as_index=False).max()
+    x = np.log10(a_df[rename("1/epsilon")].values.reshape(-1, 1))
+    y = np.log10(a_df[rename("budget")].values.reshape(-1, 1))
+    linear_regressor = LinearRegression()
+    linear_regressor.fit(x, y)
+    print("Regression", "a:", linear_regressor.coef_, "b:", linear_regressor.intercept_)
     #     print("kappa: ", np.exp(-np.log(1 / gamma) / linear_regressor.coef_[0]))
     pass
 
