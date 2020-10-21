@@ -26,14 +26,14 @@ def test_d_bernoulli_kullback_leibler_dq():
 
 
 def test_kl_upper_bound():
-    assert kl_upper_bound(0.5 * 1, 1, 10, threshold="np.log(time)", eps=1e-3) == pytest.approx(0.997, abs=1e-3)
-    assert kl_upper_bound(0.5 * 10, 10, 20, threshold="np.log(time)", eps=1e-3) == pytest.approx(0.835, abs=1e-3)
-    assert kl_upper_bound(0.5 * 20, 20, 40, threshold="np.log(time)", eps=1e-3) == pytest.approx(0.777, abs=1e-3)
+    assert kl_upper_bound(0.5 * 1, 1, threshold=np.log(10), eps=1e-3) == pytest.approx(0.997, abs=1e-3)
+    assert kl_upper_bound(0.5 * 10, 10, threshold=np.log(20), eps=1e-3) == pytest.approx(0.835, abs=1e-3)
+    assert kl_upper_bound(0.5 * 20, 20, threshold=np.log(40), eps=1e-3) == pytest.approx(0.777, abs=1e-3)
 
     rands = np.random.randint(1, 500, 2)
     rands.sort()
     mu, count, time = np.random.random(), rands[0], rands[1]
-    ucb = kl_upper_bound(mu*count, count, time, threshold="np.log(time)", eps=1e-3)
+    ucb = kl_upper_bound(mu*count, count, threshold=np.log(time), eps=1e-3)
     assert not np.isnan(ucb)
     d_max = 1 * np.log(time) / count
     assert bernoulli_kullback_leibler(mu, ucb) == pytest.approx(d_max, abs=1e-1)
