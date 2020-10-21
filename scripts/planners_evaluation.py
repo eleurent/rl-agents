@@ -30,22 +30,15 @@ import pandas as pd
 import seaborn as sns
 import logging
 
-from matplotlib import ticker
-from matplotlib.ticker import LogLocator, LogFormatterSciNotation, SymmetricalLogLocator, LogFormatterExponent
-
-from sklearn.linear_model import LinearRegression
-
 sns.set(font_scale=1.5, rc={'text.usetex': True})
-# sns.set(rc={"xtick.bottom": True, "ytick.left": True})
 
 from rl_agents.agents.common.factory import load_environment, agent_factory
 from rl_agents.trainer.evaluation import Evaluation
 
 logger = logging.getLogger(__name__)
 
-gamma = 0.7
+gamma = 0.9
 SEED_MAX = 1e9
-EVALUATE_ACCURACY = False
 
 
 def env_configs():
@@ -90,24 +83,6 @@ def agent_configs():
             },
             "max_next_states_count": 2,
             "continuation_type": "uniform",
-            "step_strategy": "reset",
-        },
-        "MDP-GapE-conf": {
-            "__class__": "<class 'rl_agents.agents.tree_search.mdp_gape.MDPGapEAgent'>",
-            "gamma": gamma,
-            "accuracy": 1.0,
-            "confidence": 0.9,
-            "upper_bound":
-            {
-                "type": "kullback-leibler",
-                "time": "global",
-                "threshold": "np.log(1/(1 - confidence)) + np.log(count)",
-                # "threshold": "np.log(1/(1 - confidence)) + np.log(1 + np.log(count))",
-                "transition_threshold": "np.log(1/(1 - confidence)) + np.log(count)"
-            },
-            "max_next_states_count": 2,
-            "continuation_type": "uniform",
-            "horizon_from_accuracy": True,
             "step_strategy": "reset",
         },
         "BRUE": {
@@ -158,12 +133,7 @@ def evaluate(experiment):
 
     # Make agent
     agent_name, agent_config = agent_config
-    if EVALUATE_ACCURACY:
-        accuracy = budget
-        agent_config["accuracy"] = float(accuracy)
-        agent_config["budget"] = 10**9
-    else:
-        agent_config["budget"] = int(budget)
+    agent_config["budget"] = int(budget)
     agent = agent_factory(env, agent_config)
 
     logger.debug("Evaluating agent {} with budget {} on seed {}".format(agent_name, budget, seed))
@@ -180,9 +150,6 @@ def evaluate(experiment):
         q = vi.state_action_value
         simple_regret = q[vi.mdp.state, best_action] - q[vi.mdp.state, action]
         gap = q[vi.mdp.state, best_action] - np.sort(q[vi.mdp.state, :])[-2]
-
-        if EVALUATE_ACCURACY and hasattr(agent.planner, "budget_used"):
-            budget = agent.planner.budget_used
     else:
         simple_regret = 0
         gap = 0
@@ -234,19 +201,13 @@ def evaluate(experiment):
 
 
 def prepare_experiments(budgets, seeds, path):
-    print(budgets)
-    if EVALUATE_ACCURACY:
-        # budgets = np.flip(np.unique(np.linspace(*literal_eval(budgets))), axis=0)
-        budgets = literal_eval(budgets)
-    else:
-        budgets = np.unique(np.logspace(*literal_eval(budgets)).astype(int))
+    budgets = np.unique(np.logspace(*literal_eval(budgets)).astype(int))
 
     selected_agents = [
         "KL-OLOP",
-        # "MDP-GapE",
-        # "BRUE",
-        # "UCT"
-        # "MDP-GapE-conf",
+        "MDP-GapE",
+        "BRUE",
+        "UCT"
     ]
     agents = {agent: config for agent, config in agent_configs().items() if agent in selected_agents}
 
@@ -265,15 +226,11 @@ latex_names = {
     "total_reward": "total reward $R$",
     "mean_return": "mean return $E[R]$",
     "1/epsilon": r"${1}/{\epsilon}$",
-    "MDP-GapE-conf": r"\texttt{MDP-GapE}",
     "MDP-GapE": r"\texttt{MDP-GapE}",
     "KL-OLOP": r"\texttt{KL-OLOP}",
     "BRUE": r"\texttt{BRUE}",
     "GBOP": r"\texttt{GBOP}",
     "UCT": r"\texttt{UCT}",
-    "mdp-gape": r"\texttt{MDP-GapE}",
-    "kl-olop": r"\texttt{KL-OLOP}",
-    "brue": r"\texttt{BRUE}",
     "budget": r"budget $n$",
 }
 
@@ -294,8 +251,6 @@ def plot_all(data_file, directory, data_range):
     df = pd.read_csv(str(directory / data_file))
     df = df[~df.agent.isin(['agent'])].apply(pd.to_numeric, errors='ignore')
     df = df.sort_values(by="agent")
-    if EVALUATE_ACCURACY:
-        df["1/epsilon"] = 1/df["accuracy"]
 
     m = df.loc[df['simple_regret'] != np.inf, 'simple_regret'].max()
     df['simple_regret'].replace(np.inf, m, inplace=True)
@@ -308,24 +263,16 @@ def plot_all(data_file, directory, data_range):
 
     with sns.axes_style("ticks"):
         sns.set_palette("colorblind")
-        if EVALUATE_ACCURACY:
-            fig, ax = plt.subplots()
-            field = "budget"
-            ax.set(xscale="log", yscale="log")
-            df_max = df.groupby(rename("1/epsilon"), as_index=False).max()
-            sns.lineplot(x=rename("1/epsilon"), y=rename("budget"), ax=ax, data=df_max, ci=95)
-            sns.scatterplot(x=rename("1/epsilon"), y=rename("budget"), ax=ax, data=df, edgecolor=None, alpha=0.05)
-        else:
-            fig, ax = plt.subplots()
-            field = "simple_regret"
-            ax.set(xscale="log")
-            if field in ["simple_regret"]:
-                ax.set_yscale("symlog", linthreshy=1e-3)
+        fig, ax = plt.subplots()
+        field = "simple_regret"
+        ax.set(xscale="log")
+        if field in ["simple_regret"]:
+            ax.set_yscale("symlog", linthreshy=1e-3)
 
-            sns.lineplot(x=rename("budget"), y=rename(field), ax=ax, hue="agent", style="agent", data=df)
-            # ax.yaxis.set_minor_locator(LogLocator(base=10, subs=(1.0,)))
-            # ax.yaxis.grid(True, which='minor', linestyle='-')
-            plt.legend(loc="lower left")
+        sns.lineplot(x=rename("budget"), y=rename(field), ax=ax, hue="agent", style="agent", data=df)
+        # ax.yaxis.set_minor_locator(LogLocator(base=10, subs=(1.0,)))
+        # ax.yaxis.grid(True, which='minor', linestyle='-')
+        plt.legend(loc="lower left")
 
         field_path = directory / "{}.pdf".format(field)
         fig.savefig(field_path, bbox_inches='tight')
@@ -337,34 +284,6 @@ def plot_all(data_file, directory, data_range):
 
 
 def custom_processing(df, directory):
-    if not EVALUATE_ACCURACY:
-        return
-    df = df[df["agent"] == rename("MDP-GapE-conf")]
-    data = [{
-                "epsilon": name,
-                "max_regret": group[rename("simple_regret")].max(),
-                "max_budget": float(group[rename("budget")].max()),
-                "med_budget": group[rename("budget")].median()
-            } for name, group in df.groupby("accuracy")]
-    pd.set_option('display.float_format', '{:.2E}'.format)
-    print(pd.DataFrame(data).sort_values(by=['epsilon'], ascending=False))
-
-        # print("accuracy", name)
-        # print("Median values")
-        # print(group.median(axis=0))
-        # print("Maximum values")
-        # print(group.max(axis=0))
-    # for agent in agent_configs().keys():
-    #     a_df = df[df["agent"] == rename(agent)]
-    #     if a_df.empty:
-    #         continue
-    a_df = df.groupby(rename("accuracy"), as_index=False).max()
-    x = np.log10(a_df[rename("1/epsilon")].values.reshape(-1, 1))
-    y = np.log10(a_df[rename("budget")].values.reshape(-1, 1))
-    linear_regressor = LinearRegression()
-    linear_regressor.fit(x, y)
-    print("Regression", "a:", linear_regressor.coef_, "b:", linear_regressor.intercept_)
-    #     print("kappa: ", np.exp(-np.log(1 / gamma) / linear_regressor.coef_[0]))
     pass
 
 
