@@ -189,11 +189,6 @@ def evaluate(experiment):
         "simple_regret": simple_regret,
         "gap": gap
     }
-    if EVALUATE_ACCURACY:
-        result.update({
-            "accuracy": agent.planner.config["accuracy"],
-            "horizon": agent.planner.config["horizon"],
-        })
 
     df = pd.DataFrame.from_records([result])
     with open(path, 'a') as f:
