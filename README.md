@@ -138,7 +138,7 @@ The following agents are currently implemented:
 
 ## Planning
 
-### [`VI` Value Iteration](rl_agents/agents/dynamics_programming/value_iteration.py)
+### [`VI` Value Iteration](rl_agents/agents/dynamic_programming/value_iteration.py)
 
 Perform a Value Iteration to compute the state-action value, and acts greedily with respect to it.
 
