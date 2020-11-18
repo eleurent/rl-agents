@@ -40,6 +40,9 @@ plt.rcParams.update({
     "font.family": "sans-serif",
     "font.sans-serif": ["Helvetica"]})
 
+sns.set_style("ticks")
+# sns.set_palette("colorblind")
+
 
 def env_configs():
     return [
