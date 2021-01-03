@@ -298,7 +298,7 @@ class MCTSNode(Node):
         self.count = 0
         total_count = sum([(child.count+1) for child in self.children.values()])
         for child in self.children.values():
-            child.prior = regularization*(child.count+1)/total_count + regularization/len(self.children)
+            child.prior = (1 - regularization)*(child.count+1)/total_count + regularization/len(self.children)
             child.convert_visits_to_prior_in_branch()
 
     def get_value(self):
