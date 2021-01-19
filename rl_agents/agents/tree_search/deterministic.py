@@ -86,7 +86,7 @@ class OptimisticDeterministicPlanner(AbstractPlanner):
     NODE_TYPE = DeterministicNode
 
     """
-       An implementation of Open Loop Optimistic Planning.
+       An implementation of Optimistic Planning in Deterministic MDPs.
     """
     def __init__(self, env, config=None):
         super(OptimisticDeterministicPlanner, self).__init__(config)
