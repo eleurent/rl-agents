@@ -6,5 +6,6 @@
             "args": "random"
         }
     ],
-    "budget": 50
+    "budget": 100,
+    "gamma": 0.9
 }

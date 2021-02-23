@@ -17,6 +17,9 @@ class Configurable(object):
             # Override incomplete variant with completed variant
             Configurable.rec_update(config, self.config)
 
+    def update_config(self, config):
+        Configurable.rec_update(self.config, config)
+
     @classmethod
     def default_config(cls):
         """

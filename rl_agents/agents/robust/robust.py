@@ -30,6 +30,14 @@ class DiscreteRobustPlanner(OptimisticDeterministicPlanner):
         self.root = RobustNode(parent=None, planner=self)
         self.leaves = [self.root]
 
+    def run(self):
+        """
+            Run an OptimisticDeterministicPlanner episode
+        """
+        leaf_to_expand = max(self.leaves, key=lambda n: n.get_value_upper_bound())
+        leaf_to_expand.expand()
+        leaf_to_expand.backup_to_root()
+
 
 class RobustNode(DeterministicNode):
     def get_value_lower_bound(self):

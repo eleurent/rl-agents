@@ -1,0 +1,27 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.robust.DiscreteRobustPlannerAgent'>",
+    "budget": 50,
+    "gamma": 0.9,
+    "models": [
+        [
+            {
+                "method":"set_route_at_intersection",
+                "args": 0
+            },
+            {
+                "method": "change_vehicles",
+                "args": "highway_env.vehicle.uncertainty.estimation.RegressionVehicle"
+            }
+        ],
+            [
+            {
+                "method":"set_route_at_intersection",
+                "args": 1
+            },
+            {
+                "method": "change_vehicles",
+                "args": "highway_env.vehicle.uncertainty.estimation.RegressionVehicle"
+            }
+        ]
+    ]
+}

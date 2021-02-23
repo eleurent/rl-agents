@@ -1,0 +1,5 @@
+{
+    "__class__": "<class 'rl_agents.agents.robust.robust_epc.ModelBiasAgent'>",
+    "gamma": 0.8,
+    "budget": 300
+}

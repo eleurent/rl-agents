@@ -1,0 +1,5 @@
+{
+    "id": "obstacle-v0",
+    "import_module": "obstacle_env",
+    "observation_type": "state"
+}

@@ -32,6 +32,14 @@ def remap(v, x, y, clip=False):
     return out
 
 
+def pos(x):
+    return np.maximum(x, 0)
+
+
+def neg(x):
+    return np.maximum(-x, 0)
+
+
 def near_split(x, num_bins=None, size_bins=None):
     """
         Split a number into several bins with near-even distribution.

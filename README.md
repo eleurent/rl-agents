@@ -201,7 +201,7 @@ References:
 * [Robust Dynamic Programming](http://www.corc.ieor.columbia.edu/reports/techreports/tr-2002-07.pdf), Iyengar G. (2005).
 * [Robust Markov Decision Processes](http://www.optimization-online.org/DB_FILE/2010/05/2610.pdf), Wiesemann W. et al. (2012).
 
-### [`DROP` Discrete Robust Optimistic Planning](rl_agents/agents/tree_search/robust.py)
+### [`DROP` Discrete Robust Optimistic Planning](rl_agents/agents/robust/robust.py)
 
 The MDP ambiguity set is assumed to be finite, and is constructed from a list of modifiers to the true environment.
 The corresponding robust value is approximately computed by [Deterministic Optimistic Planning](#deterministic-optimistic-planning) so as to maximize the worst-case total reward.
@@ -209,7 +209,7 @@ The corresponding robust value is approximately computed by [Deterministic Optim
 References:
 * [Approximate Robust Control of Uncertain Dynamical Systems](https://arxiv.org/abs/1903.00220), Leurent E. et al. (2018).
 
-### [`IRP` Interval-based Robust Planning](rl_agents/agents/tree_search/robust.py)
+### [`IRP` Interval-based Robust Planning](rl_agents/agents/robust/robust.py)
 
 We assume that the MDP is a parametrized dynamical system, whose parameter is uncertain and lies in a continuous ambiguity set. We use interval prediction to compute the set of states that can be reached at any time _t_, given that uncertainty, and leverage it to evaluate and improve a robust policy.
 

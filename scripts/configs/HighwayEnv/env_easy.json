@@ -2,8 +2,8 @@
     "id": "highway-v0",
     "import_module": "highway_env",
     "lanes_count": 2,
-    "vehicles_count": 5,
+    "vehicles_count": 1,
     "duration": 20,
-    "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicle",
+    "other_vehicles_type": "highway_env.vehicle.behavior.LinearVehicle",
     "centering_position": [0.3, 0.5]
 }

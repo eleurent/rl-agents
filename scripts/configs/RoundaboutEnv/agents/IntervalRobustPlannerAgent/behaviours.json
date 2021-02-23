@@ -4,7 +4,7 @@
     [
         {
             "method": "change_vehicles",
-            "args": "highway_env.vehicle.uncertainty.IntervalVehicle"
+            "args": "highway_env.vehicle.uncertainty.estimation.RegressionVehicle"
         }
     ],
     "sub_agent_path": "configs/RoundaboutEnv/agents/DeterministicPlannerAgent/baseline.json",

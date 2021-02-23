@@ -109,7 +109,7 @@ class AbstractTreeSearchAgent(AbstractAgent):
 
 class AbstractPlanner(Configurable):
     def __init__(self, config=None):
-        super(AbstractPlanner, self).__init__(config)
+        super().__init__(config)
         self.np_random = None
         self.root = None
         self.observations = []
