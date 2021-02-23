@@ -1,7 +1,6 @@
 import itertools
 import numpy as np
 
-from highway_env.interval import LPV
 from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.common.factory import load_agent, safe_deepcopy_env
 
@@ -142,6 +141,7 @@ class RobustEPCAgent(AbstractAgent):
         :return: the robust version of the environment.
         """
         a0, da = self.polytope()
+        from highway_env.interval import LPV
         lpv = LPV(a0=a0, da=da, x0=self.env.unwrapped.state.squeeze(-1), b=self.B,
                   d=self.config["D"], omega_i=self.config["omega"])
         robust_env = safe_deepcopy_env(self.env)
