@@ -51,7 +51,13 @@ class DeterministicNode(Node):
         self.done = done
         self.value_lower = self.parent.value_lower + (gamma ** (self.depth - 1)) * reward
         self.value_upper = self.value_lower + (gamma ** self.depth) / (1 - gamma)
-        if done:
+        if isinstance(done, np.ndarray):
+            idx = np.where(done)
+            next_value = self.value_lower[idx] + \
+                         self.planner.config["terminal_reward"] * (gamma ** self.depth) / (1 - gamma)
+            self.value_lower[idx] = next_value
+            self.value_upper[idx] = next_value
+        elif done:
             self.value_lower = self.value_upper = self.value_lower + \
                 self.planner.config["terminal_reward"] * (gamma ** self.depth) / (1 - gamma)
 
@@ -67,8 +73,8 @@ class DeterministicNode(Node):
 
     def backup_to_root(self):
         if self.children:
-            self.value_lower = np.amax([child.value_lower for child in self.children.values()])
-            self.value_upper = np.amax([child.value_upper for child in self.children.values()])
+            self.value_lower = np.amax([child.get_value_lower_bound() for child in self.children.values()])
+            self.value_upper = np.amax([child.get_value_upper_bound() for child in self.children.values()])
             if self.parent:
                 self.parent.backup_to_root()
 

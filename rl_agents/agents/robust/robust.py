@@ -46,6 +46,9 @@ class RobustNode(DeterministicNode):
     def get_value_upper_bound(self):
         return np.min(self.value_upper)
 
+    def get_value(self) -> float:
+        return np.min(self.value_upper)
+
 
 class DiscreteRobustPlannerAgent(DeterministicPlannerAgent):
     PLANNER_TYPE = DiscreteRobustPlanner
