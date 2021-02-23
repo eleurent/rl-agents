@@ -1,0 +1,17 @@
+{
+    "base_config": "configs/HighwayEnv/agents/DQNAgent/ego_attention.json",
+    "model": {
+        "embedding_layer": {
+            "type": "MultiLayerPerceptron",
+            "layers": [64, 64],
+            "reshape": false,
+            "in": 5
+        },
+        "others_embedding_layer": {
+            "type": "MultiLayerPerceptron",
+            "layers": [64, 64],
+            "reshape": false,
+            "in": 5
+        }
+    }
+}

@@ -1,0 +1,8 @@
+{
+    "id": "exit-v0",
+    "import_module": "highway_env",
+    "real_time_rendering": true,
+    "observation": {
+        "type": "LidarObservation"
+    }
+}
