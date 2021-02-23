@@ -47,20 +47,20 @@ sns.set_style("ticks")
 def env_configs():
     return [
         'configs/ObstacleEnv/env_obs_state.json',
-        # 'configs/IntersectionEnv/env_linear.json'
+        # 'configs/IntersectionEnv/env_multi_model.json'
     ]
 
 
 def agent_configs():
     agents = {
-        # "robust-epc": "configs/ObstacleEnv/RobustEPC.json",
-        "nominal-epc": "configs/ObstacleEnv/NominalEPC.json",
-        # "model-bias": "configs/ObstacleEnv/ModelBias.json",
+        # "robust-epc": "configs/ObstacleEnv/robust-epc.json",
+        "nominal-epc": "configs/ObstacleEnv/nominal.json",
+        # "model-bias": "configs/ObstacleEnv/model_bias.json",
         # "oracle": "configs/ObstacleEnv/oracle.json",
-        # "robust-epc": "configs/IntersectionEnv/agents/DiscreteRobustPlannerAgent/multi_model.json",
-        # "nominal-epc-route": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/assume_random_route.json",
-        # "nominal-epc-behaviour": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/assume_random_behaviour.json",
-        # "oracle": "configs/IntersectionEnv/agents/DeterministicPlannerAgent/baseline.json",
+        # "robust-epc": "configs/IntersectionEnv/agents/Robust/robust-epc.json",
+        # "nominal-known-route": "configs/IntersectionEnv/agents/Robust/known_route.json",
+        # "nominal-min-route": "configs/IntersectionEnv/agents/Robust/minimum_route.json",
+        # "oracle": "configs/IntersectionEnv/agents/Robust/oracle.json",
     }
     return agents
 

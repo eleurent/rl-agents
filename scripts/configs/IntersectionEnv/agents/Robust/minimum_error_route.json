@@ -1,0 +1,15 @@
+{
+    "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
+    "env_preprocessors": [
+        {
+            "method": "set_vehicle_field",
+            "args": ["collecting_data", false]
+        },
+        {
+            "method":"call_vehicle_method",
+            "args": ["assume_best_model_is_valid", []]
+        }
+    ],
+    "budget": 200,
+    "gamma": 0.9
+}
