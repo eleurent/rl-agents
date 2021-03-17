@@ -101,6 +101,17 @@ class RobustEPCGraphics(IntervalRobustPlannerGraphics):
 
 
 def confidence_ellipse(ellipsoid, ax, facecolor="none", **kwargs):
+    """
+    Plot a confidence ellipse.
+
+    See https://carstenschelp.github.io/2018/09/14/Plot_Confidence_Ellipse_001.html for details.
+
+    :param ellipsoid: tuple (center, covariance matrix, confidence level)
+    :param ax: axes
+    :param facecolor: face color
+    :param kwargs: other arguments for plotting
+    :return: axes with ellipse patch
+    """
     center, cov, beta = ellipsoid
     cov = np.linalg.inv(cov / beta ** 2)
     pearson = cov[0, 1] / np.sqrt(cov[0, 0] * cov[1, 1])
