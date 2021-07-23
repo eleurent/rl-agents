@@ -5,13 +5,13 @@
             "type": "MultiLayerPerceptron",
             "layers": [64, 64],
             "reshape": false,
-            "in": 5
+            "in": 7
         },
         "others_embedding_layer": {
             "type": "MultiLayerPerceptron",
             "layers": [64, 64],
             "reshape": false,
-            "in": 5
+            "in": 7
         }
     }
 }
