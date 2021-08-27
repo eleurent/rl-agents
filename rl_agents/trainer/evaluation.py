@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import os
+import time
 from multiprocessing.pool import Pool
 from pathlib import Path
 import numpy as np
@@ -133,6 +134,7 @@ class Evaluation(object):
             self.seed(self.episode)
             self.reset()
             rewards = []
+            start_time = time.time()
             while not terminal:
                 # Step until a terminal step is reached
                 reward, terminal = self.step()
@@ -146,7 +148,8 @@ class Evaluation(object):
                     pass
 
             # End of episode
-            self.after_all_episodes(self.episode, rewards)
+            duration = time.time() - start_time
+            self.after_all_episodes(self.episode, rewards, duration)
             self.after_some_episodes(self.episode, rewards)
 
     def step(self):
@@ -306,12 +309,13 @@ class Evaluation(object):
         except NotImplementedError:
             pass
 
-    def after_all_episodes(self, episode, rewards):
+    def after_all_episodes(self, episode, rewards, duration):
         rewards = np.array(rewards)
         gamma = self.agent.config.get("gamma", 1)
         self.writer.add_scalar('episode/length', len(rewards), episode)
         self.writer.add_scalar('episode/total_reward', sum(rewards), episode)
         self.writer.add_scalar('episode/return', sum(r*gamma**t for t, r in enumerate(rewards)), episode)
+        self.writer.add_scalar('episode/fps', len(rewards) / duration, episode)
         self.writer.add_histogram('episode/rewards', rewards, episode)
         logger.info("Episode {} score: {:.1f}".format(episode, sum(rewards)))
 
