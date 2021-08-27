@@ -26,6 +26,8 @@ class DQNGraphics(object):
         :param display_text: whether to display the action values as text
         """
         import pygame
+        if agent.previous_state is None:
+            return
         action_values = agent.get_state_action_values(agent.previous_state)
         action_distribution = agent.action_distribution(agent.previous_state)
 

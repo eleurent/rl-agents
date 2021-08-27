@@ -29,6 +29,8 @@ class MonitorV2(Monitor):
         # see https://python.readthedocs.io/en/stable/library/os.path.html#os.path.exists
         directory = str(directory)
         super(MonitorV2, self).__init__(env, directory, video_callable, force, resume, write_upon_reset, uid, mode)
+        if hasattr(self.env.unwrapped, "set_monitor"):
+            self.env.unwrapped.set_monitor(self)
 
     def _start(self, directory, video_callable=None, force=False, resume=False, write_upon_reset=False, uid=None,
                mode=None):
@@ -41,33 +43,6 @@ class MonitorV2(Monitor):
         seeds = super(MonitorV2, self).seed(seed)
         self.stats_recorder.seed = seeds[0]  # Not sure why gym envs typically return *a list* of one seed
         return seeds
-
-    def reset_video_recorder(self):
-        # Close any existing video recorder
-        if self.video_recorder:
-            self._close_video_recorder()
-
-        # Reset env rendering callback
-        if self._video_enabled() and hasattr(self.env.unwrapped, 'set_rendering_callback'):
-            self.env.unwrapped.set_rendering_callback(lambda: None)
-
-        # Start recording the next video.
-        self.video_recorder = video_recorder.VideoRecorder(
-            env=self.env,
-            base_path=os.path.join(self.directory,
-                                   '{}.video.{}.video{:06}'.format(self.file_prefix, self.file_infix, self.episode_id)),
-            metadata={'episode_id': self.episode_id},
-            enabled=self._video_enabled(),
-        )
-
-        # Instead of capturing just one frame, allow the environment to send all render frames when a step is ongoing
-        if self._video_enabled() and hasattr(self.env.unwrapped, 'set_rendering_callback'):
-            self.env.unwrapped.set_rendering_callback(self.video_recorder.capture_frame)
-
-    def _close_video_recorder(self):
-        super(MonitorV2, self)._close_video_recorder()
-        if hasattr(self.env.unwrapped, 'set_rendering_callback'):
-            self.env.unwrapped.set_rendering_callback(None)
 
     def is_episode_selected(self):
         """
