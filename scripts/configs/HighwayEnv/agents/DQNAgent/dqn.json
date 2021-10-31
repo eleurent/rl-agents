@@ -5,6 +5,10 @@
         "layers": [256, 256]
     },
     "double": false,
+    "loss_function": "l2",
+    "optimizer": {
+        "lr": 5e-4
+    },
     "gamma": 0.8,
     "n_steps": 1,
     "batch_size": 32,
@@ -15,6 +19,5 @@
         "tau": 6000,
         "temperature": 1.0,
         "final_temperature": 0.05
-    },
-    "loss_function": "l2"
+    }
 }
