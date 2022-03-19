@@ -74,7 +74,7 @@ class Evaluation(object):
         self.run_directory = self.directory / (run_directory or self.default_run_directory)
         self.wrapped_env = RecordVideo(env,
                                        self.run_directory,
-                                       episode_trigger=(None if self.display_env else False))
+                                       episode_trigger=(None if self.display_env else lambda e: False))
         try:
             self.wrapped_env.unwrapped.set_record_video_wrapper(self.wrapped_env)
         except AttributeError:
