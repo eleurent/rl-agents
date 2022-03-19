@@ -7,6 +7,7 @@ from multiprocessing.pool import Pool
 from pathlib import Path
 import numpy as np
 from tensorboardX import SummaryWriter
+from gym.wrappers import RecordVideo, RecordEpisodeStatistics
 
 import rl_agents.trainer.logger
 from rl_agents.agents.common.factory import load_environment, load_agent
@@ -15,7 +16,6 @@ from rl_agents.agents.common.memory import Transition
 from rl_agents.utils import near_split, zip_with_singletons
 from rl_agents.configuration import serialize
 from rl_agents.trainer.graphics import RewardViewer
-from rl_agents.trainer.monitor import MonitorV2
 
 logger = logging.getLogger(__name__)
 
@@ -72,9 +72,14 @@ class Evaluation(object):
 
         self.directory = Path(directory or self.default_directory)
         self.run_directory = self.directory / (run_directory or self.default_run_directory)
-        self.monitor = MonitorV2(env,
-                                 self.run_directory,
-                                 video_callable=(None if self.display_env else False))
+        self.wrapped_env = RecordVideo(env,
+                                       self.run_directory,
+                                       episode_trigger=(None if self.display_env else False))
+        try:
+            self.wrapped_env.unwrapped.set_record_video_wrapper(self.wrapped_env)
+        except AttributeError:
+            pass
+        self.wrapped_env = RecordEpisodeStatistics(self.wrapped_env)
         self.episode = 0
         self.writer = SummaryWriter(str(self.run_directory))
         self.agent.set_writer(self.writer)
@@ -119,7 +124,7 @@ class Evaluation(object):
         """
         self.training = False
         if self.display_env:
-            self.monitor.video_callable = MonitorV2.always_call_video
+            self.monitor.episode_trigger = lambda e: True
         try:
             self.agent.eval()
         except AttributeError:
