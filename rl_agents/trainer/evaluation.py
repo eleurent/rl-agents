@@ -7,7 +7,7 @@ from multiprocessing.pool import Pool
 from pathlib import Path
 import numpy as np
 from tensorboardX import SummaryWriter
-from gym.wrappers import RecordVideo, RecordEpisodeStatistics
+from gym.wrappers import RecordVideo, RecordEpisodeStatistics, capped_cubic_video_schedule
 
 import rl_agents.trainer.logger
 from rl_agents.agents.common.factory import load_environment, load_agent
@@ -327,7 +327,7 @@ class Evaluation(object):
     def after_some_episodes(self, episode, rewards,
                             best_increase=1.1,
                             episodes_window=50):
-        if self.wrapped_env.is_episode_selected():
+        if capped_cubic_video_schedule(episode):
             # Save the model
             if self.training:
                 self.save_agent_model(episode)
