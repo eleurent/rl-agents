@@ -1,5 +1,5 @@
 {
-    "__class__": "<class 'rl_agents.agents.tree_search.robust.IntervalRobustPlannerAgent'>",
+    "__class__": "<class 'rl_agents.agents.robust.robust.IntervalRobustPlannerAgent'>",
     "env_preprocessors":
     [
         {
