@@ -16,6 +16,4 @@ def test_evaluation(tmpdir):
                             display_agent=False,
                             display_rewards=False)
     evaluation.train()
-    assert any(['manifest' in file.name for file in evaluation.run_directory.iterdir()])
     assert any(['metadata' in file.name for file in evaluation.run_directory.iterdir()])
-    assert any(['stats' in file.name for file in evaluation.run_directory.iterdir()])
