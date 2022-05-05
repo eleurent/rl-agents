@@ -247,6 +247,8 @@ def custom_processing_return(df):
 
 
 def main(args):
+    raise NotImplementedError('The Monitor wrapper which previously recorded statistics has been replaced by '
+                              'RecordEpisodeStatistics, so this file needs to be updated.')
     if args["--generate"] == "True":
         experiments = prepare_experiments(args['--seeds'], Path(args["--directory"]) / args["--filename"])
         chunksize = int(args["--chunksize"]) if args["--chunksize"] else args["--chunksize"]

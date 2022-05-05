@@ -37,15 +37,15 @@ from rl_agents.trainer.evaluation import Evaluation
 
 logger = logging.getLogger(__name__)
 
-gamma = 0.9
+gamma = 0.7
 SEED_MAX = 1e9
 
 
 def env_configs():
     # return ['configs/CartPoleEnv/env.json']
-    # return ['configs/HighwayEnv/env_medium.json']
+    return ['configs/HighwayEnv/env.json']
     # return ['configs/GridWorld/collect.json']
-    return ['configs/FiniteMDPEnv/env_garnet.json']
+    # return ['configs/FiniteMDPEnv/env_garnet.json']
     # return ['configs/SailingEnv/env.json']
     # return [Path("configs") / "DummyEnv" / "line_env.json"]
 
@@ -64,9 +64,11 @@ def agent_configs():
             },
             "lazy_tree_construction": True,
             "continuation_type": "uniform",
+            "env_preprocessors": [{"method":"simplify"}]
         },
-        "opd": {
+        "OPD": {
             "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
+            "env_preprocessors": [{"method":"simplify"}],
             "gamma": gamma,
         },
         "MDP-GapE": {
@@ -93,7 +95,8 @@ def agent_configs():
         "UCT": {
             "__class__": "<class 'rl_agents.agents.tree_search.mcts.MCTSAgent'>",
             "gamma": gamma,
-            "closed_loop": True
+            "closed_loop": False,
+            "env_preprocessors": [{"method":"simplify"}]
         },
         "GBOP": {
             "__class__": "<class 'rl_agents.agents.tree_search.graph_based_stochastic.StochasticGraphBasedPlannerAgent'>",
@@ -139,8 +142,8 @@ def evaluate(experiment):
     logger.debug("Evaluating agent {} with budget {} on seed {}".format(agent_name, budget, seed))
 
     # Compute true value
-    compute_regret = True
-    compute_return = False
+    compute_regret = False
+    compute_return = True
     if compute_regret:
         env.seed(seed)
         observation = env.reset()
@@ -200,8 +203,7 @@ def prepare_experiments(budgets, seeds, path):
 
     selected_agents = [
         "KL-OLOP",
-        "MDP-GapE",
-        "BRUE",
+        "OPD"
         "UCT"
     ]
     agents = {agent: config for agent, config in agent_configs().items() if agent in selected_agents}
@@ -259,21 +261,21 @@ def plot_all(data_file, directory, data_range):
     with sns.axes_style("ticks"):
         sns.set_palette("colorblind")
         fig, ax = plt.subplots()
-        field = "simple_regret"
-        ax.set(xscale="log")
-        if field in ["simple_regret"]:
-            ax.set_yscale("symlog", linthreshy=1e-3)
+        for field in ["total_reward"]:
+            ax.set(xscale="log")
+            if field in ["simple_regret"]:
+                ax.set_yscale("symlog", linthreshy=1e-3)
 
-        sns.lineplot(x=rename("budget"), y=rename(field), ax=ax, hue="agent", style="agent", data=df)
-        # ax.yaxis.set_minor_locator(LogLocator(base=10, subs=(1.0,)))
-        # ax.yaxis.grid(True, which='minor', linestyle='-')
-        plt.legend(loc="lower left")
+            sns.lineplot(x=rename("budget"), y=rename(field), ax=ax, hue="agent", style="agent", data=df)
+            # ax.yaxis.set_minor_locator(LogLocator(base=10, subs=(1.0,)))
+            # ax.yaxis.grid(True, which='minor', linestyle='-')
+            plt.legend(loc="lower left")
 
-        field_path = directory / "{}.pdf".format(field)
-        fig.savefig(field_path, bbox_inches='tight')
-        field_path = directory / "{}.png".format(field)
-        fig.savefig(field_path, bbox_inches='tight')
-        print("Saving {} plot to {}".format(field, field_path))
+            field_path = directory / "{}.pdf".format(field)
+            fig.savefig(field_path, bbox_inches='tight')
+            field_path = directory / "{}.png".format(field)
+            fig.savefig(field_path, bbox_inches='tight')
+            print("Saving {} plot to {}".format(field, field_path))
 
     custom_processing(df, directory)
 
@@ -283,6 +285,8 @@ def custom_processing(df, directory):
 
 
 def main(args):
+    raise NotImplementedError('The Monitor wrapper which previously recorded statistics has been replaced by '
+                              'RecordEpisodeStatistics, so this file needs to be updated.')
     if args["--generate"] == "True":
         experiments = prepare_experiments(args["--budgets"], args['--seeds'],
                                           str(Path(args["--directory"]) / args["--data_file"]))

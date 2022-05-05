@@ -7,6 +7,7 @@ from multiprocessing.pool import Pool
 from pathlib import Path
 import numpy as np
 from tensorboardX import SummaryWriter
+from gym.wrappers import RecordVideo, RecordEpisodeStatistics, capped_cubic_video_schedule
 
 import rl_agents.trainer.logger
 from rl_agents.agents.common.factory import load_environment, load_agent
@@ -15,7 +16,6 @@ from rl_agents.agents.common.memory import Transition
 from rl_agents.utils import near_split, zip_with_singletons
 from rl_agents.configuration import serialize
 from rl_agents.trainer.graphics import RewardViewer
-from rl_agents.trainer.monitor import MonitorV2
 
 logger = logging.getLogger(__name__)
 
@@ -72,9 +72,14 @@ class Evaluation(object):
 
         self.directory = Path(directory or self.default_directory)
         self.run_directory = self.directory / (run_directory or self.default_run_directory)
-        self.monitor = MonitorV2(env,
-                                 self.run_directory,
-                                 video_callable=(None if self.display_env else False))
+        self.wrapped_env = RecordVideo(env,
+                                       self.run_directory,
+                                       episode_trigger=(None if self.display_env else lambda e: False))
+        try:
+            self.wrapped_env.unwrapped.set_record_video_wrapper(self.wrapped_env)
+        except AttributeError:
+            pass
+        self.wrapped_env = RecordEpisodeStatistics(self.wrapped_env)
         self.episode = 0
         self.writer = SummaryWriter(str(self.run_directory))
         self.agent.set_writer(self.writer)
@@ -119,7 +124,7 @@ class Evaluation(object):
         """
         self.training = False
         if self.display_env:
-            self.monitor.video_callable = MonitorV2.always_call_video
+            self.wrapped_env.episode_trigger = lambda e: True
         try:
             self.agent.eval()
         except AttributeError:
@@ -169,7 +174,7 @@ class Evaluation(object):
 
         # Step the environment
         previous_observation, action = self.observation, actions[0]
-        self.observation, reward, terminal, info = self.monitor.step(action)
+        self.observation, reward, terminal, info = self.wrapped_env.step(action)
 
         # Record the experience.
         try:
@@ -283,7 +288,7 @@ class Evaluation(object):
 
         episode_path = None
         if do_save:
-            episode_path = Path(self.monitor.directory) / "checkpoint-{}.tar".format(identifier)
+            episode_path = Path(self.run_directory) / "checkpoint-{}.tar".format(identifier)
             try:
                 self.agent.save(filename=permanent_folder / "latest.tar")
                 episode_path = self.agent.save(filename=episode_path)
@@ -322,7 +327,7 @@ class Evaluation(object):
     def after_some_episodes(self, episode, rewards,
                             best_increase=1.1,
                             episodes_window=50):
-        if self.monitor.is_episode_selected():
+        if capped_cubic_video_schedule(episode):
             # Save the model
             if self.training:
                 self.save_agent_model(episode)
@@ -346,24 +351,24 @@ class Evaluation(object):
 
     def write_metadata(self):
         metadata = dict(env=serialize(self.env), agent=serialize(self.agent))
-        file_infix = '{}.{}'.format(self.monitor.monitor_id, os.getpid())
+        file_infix = '{}.{}'.format(id(self.wrapped_env), os.getpid())
         file = self.run_directory / self.METADATA_FILE.format(file_infix)
         with file.open('w') as f:
             json.dump(metadata, f, sort_keys=True, indent=4)
 
     def write_logging(self):
-        file_infix = '{}.{}'.format(self.monitor.monitor_id, os.getpid())
+        file_infix = '{}.{}'.format(id(self.wrapped_env), os.getpid())
         rl_agents.trainer.logger.configure()
         rl_agents.trainer.logger.add_file_handler(self.run_directory / self.LOGGING_FILE.format(file_infix))
 
     def seed(self, episode=0):
         seed = self.sim_seed + episode if self.sim_seed is not None else None
-        seed = self.monitor.seed(seed)
+        seed = self.wrapped_env.seed(seed)
         self.agent.seed(seed[0])  # Seed the agent with the main environment seed
         return seed
 
     def reset(self):
-        self.observation = self.monitor.reset()
+        self.observation = self.wrapped_env.reset()
         self.agent.reset()
 
     def close(self):
@@ -372,7 +377,7 @@ class Evaluation(object):
         """
         if self.training:
             self.save_agent_model("final")
-        self.monitor.close()
+        self.wrapped_env.close()
         self.writer.close()
         if self.close_env:
             self.env.close()

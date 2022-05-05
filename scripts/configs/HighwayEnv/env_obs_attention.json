@@ -1,6 +1,10 @@
 {
     "id": "highway-v0",
     "import_module": "highway_env",
+    "lanes_count": 3,
+    "vehicles_count": 15,
+    "policy_frequency": 2,
+    "duration": 40,
     "observation": {
         "type": "Kinematics",
         "vehicles_count": 15,
