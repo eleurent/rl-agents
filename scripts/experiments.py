@@ -79,7 +79,7 @@ def evaluate(environment_config, agent_config, options):
         evaluation.test()
     else:
         evaluation.close()
-    return os.path.relpath(evaluation.monitor.directory)
+    return os.path.relpath(evaluation.run_directory)
 
 
 def benchmark(options):
