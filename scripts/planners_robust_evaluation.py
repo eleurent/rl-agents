@@ -125,8 +125,8 @@ def evaluate(experiment):
         })
     else:
         evaluation.test()
-        rewards = evaluation.monitor.stats_recorder.episode_rewards_[0]
-        length = evaluation.monitor.stats_recorder.episode_lengths[0]
+        rewards = evaluation.wrapped_env.episode_returns[0]
+        length = evaluation.wrapped_env.episode_lengths[0]
         total_reward = np.sum(rewards)
 
         cum_discount = lambda signal, gamma: np.sum([gamma**t * signal[t] for t in range(len(signal))])
