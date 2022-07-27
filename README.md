@@ -35,7 +35,8 @@ A collection of Reinforcement Learning agents
 
 # Usage
 
-Most experiments can be run from `scripts/experiments.py`
+Most experiments can be started by moving to 
+`cd scripts` and running `python experiments.py`
 
 ```
 Usage:
