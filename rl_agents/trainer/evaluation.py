@@ -66,7 +66,7 @@ class Evaluation(object):
         self.agent = agent
         self.num_episodes = num_episodes
         self.training = training
-        self.sim_seed = sim_seed
+        self.sim_seed = sim_seed if sim_seed is not None else np.random.randint(0, 1e6)
         self.close_env = close_env
         self.display_env = display_env
 
@@ -363,8 +363,8 @@ class Evaluation(object):
 
     def seed(self, episode=0):
         seed = self.sim_seed + episode if self.sim_seed is not None else None
-        seed = self.wrapped_env.seed(seed)
-        self.agent.seed(seed[0])  # Seed the agent with the main environment seed
+        self.wrapped_env.seed(seed)
+        self.agent.seed(seed)  # Seed the agent with the main environment seed
         return seed
 
     def reset(self):
