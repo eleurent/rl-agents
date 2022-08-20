@@ -124,7 +124,7 @@ def safe_deepcopy_env(obj):
     result = cls.__new__(cls)
     memo = {id(obj): result}
     for k, v in obj.__dict__.items():
-        if k not in ['viewer', '_monitor', 'grid_render']:
+        if k not in ['viewer', '_monitor', 'grid_render', 'video_recorder', '_record_video_wrapper']:
             if isinstance(v, gym.Env):
                 setattr(result, k, safe_deepcopy_env(v))
             else:
