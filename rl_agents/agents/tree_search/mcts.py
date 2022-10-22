@@ -140,10 +140,9 @@ class MCTS(AbstractPlanner):
         total_reward = 0
         depth = 0
         terminal = False
-        state.seed(self.np_random.randint(2**30))
         while depth < self.config['horizon'] and node.children and not terminal:
             action = node.sampling_rule(temperature=self.config['temperature'])
-            observation, reward, terminal, _ = self.step(state, action)
+            observation, reward, terminal, truncated, _ = self.step(state, action)
             total_reward += self.config["gamma"] ** depth * reward
             node_observation = observation if self.config["closed_loop"] else None
             node = node.get_child(action, observation=node_observation)
@@ -171,9 +170,9 @@ class MCTS(AbstractPlanner):
         for h in range(depth, self.config["horizon"]):
             actions, probabilities = self.rollout_policy(state, observation)
             action = self.np_random.choice(actions, 1, p=np.array(probabilities))[0]
-            observation, reward, terminal, _ = self.step(state, action)
+            observation, reward, terminal, truncated, _ = self.step(state, action)
             total_reward += self.config["gamma"] ** h * reward
-            if np.all(terminal):
+            if np.all(terminal) or np.all(truncated):
                 break
         return total_reward
 

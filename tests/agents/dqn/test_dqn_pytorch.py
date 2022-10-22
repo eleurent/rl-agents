@@ -10,17 +10,17 @@ def test_cartpole():
     env = gym.make('CartPole-v0')
     agent = DQNAgent(env, config=None)
 
-    state = env.reset()
+    state, info = env.reset()
     n = 2 * agent.config['batch_size']
     for _ in range(n):
         action = agent.act(state)
         assert action is not None
 
-        next_state, reward, done, info = env.step(action)
+        next_state, reward, done, truncated, info = env.step(action)
         agent.record(state, action, reward, next_state, done, info)
 
         if done:
-            state = env.reset()
+            state, info = env.reset()
         else:
             state = next_state
 

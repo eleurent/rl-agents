@@ -178,7 +178,7 @@ class Evaluation(object):
 
         # Record the experience.
         try:
-            self.agent.record(previous_observation, action, reward, self.observation, terminal, info)
+            self.agent.record(previous_observation, action, reward, self.observation, done, info)
         except NotImplementedError:
             pass
 
@@ -320,7 +320,7 @@ class Evaluation(object):
         self.writer.add_scalar('episode/length', len(rewards), episode)
         self.writer.add_scalar('episode/total_reward', sum(rewards), episode)
         self.writer.add_scalar('episode/return', sum(r*gamma**t for t, r in enumerate(rewards)), episode)
-        self.writer.add_scalar('episode/fps', len(rewards) / duration, episode)
+        self.writer.add_scalar('episode/fps', len(rewards) / max(duration, 1e-6), episode)
         self.writer.add_histogram('episode/rewards', rewards, episode)
         logger.info("Episode {} score: {:.1f}".format(episode, sum(rewards)))
 
