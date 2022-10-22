@@ -38,7 +38,7 @@ class DeterministicNode(Node):
                                                self.planner,
                                                state=safe_deepcopy_env(self.state),
                                                depth=self.depth + 1)
-            observation, reward, done, _ = self.planner.step(self.children[action].state, action)
+            observation, reward, done, truncated, info = self.planner.step(self.children[action].state, action)
             self.planner.leaves.append(self.children[action])
             self.children[action].update(reward, done, observation)
 

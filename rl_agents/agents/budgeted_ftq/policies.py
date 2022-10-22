@@ -71,7 +71,7 @@ class PytorchBudgetedFittedPolicy(BudgetedPolicy):
 
     def execute(self, state, beta):
         mixture, _ = self.greedy_policy(state, beta)
-        choice = mixture.sup if self.np_random.rand() < mixture.probability_sup else mixture.inf
+        choice = mixture.sup if self.np_random.uniform() < mixture.probability_sup else mixture.inf
         return choice.action, choice.budget
 
     def greedy_policy(self, state, beta):

@@ -84,7 +84,7 @@ class BFTQAgent(AbstractAgent):
             Run the exploration policy to pick actions and budgets
         """
         # TODO: Choose the initial budget for the next episode and not at each step
-        self.beta = self.np_random.rand() if self.training else self.config["beta"]
+        self.beta = self.np_random.uniform() if self.training else self.config["beta"]
 
         state = state.flatten()
         self.previous_state, self.previous_beta = state, self.beta

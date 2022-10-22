@@ -157,9 +157,9 @@ class AbstractPlanner(Configurable):
         return actions
 
     def step(self, state, action):
-        observation, reward, done, info = state.step(action)
-        self.observations.append(observation)
-        return observation, reward, done, info
+        step_data = state.step(action)
+        self.observations.append(step_data[0])
+        return step_data
 
     def get_visits(self):
         visits = defaultdict(int)

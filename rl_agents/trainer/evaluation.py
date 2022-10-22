@@ -136,8 +136,7 @@ class Evaluation(object):
         for self.episode in range(self.num_episodes):
             # Run episode
             terminal = False
-            self.seed(self.episode)
-            self.reset()
+            self.reset(seed=self.episode)
             rewards = []
             start_time = time.time()
             while not terminal:
@@ -174,7 +173,8 @@ class Evaluation(object):
 
         # Step the environment
         previous_observation, action = self.observation, actions[0]
-        self.observation, reward, terminal, info = self.wrapped_env.step(action)
+        self.observation, reward, done, truncated, info = self.wrapped_env.step(action)
+        terminal = done or truncated
 
         # Record the experience.
         try:
@@ -361,14 +361,10 @@ class Evaluation(object):
         rl_agents.trainer.logger.configure()
         rl_agents.trainer.logger.add_file_handler(self.run_directory / self.LOGGING_FILE.format(file_infix))
 
-    def seed(self, episode=0):
-        seed = self.sim_seed + episode if self.sim_seed is not None else None
-        self.wrapped_env.seed(seed)
-        self.agent.seed(seed)  # Seed the agent with the main environment seed
-        return seed
-
-    def reset(self):
+    def reset(self, seed=0):
+        seed = self.sim_seed + seed if self.sim_seed is not None else None
         self.observation = self.wrapped_env.reset()
+        self.agent.seed(seed)  # Seed the agent with the main environment seed
         self.agent.reset()
 
     def close(self):
