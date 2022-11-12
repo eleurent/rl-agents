@@ -363,7 +363,7 @@ class Evaluation(object):
 
     def reset(self, seed=0):
         seed = self.sim_seed + seed if self.sim_seed is not None else None
-        self.observation = self.wrapped_env.reset()
+        self.observation, info = self.wrapped_env.reset()
         self.agent.seed(seed)  # Seed the agent with the main environment seed
         self.agent.reset()
 
