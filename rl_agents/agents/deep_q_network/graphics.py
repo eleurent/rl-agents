@@ -106,6 +106,7 @@ class DQNGraphics(object):
             if not obs_type.absolute and v_index > 0:
                 v_position += agent.env.unwrapped.vehicle.position
             vehicle = min(agent.env.road.vehicles, key=lambda v: np.linalg.norm(v.position - v_position))
+            vehicle = agent.env.unwrapped.vehicle if v_index == 0 else vehicle
             v_attention[vehicle] = attention[:, v_index]
         return v_attention
 
