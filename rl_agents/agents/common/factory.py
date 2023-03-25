@@ -2,7 +2,7 @@ import copy
 import importlib
 import json
 import logging
-import gym
+import gymnasium as gym
 
 from rl_agents.configuration import Configurable
 

@@ -1,8 +1,7 @@
 import itertools
 
-import gym
 import numpy as np
-from gym import Wrapper
+from gymnasium import Wrapper
 from numpy.linalg import LinAlgError
 
 from rl_agents.agents.common.factory import safe_deepcopy_env

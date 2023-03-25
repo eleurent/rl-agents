@@ -1,5 +1,5 @@
 import numpy as np
-from gym.utils import seeding
+from gymnasium.utils import seeding
 from abc import abstractmethod, ABC
 
 from rl_agents.configuration import Configurable

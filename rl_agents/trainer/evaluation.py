@@ -7,7 +7,7 @@ from multiprocessing.pool import Pool
 from pathlib import Path
 import numpy as np
 from tensorboardX import SummaryWriter
-from gym.wrappers import RecordVideo, RecordEpisodeStatistics, capped_cubic_video_schedule
+from gymnasium.wrappers import RecordVideo, RecordEpisodeStatistics, capped_cubic_video_schedule
 
 import rl_agents.trainer.logger
 from rl_agents.agents.common.factory import load_environment, load_agent

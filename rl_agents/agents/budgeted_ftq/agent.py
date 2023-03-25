@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 import torch
-from gym.utils import seeding
+from gymnasium.utils import seeding
 
 from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.budgeted_ftq.bftq import BudgetedFittedQ

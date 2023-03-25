@@ -1,6 +1,6 @@
 import numpy as np
-from gym import Env, spaces
-from gym.envs.registration import register
+from gymnasium import Env, spaces
+from gymnasium.envs.registration import register
 
 
 class DynamicsEnv(Env):
@@ -26,7 +26,7 @@ class DynamicsEnv(Env):
         # TODO: include action noise?
         pass
 
-    def render(self, mode='human'):
+    def render(self):
         pass
 
 

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from gym import spaces
+from gymnasium import spaces
 from torch.nn import functional as F
 
 from rl_agents.configuration import Configurable
@@ -423,9 +423,9 @@ def size_model_config(env, model_config):
         model_config["in"] = int(np.prod(obs_shape))
 
     if isinstance(env.action_space, spaces.Discrete):
-        model_config["out"] = env.action_space.n
+        model_config["out"] = int(env.action_space.n)
     elif isinstance(env.action_space, spaces.Tuple):
-        model_config["out"] = env.action_space.spaces[0].n
+        model_config["out"] = int(env.action_space.spaces[0].n)
 
 
 def model_factory(config: dict) -> nn.Module:

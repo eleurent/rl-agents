@@ -1,9 +1,8 @@
 import logging
 from collections import defaultdict
 
-import gym
 import numpy as np
-from gym.utils import seeding
+from gymnasium.utils import seeding
 
 from rl_agents.agents.common.abstract import AbstractAgent
 from rl_agents.agents.common.factory import preprocess_env, safe_deepcopy_env

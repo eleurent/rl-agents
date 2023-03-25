@@ -1,5 +1,5 @@
 import collections
-from gym.core import Env
+from gymnasium.core import Env
 
 
 class Configurable(object):

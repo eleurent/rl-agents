@@ -1,7 +1,7 @@
 import numpy as np
-from gym import Env, spaces
-from gym.envs.registration import register
-from gym.utils import seeding
+from gymnasium import Env, spaces
+from gymnasium.envs.registration import register
+from gymnasium.utils import seeding
 
 
 class GridEnv(Env):

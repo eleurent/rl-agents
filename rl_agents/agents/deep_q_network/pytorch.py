@@ -1,6 +1,6 @@
 import logging
 import torch
-from gym import spaces
+from gymnasium import spaces
 
 from rl_agents.agents.common.memory import Transition
 from rl_agents.agents.common.models import model_factory, size_model_config, trainable_parameters

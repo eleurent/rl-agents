@@ -1,5 +1,5 @@
 import numpy as np
-from gym import spaces
+from gymnasium import spaces
 
 from rl_agents.agents.common.exploration.abstract import DiscreteDistribution
 
