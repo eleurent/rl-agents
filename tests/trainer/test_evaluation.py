@@ -1,5 +1,5 @@
 from pathlib import Path
-import gym
+import gymnasium as gym
 
 from rl_agents.agents.simple.random import RandomUniformAgent
 from rl_agents.trainer.evaluation import Evaluation
