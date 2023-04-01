@@ -22,7 +22,7 @@ from collections import OrderedDict
 from itertools import product
 from multiprocessing.pool import Pool
 
-import gym
+import gymnasium as gym
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd

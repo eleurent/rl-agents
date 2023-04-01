@@ -1,5 +1,5 @@
 from collections import defaultdict
-import gym
+import gymnasium as gym
 from pathlib import Path
 import itertools
 import numpy as np

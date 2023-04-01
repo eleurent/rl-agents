@@ -1,7 +1,7 @@
 import json
 import logging.config
 from pathlib import Path
-import gym
+import gymnasium as gym
 
 from rl_agents.configuration import Configurable
 

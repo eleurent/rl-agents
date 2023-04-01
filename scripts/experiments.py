@@ -21,7 +21,7 @@ Options:
 import datetime
 import os
 from pathlib import Path
-import gym
+import gymnasium as gym
 import json
 from docopt import docopt
 from itertools import product
