@@ -43,7 +43,8 @@ class Evaluation(object):
                  display_env=True,
                  display_agent=True,
                  display_rewards=True,
-                 close_env=True):
+                 close_env=True,
+                 step_callback_fn=None):
         """
 
         :param env: The environment to be solved, possibly wrapping an AbstractEnv environment
@@ -60,6 +61,8 @@ class Evaluation(object):
         :param display_agent: Add the agent graphics to the environment viewer, if supported
         :param display_rewards: Display the performances of the agent through the episodes
         :param close_env: Should the environment be closed when the evaluation is closed
+        :param step_callback_fn: A callback function called after every environment step. It takes the following
+               arguments: (episode, env, agent, transition, writer).
 
         """
         self.env = env
@@ -69,6 +72,7 @@ class Evaluation(object):
         self.sim_seed = sim_seed if sim_seed is not None else np.random.randint(0, 1e6)
         self.close_env = close_env
         self.display_env = display_env
+        self.step_callback_fn = step_callback_fn
 
         self.directory = Path(directory or self.default_directory)
         self.run_directory = self.directory / (run_directory or self.default_run_directory)
@@ -173,8 +177,13 @@ class Evaluation(object):
 
         # Step the environment
         previous_observation, action = self.observation, actions[0]
-        self.observation, reward, done, truncated, info = self.wrapped_env.step(action)
+        transition = self.wrapped_env.step(action)
+        self.observation, reward, done, truncated, info = transition
         terminal = done or truncated
+
+        # Call callback
+        if self.step_callback_fn is not None:
+            self.step_callback_fn(self.episode, self.wrapped_env, self.agent, transition, self.writer)
 
         # Record the experience.
         try:
