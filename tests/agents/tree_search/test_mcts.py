@@ -1,4 +1,4 @@
-import gym
+import gymnasium as gym
 from rl_agents.agents.tree_search.mcts import MCTSAgent
 
 
