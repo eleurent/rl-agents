@@ -216,7 +216,7 @@ class Evaluation(object):
             cpu_processes = self.agent.config["processes"] or os.cpu_count()
             workers_sample_counts = near_split(batch_size, cpu_processes)
             workers_starts = list(np.cumsum(np.insert(workers_sample_counts[:-1], 0, 0)) + np.sum(batch_sizes[:batch]))
-            base_seed = self.seed(batch * cpu_processes)[0]
+            base_seed = batch * cpu_processes
             workers_seeds = [base_seed + i for i in range(cpu_processes)]
             workers_params = list(zip_with_singletons(env_config,
                                                       agent_config,
