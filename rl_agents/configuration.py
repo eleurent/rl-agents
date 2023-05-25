@@ -1,4 +1,4 @@
-import collections
+from collections.abc import Mapping
 from gymnasium.core import Env
 
 
@@ -37,7 +37,7 @@ class Configurable(object):
         :return: d updated recursively with u
         """
         for k, v in u.items():
-            if isinstance(v, collections.Mapping):
+            if isinstance(v, Mapping):
                 d[k] = Configurable.rec_update(d.get(k, {}), v)
             else:
                 d[k] = v
