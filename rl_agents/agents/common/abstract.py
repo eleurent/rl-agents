@@ -8,7 +8,7 @@ class AbstractAgent(Configurable, ABC):
     def __init__(self, config=None):
         super(AbstractAgent, self).__init__(config)
         self.writer = None  # Tensorboard writer
-        self.directoy = None  # Run directory
+        self.directory = None  # Run directory
 
     """
         An abstract class specifying the interface of a generic agent.
