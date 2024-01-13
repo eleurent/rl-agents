@@ -2,7 +2,7 @@
 
 A collection of Reinforcement Learning agents
 
-![build](https://github.com/eleurent/rl-agents/workflows/build/badge.svg)
+[![build](https://github.com/eleurent/rl-agents/actions/workflows/build.yml/badge.svg)](https://github.com/eleurent/rl-agents/actions/workflows/build.yml)
 
 * [Installation](#installation)
 * [Usage](#usage)
