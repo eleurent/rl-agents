@@ -6,7 +6,7 @@ from rl_agents.trainer.evaluation import Evaluation
 
 
 def test_evaluation(tmpdir):
-    env = gym.make('CartPole-v0')
+    env = gym.make('CartPole-v0', render_mode='rgb_array')
     agent = RandomUniformAgent(env)
     evaluation = Evaluation(env,
                             agent,
